@@ -1,92 +1,67 @@
 import React, { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react'
+import { TrendingUp, TrendingDown, RefreshCw, AlertCircle } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
-import StatCard from '../components/StatCard'
+import marketDataService from '../services/marketDataService'
 
 const Market = () => {
-  const [loading, setLoading] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState(new Date())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [lastUpdate, setLastUpdate] = useState(null)
+  const [marketData, setMarketData] = useState(null)
 
-  // Mock market data
-  const marketIndices = [
-    {
-      name: 'S&P 500',
-      symbol: '^GSPC',
-      price: 5234.18,
-      change: 45.23,
-      changePercent: 0.87,
-      isPositive: true
-    },
-    {
-      name: 'Nasdaq',
-      symbol: '^IXIC',
-      price: 16341.24,
-      change: 123.45,
-      changePercent: 0.76,
-      isPositive: true
-    },
-    {
-      name: 'Dow Jones',
-      symbol: '^DJI',
-      price: 38789.34,
-      change: -56.12,
-      changePercent: -0.14,
-      isPositive: false
-    },
-    {
-      name: 'Gold',
-      symbol: 'GC=F',
-      price: 2387.50,
-      change: 12.30,
-      changePercent: 0.52,
-      isPositive: true
-    },
-  ]
+  const fetchMarketData = async () => {
+    setLoading(true)
+    setError(null)
 
-  const cryptocurrencies = [
-    {
-      name: 'Bitcoin',
-      symbol: 'BTC',
-      price: 67234.50,
-      change: 1234.50,
-      changePercent: 1.87,
-      isPositive: true,
-      marketCap: '1.32T'
-    },
-    {
-      name: 'Ethereum',
-      symbol: 'ETH',
-      price: 3456.78,
-      change: -45.23,
-      changePercent: -1.29,
-      isPositive: false,
-      marketCap: '415B'
-    },
-  ]
+    try {
+      const data = await marketDataService.getAllMarketData()
+      setMarketData(data)
+      setLastUpdate(data.lastUpdate)
+    } catch (err) {
+      console.error('Market data error:', err)
+      setError('실시간 데이터를 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const currencyRates = [
-    { pair: 'USD/KRW', rate: 1342.50, change: 5.20, changePercent: 0.39, isPositive: true },
-    { pair: 'EUR/USD', rate: 1.0856, change: -0.0023, changePercent: -0.21, isPositive: false },
-    { pair: 'USD/JPY', rate: 149.82, change: 0.45, changePercent: 0.30, isPositive: true },
-  ]
+  useEffect(() => {
+    fetchMarketData()
 
-  const sp500History = [
-    { time: '09:30', price: 5190 },
-    { time: '10:00', price: 5200 },
-    { time: '11:00', price: 5195 },
-    { time: '12:00', price: 5210 },
-    { time: '13:00', price: 5215 },
-    { time: '14:00', price: 5220 },
-    { time: '15:00', price: 5234 },
-  ]
+    // Auto refresh every 2 minutes
+    const interval = setInterval(fetchMarketData, 120000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleRefresh = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      setLastUpdate(new Date())
-    }, 1000)
+    fetchMarketData()
+  }
+
+  if (loading && !marketData) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <RefreshCw className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">실시간 시장 데이터 로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-danger mx-auto mb-4" />
+          <p className="text-gray-900 font-medium mb-2">데이터 로드 실패</p>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button onClick={handleRefresh} className="btn-primary">
+            다시 시도
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -94,9 +69,12 @@ const Market = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-600">
-            마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
-          </p>
+          <h2 className="text-2xl font-bold text-gray-900">실시간 시장 데이터</h2>
+          {lastUpdate && (
+            <p className="text-sm text-gray-600 mt-1">
+              마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
+            </p>
+          )}
         </div>
         <button
           onClick={handleRefresh}
@@ -108,101 +86,159 @@ const Market = () => {
         </button>
       </div>
 
-      {/* Market Indices */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">주요 지수</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {marketIndices.map((index) => (
-            <div key={index.symbol} className="card">
-              <p className="text-sm text-gray-600 mb-1">{index.name}</p>
-              <p className="text-2xl font-bold text-gray-900 mb-2">
-                {index.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </p>
-              <div className={`flex items-center gap-1 text-sm ${
-                index.isPositive ? 'text-success' : 'text-danger'
-              }`}>
-                {index.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                <span>
-                  {index.isPositive ? '+' : ''}{index.change.toFixed(2)} ({index.isPositive ? '+' : ''}{index.changePercent.toFixed(2)}%)
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Data Source Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>📡 실시간 데이터:</strong> CoinGecko API (암호화폐), Yahoo Finance (주식/지수), ExchangeRate API (환율)
+        </p>
       </div>
 
-      {/* S&P 500 Chart */}
-      <ChartCard title="S&P 500 실시간 차트" subtitle="오늘 장중 변화">
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={sp500History}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="time" stroke="#6b7280" />
-            <YAxis stroke="#6b7280" domain={['dataMin - 10', 'dataMax + 10']} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px'
-              }}
+      {/* Stock Indices */}
+      {marketData?.stocks && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">주요 지수</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <IndexCard
+              name="S&P 500"
+              data={marketData.stocks.sp500}
             />
-            <Line
-              type="monotone"
-              dataKey="price"
-              stroke="#0ea5e9"
-              strokeWidth={2}
-              dot={false}
+            <IndexCard
+              name="Nasdaq"
+              data={marketData.stocks.nasdaq}
             />
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartCard>
+            <IndexCard
+              name="Dow Jones"
+              data={marketData.stocks.dow}
+            />
+            <IndexCard
+              name="Gold"
+              data={marketData.stocks.gold}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Cryptocurrencies */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">암호화폐</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {cryptocurrencies.map((crypto) => (
-            <div key={crypto.symbol} className="card">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-sm text-gray-600">{crypto.name}</p>
-                  <p className="text-xs text-gray-500">{crypto.symbol}</p>
-                </div>
-                <span className="text-xs text-gray-500">시가총액: ${crypto.marketCap}</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 mb-2">
-                ${crypto.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </p>
-              <div className={`flex items-center gap-1 text-sm ${
-                crypto.isPositive ? 'text-success' : 'text-danger'
-              }`}>
-                {crypto.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                <span>
-                  {crypto.isPositive ? '+' : ''}{crypto.change.toFixed(2)} ({crypto.isPositive ? '+' : ''}{crypto.changePercent.toFixed(2)}%)
-                </span>
-              </div>
-            </div>
-          ))}
+      {marketData?.crypto && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">암호화폐 (실시간)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CryptoCard crypto={marketData.crypto.bitcoin} />
+            <CryptoCard crypto={marketData.crypto.ethereum} />
+            <CryptoCard crypto={marketData.crypto.binancecoin} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Currency Rates */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">환율</h3>
-        <div className="space-y-3">
-          {currencyRates.map((currency) => (
-            <div key={currency.pair} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-              <div>
-                <p className="font-medium text-gray-900">{currency.pair}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-gray-900">{currency.rate.toFixed(2)}</p>
-                <p className={`text-sm ${currency.isPositive ? 'text-success' : 'text-danger'}`}>
-                  {currency.isPositive ? '+' : ''}{currency.change.toFixed(4)} ({currency.isPositive ? '+' : ''}{currency.changePercent.toFixed(2)}%)
-                </p>
-              </div>
-            </div>
-          ))}
+      {marketData?.currency && (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">환율 (실시간)</h3>
+          <div className="space-y-3">
+            <CurrencyRow
+              pair="USD/KRW"
+              rate={marketData.currency.usdKrw.rate}
+            />
+            <CurrencyRow
+              pair="EUR/USD"
+              rate={marketData.currency.eurUsd.rate}
+            />
+            <CurrencyRow
+              pair="USD/JPY"
+              rate={marketData.currency.usdJpy.rate}
+            />
+          </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+// Index Card Component
+const IndexCard = ({ name, data }) => {
+  if (!data || data.error) {
+    return (
+      <div className="card bg-gray-50">
+        <p className="text-sm text-gray-600 mb-1">{name}</p>
+        <p className="text-sm text-gray-500">데이터 로드 실패</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card hover:shadow-md transition-shadow">
+      <p className="text-sm text-gray-600 mb-1">{name}</p>
+      <p className="text-2xl font-bold text-gray-900 mb-2">
+        {data.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </p>
+      <div className={`flex items-center gap-1 text-sm ${
+        data.isPositive ? 'text-success' : 'text-danger'
+      }`}>
+        {data.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+        <span>
+          {data.isPositive ? '+' : ''}{data.change.toFixed(2)} ({data.isPositive ? '+' : ''}{data.changePercent.toFixed(2)}%)
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// Crypto Card Component
+const CryptoCard = ({ crypto }) => {
+  if (!crypto || crypto.error) {
+    return (
+      <div className="card bg-gray-50">
+        <p className="text-sm text-gray-600">{crypto?.name || 'Crypto'}</p>
+        <p className="text-sm text-gray-500">데이터 로드 실패</p>
+      </div>
+    )
+  }
+
+  const formatMarketCap = (value) => {
+    if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`
+    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`
+    return `$${value.toFixed(2)}`
+  }
+
+  return (
+    <div className="card hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <p className="font-medium text-gray-900">{crypto.name}</p>
+          <p className="text-xs text-gray-500">{crypto.symbol}</p>
+        </div>
+        {crypto.marketCap && (
+          <span className="text-xs text-gray-500">
+            시가총액: {formatMarketCap(crypto.marketCap)}
+          </span>
+        )}
+      </div>
+      <p className="text-2xl font-bold text-gray-900 mb-2">
+        ${crypto.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </p>
+      <div className={`flex items-center gap-1 text-sm ${
+        crypto.isPositive ? 'text-success' : 'text-danger'
+      }`}>
+        {crypto.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+        <span>
+          {crypto.isPositive ? '+' : ''}{crypto.change24h.toFixed(2)}% (24h)
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// Currency Row Component
+const CurrencyRow = ({ pair, rate }) => {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+      <div>
+        <p className="font-medium text-gray-900">{pair}</p>
+      </div>
+      <div className="text-right">
+        <p className="font-bold text-gray-900">
+          {rate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+        </p>
       </div>
     </div>
   )
