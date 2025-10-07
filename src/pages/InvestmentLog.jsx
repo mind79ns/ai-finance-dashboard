@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Calendar, Plus, Filter } from 'lucide-react'
+import { Calendar, Plus, Filter, X } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
 
 const InvestmentLog = () => {
@@ -38,6 +38,15 @@ const InvestmentLog = () => {
 
   const [filterType, setFilterType] = useState('all')
   const [filterMonth, setFilterMonth] = useState('all')
+  const [showModal, setShowModal] = useState(false)
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    type: 'buy',
+    asset: '',
+    quantity: '',
+    price: '',
+    note: ''
+  })
 
   const filteredLogs = logs.filter(log => {
     if (filterType !== 'all' && log.type !== filterType) return false
@@ -52,6 +61,52 @@ const InvestmentLog = () => {
     totalBuy: logs.filter(l => l.type === 'buy').reduce((sum, l) => sum + l.total, 0),
     totalSell: logs.filter(l => l.type === 'sell').reduce((sum, l) => sum + l.total, 0),
     transactions: logs.length
+  }
+
+  const handleAddTransaction = () => {
+    setShowModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setFormData({
+      date: new Date().toISOString().split('T')[0],
+      type: 'buy',
+      asset: '',
+      quantity: '',
+      price: '',
+      note: ''
+    })
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+
+    const quantity = parseFloat(formData.quantity)
+    const price = parseFloat(formData.price)
+    const total = quantity * price
+
+    const newLog = {
+      id: Date.now(),
+      date: formData.date,
+      type: formData.type,
+      asset: formData.asset.toUpperCase(),
+      quantity,
+      price,
+      total,
+      note: formData.note
+    }
+
+    setLogs(prev => [newLog, ...prev])
+    handleCloseModal()
   }
 
   return (
@@ -113,7 +168,7 @@ const InvestmentLog = () => {
             <option value="11">12월</option>
           </select>
         </div>
-        <button className="btn-primary flex items-center gap-2">
+        <button onClick={handleAddTransaction} className="btn-primary flex items-center gap-2">
           <Plus className="w-5 h-5" />
           거래 추가
         </button>
@@ -183,6 +238,133 @@ const InvestmentLog = () => {
           </div>
         )}
       </ChartCard>
+
+      {/* Add Transaction Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">거래 추가</h3>
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  날짜
+                </label>
+                <input
+                  type="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  거래 유형
+                </label>
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="buy">매수</option>
+                  <option value="sell">매도</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  자산명 (예: AAPL, BTC, TSLA)
+                </label>
+                <input
+                  type="text"
+                  name="asset"
+                  value={formData.asset}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="AAPL"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    수량
+                  </label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleInputChange}
+                    required
+                    step="0.000001"
+                    min="0"
+                    placeholder="1.0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    가격 ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    required
+                    step="0.01"
+                    min="0"
+                    placeholder="100.00"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  메모 (선택)
+                </label>
+                <textarea
+                  name="note"
+                  value={formData.note}
+                  onChange={handleInputChange}
+                  rows="3"
+                  placeholder="거래에 대한 메모를 입력하세요..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 btn-primary"
+                >
+                  추가
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

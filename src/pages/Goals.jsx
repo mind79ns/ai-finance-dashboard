@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Target, Plus, TrendingUp, Calendar } from 'lucide-react'
+import { Target, Plus, TrendingUp, Calendar, X } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import ChartCard from '../components/ChartCard'
 
@@ -25,6 +25,15 @@ const Goals = () => {
     },
   ])
 
+  const [showModal, setShowModal] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    targetAmount: '',
+    currentAmount: '',
+    targetDate: '',
+    category: '장기목표'
+  })
+
   const projectionData = [
     { year: '2025', current: 12500, target: 20000 },
     { year: '2026', current: 0, target: 35000 },
@@ -46,6 +55,46 @@ const Goals = () => {
     return diffMonths
   }
 
+  const handleAddGoal = () => {
+    setShowModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setFormData({
+      name: '',
+      targetAmount: '',
+      currentAmount: '',
+      targetDate: '',
+      category: '장기목표'
+    })
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+
+    const newGoal = {
+      id: Date.now(),
+      name: formData.name,
+      targetAmount: parseFloat(formData.targetAmount),
+      currentAmount: parseFloat(formData.currentAmount || 0),
+      targetDate: formData.targetDate,
+      category: formData.category,
+      status: 'active'
+    }
+
+    setGoals(prev => [...prev, newGoal])
+    handleCloseModal()
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -59,7 +108,7 @@ const Goals = () => {
             <p className="text-sm text-gray-600">나의 재무 목표 달성 현황</p>
           </div>
         </div>
-        <button className="btn-primary flex items-center gap-2">
+        <button onClick={handleAddGoal} className="btn-primary flex items-center gap-2">
           <Plus className="w-5 h-5" />
           목표 추가
         </button>
@@ -230,6 +279,122 @@ const Goals = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Goal Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">목표 추가</h3>
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  목표 이름
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="예: 1억 달성"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  카테고리
+                </label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="장기목표">장기목표</option>
+                  <option value="단기목표">단기목표</option>
+                  <option value="배당수익">배당수익</option>
+                  <option value="저축">저축</option>
+                  <option value="부동산">부동산</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    현재 금액 ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="currentAmount"
+                    value={formData.currentAmount}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                    placeholder="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    목표 금액 ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="targetAmount"
+                    value={formData.targetAmount}
+                    onChange={handleInputChange}
+                    required
+                    step="0.01"
+                    min="0"
+                    placeholder="100000"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  목표 달성일
+                </label>
+                <input
+                  type="date"
+                  name="targetDate"
+                  value={formData.targetDate}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 btn-primary"
+                >
+                  추가
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
