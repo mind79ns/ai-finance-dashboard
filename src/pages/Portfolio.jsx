@@ -226,9 +226,30 @@ const Portfolio = () => {
     if (!file) return
 
     const reader = new FileReader()
+
+    // First, try reading as ArrayBuffer to detect encoding
     reader.onload = (e) => {
       try {
-        const text = e.target.result
+        const arrayBuffer = e.target.result
+        let text
+
+        // Try UTF-8 first
+        try {
+          const decoder = new TextDecoder('utf-8', { fatal: true })
+          text = decoder.decode(arrayBuffer)
+        } catch (utfError) {
+          // If UTF-8 fails, try EUC-KR
+          console.log('UTF-8 decoding failed, trying EUC-KR...')
+          try {
+            const decoder = new TextDecoder('euc-kr')
+            text = decoder.decode(arrayBuffer)
+          } catch (eucError) {
+            // Fallback to default
+            const decoder = new TextDecoder()
+            text = decoder.decode(arrayBuffer)
+          }
+        }
+
         const lines = text.split('\n').filter(line => line.trim())
 
         if (lines.length < 2) {
@@ -328,7 +349,8 @@ const Portfolio = () => {
       }
     }
 
-    reader.readAsText(file, 'UTF-8')
+    // Read as ArrayBuffer to support multiple encodings
+    reader.readAsArrayBuffer(file)
   }
 
   // CSV Export Handler
