@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye, Search, Filter, SortAsc } from 'lucide-react'
+import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye, Search, Filter, SortAsc, Upload, Download, FileText } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
 import SlidePanel from '../components/SlidePanel'
 import AssetDetailView from '../components/AssetDetailView'
@@ -66,6 +66,7 @@ const Portfolio = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState('전체')
   const [sortBy, setSortBy] = useState('default') // default, profit, profitPercent, value
+  const [showImportModal, setShowImportModal] = useState(false)
 
   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
   useEffect(() => {
@@ -221,6 +222,110 @@ const Portfolio = () => {
       return `₩${Math.round(value).toLocaleString('ko-KR')}`
     }
     return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+  }
+
+  // CSV Import Handler
+  const handleCSVImport = (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result
+        const lines = text.split('\n').filter(line => line.trim())
+
+        // Skip header row
+        const dataLines = lines.slice(1)
+
+        const importedAssets = []
+
+        dataLines.forEach(line => {
+          const [symbol, name, type, quantity, avgPrice, currency] = line.split(',').map(s => s.trim())
+
+          if (!symbol || !quantity || !avgPrice) return
+
+          const qty = parseFloat(quantity)
+          const price = parseFloat(avgPrice)
+          const curr = currency || 'USD' // Default to USD if not specified
+
+          importedAssets.push({
+            id: Date.now() + Math.random(),
+            symbol: symbol.toUpperCase(),
+            name: name || symbol,
+            type: type || '주식',
+            quantity: qty,
+            avgPrice: price,
+            currentPrice: price,
+            totalValue: qty * price,
+            profit: 0,
+            profitPercent: 0,
+            currency: curr
+          })
+        })
+
+        if (importedAssets.length > 0) {
+          const updatedAssets = [...assets, ...importedAssets]
+          setAssets(updatedAssets)
+          localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
+          alert(`✅ ${importedAssets.length}개 자산을 성공적으로 가져왔습니다!`)
+          setShowImportModal(false)
+        } else {
+          alert('⚠️ CSV 파일에서 유효한 데이터를 찾을 수 없습니다.')
+        }
+      } catch (error) {
+        console.error('CSV Import Error:', error)
+        alert('❌ CSV 파일을 읽는 중 오류가 발생했습니다.')
+      }
+    }
+
+    reader.readAsText(file)
+  }
+
+  // CSV Export Handler
+  const handleCSVExport = () => {
+    const headers = ['Symbol', 'Name', 'Type', 'Quantity', 'AvgPrice', 'Currency']
+    const csvData = assets.map(asset => [
+      asset.symbol,
+      asset.name,
+      asset.type,
+      asset.quantity,
+      asset.avgPrice,
+      asset.currency
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+
+    link.setAttribute('href', url)
+    link.setAttribute('download', `portfolio_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // JSON Export Handler
+  const handleJSONExport = () => {
+    const jsonData = JSON.stringify(assets, null, 2)
+    const blob = new Blob([jsonData], { type: 'application/json' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+
+    link.setAttribute('href', url)
+    link.setAttribute('download', `portfolio_${new Date().toISOString().split('T')[0]}.json`)
+    link.style.visibility = 'hidden'
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   // Filter and search logic
@@ -410,10 +515,27 @@ const Portfolio = () => {
             <h3 className="text-lg font-semibold text-gray-900">보유 자산</h3>
             <p className="text-sm text-gray-600 mt-1">전체 {assets.length}개 자산</p>
           </div>
-          <button onClick={handleAddAsset} className="btn-primary flex items-center gap-2">
-            <PlusCircle className="w-5 h-5" />
-            자산 추가
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              가져오기
+            </button>
+            <button
+              onClick={handleCSVExport}
+              className="btn-secondary flex items-center gap-2"
+              disabled={assets.length === 0}
+            >
+              <Download className="w-4 h-4" />
+              내보내기
+            </button>
+            <button onClick={handleAddAsset} className="btn-primary flex items-center gap-2">
+              <PlusCircle className="w-5 h-5" />
+              자산 추가
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -652,6 +774,88 @@ const Portfolio = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">📤 데이터 가져오기/내보내기</h3>
+              <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Import Section */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">📥 CSV 파일 가져오기</h4>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>CSV 형식:</strong> Symbol, Name, Type, Quantity, AvgPrice, Currency
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    예시: AAPL, Apple Inc., 주식, 10, 150.50, USD
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    💡 Currency: USD (해외주식), KRW (국내주식)
+                  </p>
+                </div>
+
+                <label className="btn-primary flex items-center justify-center gap-2 cursor-pointer">
+                  <Upload className="w-5 h-5" />
+                  CSV 파일 선택
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCSVImport}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Export Section */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">📤 데이터 내보내기</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={handleCSVExport}
+                    disabled={assets.length === 0}
+                    className="btn-secondary flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-5 h-5" />
+                    CSV 다운로드
+                  </button>
+                  <button
+                    onClick={handleJSONExport}
+                    disabled={assets.length === 0}
+                    className="btn-secondary flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-5 h-5" />
+                    JSON 다운로드
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  💾 백업용으로 정기적으로 데이터를 내보내기하세요
+                </p>
+              </div>
+
+              {/* Template Download */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-2">📋 CSV 템플릿 샘플</h4>
+                <pre className="text-xs bg-white p-3 rounded border border-gray-200 overflow-x-auto">
+{`Symbol,Name,Type,Quantity,AvgPrice,Currency
+AAPL,Apple Inc.,주식,10,150.50,USD
+TSLA,Tesla Inc.,주식,5,242.15,USD
+005930,삼성전자,주식,20,75000,KRW
+SPY,S&P 500 ETF,ETF,3,445.67,USD
+BTC,Bitcoin,코인,0.1,67234,USD`}
+                </pre>
+              </div>
+            </div>
           </div>
         </div>
       )}

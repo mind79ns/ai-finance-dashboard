@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Upload, Download } from 'lucide-react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import ChartCard from '../components/ChartCard'
@@ -51,6 +51,18 @@ const InvestmentLog = () => {
     price: '',
     note: ''
   })
+
+  // Load logs from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('investment_logs')
+    if (saved) {
+      try {
+        setLogs(JSON.parse(saved))
+      } catch (error) {
+        console.error('Failed to load logs:', error)
+      }
+    }
+  }, [])
 
   const filteredLogs = logs.filter(log => {
     if (filterType !== 'all' && log.type !== filterType) return false
@@ -109,8 +121,43 @@ const InvestmentLog = () => {
       note: formData.note
     }
 
-    setLogs(prev => [newLog, ...prev])
+    const updatedLogs = [newLog, ...logs]
+    setLogs(updatedLogs)
+    localStorage.setItem('investment_logs', JSON.stringify(updatedLogs))
     handleCloseModal()
+  }
+
+  // Export handlers
+  const handleExportCSV = () => {
+    const headers = ['Date', 'Type', 'Asset', 'Quantity', 'Price', 'Total', 'Note']
+    const csvData = logs.map(log => [
+      log.date,
+      log.type,
+      log.asset,
+      log.quantity,
+      log.price,
+      log.total,
+      log.note || ''
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `investment_log_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
+
+  const handleExportJSON = () => {
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `investment_log_${new Date().toISOString().split('T')[0]}.json`
+    link.click()
   }
 
   // Get logs for a specific date
@@ -258,10 +305,20 @@ const InvestmentLog = () => {
             </>
           )}
         </div>
-        <button onClick={handleAddTransaction} className="btn-primary flex items-center gap-2">
-          <Plus className="w-5 h-5" />
-          거래 추가
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            disabled={logs.length === 0}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            내보내기
+          </button>
+          <button onClick={handleAddTransaction} className="btn-primary flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            거래 추가
+          </button>
+        </div>
       </div>
 
       {/* List View */}
