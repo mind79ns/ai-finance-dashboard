@@ -7,48 +7,7 @@ import AssetDetailView from '../components/AssetDetailView'
 import marketDataService from '../services/marketDataService'
 
 const Portfolio = () => {
-  const [assets, setAssets] = useState([
-    {
-      id: 1,
-      symbol: 'AAPL',
-      name: 'Apple Inc.',
-      quantity: 10,
-      avgPrice: 150.00,
-      currentPrice: 185.23,
-      totalValue: 1852.30,
-      profit: 352.30,
-      profitPercent: 23.5,
-      type: '주식',
-      currency: 'USD'
-    },
-    {
-      id: 2,
-      symbol: 'SPY',
-      name: 'S&P 500 ETF',
-      quantity: 5,
-      avgPrice: 420.00,
-      currentPrice: 445.67,
-      totalValue: 2228.35,
-      profit: 128.35,
-      profitPercent: 6.1,
-      type: 'ETF',
-      currency: 'USD'
-    },
-    {
-      id: 3,
-      symbol: 'BTC',
-      name: 'Bitcoin',
-      quantity: 0.1,
-      avgPrice: 60000,
-      currentPrice: 67234,
-      totalValue: 6723.40,
-      profit: 723.40,
-      profitPercent: 12.1,
-      type: '코인',
-      currency: 'USD'
-    },
-  ])
-
+  const [assets, setAssets] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [showDetailPanel, setShowDetailPanel] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState(null)
@@ -67,6 +26,18 @@ const Portfolio = () => {
   const [filterType, setFilterType] = useState('전체')
   const [sortBy, setSortBy] = useState('default') // default, profit, profitPercent, value
   const [showImportModal, setShowImportModal] = useState(false)
+
+  // Load assets from localStorage on mount
+  useEffect(() => {
+    const savedAssets = localStorage.getItem('portfolio_assets')
+    if (savedAssets) {
+      try {
+        setAssets(JSON.parse(savedAssets))
+      } catch (error) {
+        console.error('Failed to load assets from localStorage:', error)
+      }
+    }
+  }, [])
 
   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
   useEffect(() => {
