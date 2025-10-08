@@ -155,9 +155,22 @@ const Portfolio = () => {
     수익률: parseFloat((asset.profitPercent || 0).toFixed(2))
   }))
 
-  const totalValue = assets.reduce((sum, asset) => sum + asset.totalValue, 0)
-  const totalProfit = assets.reduce((sum, asset) => sum + asset.profit, 0)
-  const avgProfitPercent = totalValue > totalProfit ? (totalProfit / (totalValue - totalProfit)) * 100 : 0
+  // USD 자산 계산
+  const usdAssets = assets.filter(a => a.currency === 'USD')
+  const usdTotalValue = usdAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
+  const usdTotalProfit = usdAssets.reduce((sum, asset) => sum + asset.profit, 0)
+  const usdAvgProfitPercent = usdTotalValue > usdTotalProfit ? (usdTotalProfit / (usdTotalValue - usdTotalProfit)) * 100 : 0
+
+  // KRW 자산 계산
+  const krwAssets = assets.filter(a => a.currency === 'KRW')
+  const krwTotalValue = krwAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
+  const krwTotalProfit = krwAssets.reduce((sum, asset) => sum + asset.profit, 0)
+  const krwAvgProfitPercent = krwTotalValue > krwTotalProfit ? (krwTotalProfit / (krwTotalValue - krwTotalProfit)) * 100 : 0
+
+  // 총 평가액 (원화 기준 통합)
+  const totalValueKRW = krwTotalValue + (usdTotalValue * exchangeRate)
+  const totalProfitKRW = krwTotalProfit + (usdTotalProfit * exchangeRate)
+  const totalAvgProfitPercent = totalValueKRW > totalProfitKRW ? (totalProfitKRW / (totalValueKRW - totalProfitKRW)) * 100 : 0
 
   const handleAddAsset = () => {
     setShowModal(true)
@@ -482,29 +495,70 @@ const Portfolio = () => {
 
       {/* Portfolio Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* 총 평가액 (원화 기준 통합) */}
         <div className="card">
-          <p className="text-sm text-gray-600 mb-1">총 평가액</p>
+          <p className="text-sm text-gray-600 mb-1">총 평가액 (원화 통합)</p>
           <p className="text-3xl font-bold text-gray-900">
-            ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ₩{totalValueKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
-            ₩{(totalValue * exchangeRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
-          </p>
+          <div className="mt-3 space-y-1">
+            {usdAssets.length > 0 && (
+              <p className="text-xs text-gray-500">
+                🇺🇸 USD: ${usdTotalValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                <span className="text-gray-400 ml-1">
+                  (₩{(usdTotalValue * exchangeRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })})
+                </span>
+              </p>
+            )}
+            {krwAssets.length > 0 && (
+              <p className="text-xs text-gray-500">
+                🇰🇷 KRW: ₩{krwTotalValue.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
+              </p>
+            )}
+          </div>
         </div>
+
+        {/* 총 수익금 (원화 기준 통합) */}
         <div className="card">
-          <p className="text-sm text-gray-600 mb-1">총 수익금</p>
-          <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
-            {totalProfit >= 0 ? '+' : ''}${totalProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          <p className="text-sm text-gray-600 mb-1">총 수익금 (원화 통합)</p>
+          <p className={`text-3xl font-bold ${totalProfitKRW >= 0 ? 'text-success' : 'text-danger'}`}>
+            {totalProfitKRW >= 0 ? '+' : ''}₩{totalProfitKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
-            {totalProfit >= 0 ? '+' : ''}₩{(totalProfit * exchangeRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
-          </p>
+          <div className="mt-3 space-y-1">
+            {usdAssets.length > 0 && (
+              <p className={`text-xs ${usdTotalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
+                🇺🇸 USD: {usdTotalProfit >= 0 ? '+' : ''}${usdTotalProfit.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                <span className="text-gray-400 ml-1">
+                  ({usdTotalProfit >= 0 ? '+' : ''}₩{(usdTotalProfit * exchangeRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })})
+                </span>
+              </p>
+            )}
+            {krwAssets.length > 0 && (
+              <p className={`text-xs ${krwTotalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
+                🇰🇷 KRW: {krwTotalProfit >= 0 ? '+' : ''}₩{krwTotalProfit.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
+              </p>
+            )}
+          </div>
         </div>
+
+        {/* 평균 수익률 */}
         <div className="card">
           <p className="text-sm text-gray-600 mb-1">평균 수익률</p>
-          <p className={`text-3xl font-bold ${avgProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
-            {avgProfitPercent >= 0 ? '+' : ''}{(avgProfitPercent || 0).toFixed(2)}%
+          <p className={`text-3xl font-bold ${totalAvgProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+            {totalAvgProfitPercent >= 0 ? '+' : ''}{(totalAvgProfitPercent || 0).toFixed(2)}%
           </p>
+          <div className="mt-3 space-y-1">
+            {usdAssets.length > 0 && (
+              <p className={`text-xs ${usdAvgProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                🇺🇸 USD: {usdAvgProfitPercent >= 0 ? '+' : ''}{(usdAvgProfitPercent || 0).toFixed(2)}%
+              </p>
+            )}
+            {krwAssets.length > 0 && (
+              <p className={`text-xs ${krwAvgProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                🇰🇷 KRW: {krwAvgProfitPercent >= 0 ? '+' : ''}{(krwAvgProfitPercent || 0).toFixed(2)}%
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
