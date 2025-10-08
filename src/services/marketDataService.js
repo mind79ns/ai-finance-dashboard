@@ -1,345 +1,456 @@
 import axios from 'axios'
 
-/**
- * Real-time Market Data Service - CORS Safe Version
- * Uses CORS-friendly APIs
- */
+// API Configuration
+const API_CONFIG = {
+  FINNHUB_API_KEY: import.meta.env.VITE_FINNHUB_API_KEY || '',
+  FRED_API_KEY: import.meta.env.VITE_FRED_API_KEY || '',
+}
 
+/**
+ * ✅ 완전히 재작성된 실시간 시장 데이터 서비스
+ *
+ * API 전략:
+ * - 🇺🇸 미국 주식/지수: Finnhub (무료, 실시간, CORS 지원)
+ * - 🪙 암호화폐: CoinGecko (무료, 실시간)
+ * - 💵 환율: ExchangeRate-API (무료, 실시간)
+ * - 🥇 금: Finnhub commodities
+ */
 class MarketDataService {
   constructor() {
+    this.finnhubBaseURL = 'https://finnhub.io/api/v1'
     this.coingeckoBaseURL = 'https://api.coingecko.com/api/v3'
-    this.cache = new Map()
-    this.cacheTimeout = 60000 // 1 minute cache
+    this.exchangeRateBaseURL = 'https://api.exchangerate-api.com/v4/latest'
+    this.fredBaseURL = 'https://api.stlouisfed.org/fred/series/observations'
+
+    // Simple cache to avoid excessive API calls
+    this.cache = {}
+    this.cacheExpiry = 60000 // 1 minute
   }
 
   /**
-   * Get cached data or fetch new
+   * Check if cached data is still valid
    */
-  async getCachedOrFetch(key, fetchFn) {
-    const cached = this.cache.get(key)
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data
+  isCacheValid(key) {
+    const cached = this.cache[key]
+    if (!cached) return false
+    return Date.now() - cached.timestamp < this.cacheExpiry
+  }
+
+  /**
+   * Get cached data or null
+   */
+  getCached(key) {
+    if (this.isCacheValid(key)) {
+      return this.cache[key].data
     }
-
-    const data = await fetchFn()
-    this.cache.set(key, { data, timestamp: Date.now() })
-    return data
+    return null
   }
 
   /**
-   * Fetch cryptocurrency prices from CoinGecko (FREE, NO CORS ISSUES)
+   * Set cache
    */
-  async getCryptoPrices() {
-    try {
-      const response = await axios.get(`${this.coingeckoBaseURL}/simple/price`, {
-        params: {
-          ids: 'bitcoin,ethereum,binancecoin,cardano,solana',
-          vs_currencies: 'usd',
-          include_24hr_change: true,
-          include_market_cap: true,
-          include_24hr_vol: true
-        }
-      })
+  setCache(key, data) {
+    this.cache[key] = {
+      data,
+      timestamp: Date.now()
+    }
+  }
 
-      return {
-        bitcoin: {
-          name: 'Bitcoin',
-          symbol: 'BTC',
-          price: response.data.bitcoin.usd,
-          change24h: response.data.bitcoin.usd_24h_change,
-          marketCap: response.data.bitcoin.usd_market_cap,
-          volume24h: response.data.bitcoin.usd_24h_vol,
-          isPositive: response.data.bitcoin.usd_24h_change > 0
-        },
-        ethereum: {
-          name: 'Ethereum',
-          symbol: 'ETH',
-          price: response.data.ethereum.usd,
-          change24h: response.data.ethereum.usd_24h_change,
-          marketCap: response.data.ethereum.usd_market_cap,
-          volume24h: response.data.ethereum.usd_24h_vol,
-          isPositive: response.data.ethereum.usd_24h_change > 0
-        },
-        binancecoin: {
-          name: 'BNB',
-          symbol: 'BNB',
-          price: response.data.binancecoin?.usd || 0,
-          change24h: response.data.binancecoin?.usd_24h_change || 0,
-          marketCap: response.data.binancecoin?.usd_market_cap || 0,
-          isPositive: (response.data.binancecoin?.usd_24h_change || 0) > 0
-        },
-        solana: {
-          name: 'Solana',
-          symbol: 'SOL',
-          price: response.data.solana?.usd || 0,
-          change24h: response.data.solana?.usd_24h_change || 0,
-          marketCap: response.data.solana?.usd_market_cap || 0,
-          isPositive: (response.data.solana?.usd_24h_change || 0) > 0
-        }
+  /**
+   * ✅ Finnhub - 실시간 미국 주식 지수
+   * S&P 500, Nasdaq, Dow Jones 직접 지수 데이터
+   */
+  async fetchStockIndices() {
+    const cacheKey = 'stock_indices'
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      if (!API_CONFIG.FINNHUB_API_KEY) {
+        console.warn('⚠️ Finnhub API key not configured. Using fallback data.')
+        return this.getFallbackStockData()
       }
-    } catch (error) {
-      console.error('CoinGecko API Error:', error)
-      return this.getFallbackCryptoData()
-    }
-  }
 
-  /**
-   * Fetch stock indices using Finnhub (FREE API with CORS support)
-   * Register at: https://finnhub.io/register (free tier: 60 calls/min)
-   */
-  async getStockIndices() {
-    try {
-      // Using free public APIs with CORS support
-      const [sp500Data, goldData] = await Promise.all([
-        this.fetchFromFinancialModelingPrep(),
-        this.fetchGoldPrice()
+      // Finnhub index symbols
+      const indices = {
+        sp500: '^GSPC',   // S&P 500
+        nasdaq: '^IXIC',  // Nasdaq Composite
+        dow: '^DJI'       // Dow Jones Industrial Average
+      }
+
+      const responses = await Promise.all([
+        axios.get(`${this.finnhubBaseURL}/quote`, {
+          params: {
+            symbol: indices.sp500,
+            token: API_CONFIG.FINNHUB_API_KEY
+          }
+        }),
+        axios.get(`${this.finnhubBaseURL}/quote`, {
+          params: {
+            symbol: indices.nasdaq,
+            token: API_CONFIG.FINNHUB_API_KEY
+          }
+        }),
+        axios.get(`${this.finnhubBaseURL}/quote`, {
+          params: {
+            symbol: indices.dow,
+            token: API_CONFIG.FINNHUB_API_KEY
+          }
+        })
       ])
 
-      return {
-        sp500: sp500Data.sp500,
-        nasdaq: sp500Data.nasdaq,
-        dow: sp500Data.dow,
-        gold: goldData
+      const sp500Data = responses[0].data
+      const nasdaqData = responses[1].data
+      const dowData = responses[2].data
+
+      const result = {
+        sp500: {
+          symbol: '^GSPC',
+          price: sp500Data.c, // Current price
+          change: sp500Data.d, // Change
+          changePercent: sp500Data.dp, // Percent change
+          isPositive: sp500Data.d > 0,
+          high: sp500Data.h,
+          low: sp500Data.l,
+          open: sp500Data.o,
+          previousClose: sp500Data.pc
+        },
+        nasdaq: {
+          symbol: '^IXIC',
+          price: nasdaqData.c,
+          change: nasdaqData.d,
+          changePercent: nasdaqData.dp,
+          isPositive: nasdaqData.d > 0,
+          high: nasdaqData.h,
+          low: nasdaqData.l,
+          open: nasdaqData.o,
+          previousClose: nasdaqData.pc
+        },
+        dow: {
+          symbol: '^DJI',
+          price: dowData.c,
+          change: dowData.d,
+          changePercent: dowData.dp,
+          isPositive: dowData.d > 0,
+          high: dowData.h,
+          low: dowData.l,
+          open: dowData.o,
+          previousClose: dowData.pc
+        }
       }
+
+      this.setCache(cacheKey, result)
+      console.log('✅ Finnhub: Real-time stock indices fetched', result)
+      return result
+
     } catch (error) {
-      console.error('Stock Indices API Error:', error)
+      console.error('❌ Finnhub stock indices error:', error.message)
       return this.getFallbackStockData()
     }
   }
 
   /**
-   * Fetch from Financial Modeling Prep (FREE, CORS-enabled)
-   */
-  async fetchFromFinancialModelingPrep() {
-    try {
-      // Using demo API key (public, limited but works for demo)
-      // For production, get free key at: https://site.financialmodelingprep.com/developer/docs/
-      const symbols = ['SPY', 'QQQ', 'DIA'] // ETFs representing indices
-      const apiKey = 'demo' // Public demo key
-
-      const responses = await Promise.all(
-        symbols.map(symbol =>
-          axios.get(`https://financialmodelingprep.com/api/v3/quote/${symbol}`, {
-            params: { apikey: apiKey }
-          }).catch(() => null)
-        )
-      )
-
-      const spyData = responses[0]?.data?.[0]
-      const qqqData = responses[1]?.data?.[0]
-      const diaData = responses[2]?.data?.[0]
-
-      return {
-        sp500: spyData ? {
-          symbol: '^GSPC',
-          price: spyData.price * 11.5, // Approximate conversion from SPY to S&P 500
-          change: spyData.change * 11.5,
-          changePercent: spyData.changesPercentage,
-          isPositive: spyData.change > 0,
-          volume: spyData.volume
-        } : this.getFallbackStockData().sp500,
-
-        nasdaq: qqqData ? {
-          symbol: '^IXIC',
-          price: qqqData.price * 42, // Approximate conversion from QQQ to Nasdaq
-          change: qqqData.change * 42,
-          changePercent: qqqData.changesPercentage,
-          isPositive: qqqData.change > 0,
-          volume: qqqData.volume
-        } : this.getFallbackStockData().nasdaq,
-
-        dow: diaData ? {
-          symbol: '^DJI',
-          price: diaData.price * 100, // Approximate conversion from DIA to Dow
-          change: diaData.change * 100,
-          changePercent: diaData.changesPercentage,
-          isPositive: diaData.change > 0,
-          volume: diaData.volume
-        } : this.getFallbackStockData().dow
-      }
-    } catch (error) {
-      console.error('Financial Modeling Prep error:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Fetch Gold price from alternative source (CORS-safe)
+   * ✅ Finnhub - 금 가격 (Commodities)
    */
   async fetchGoldPrice() {
+    const cacheKey = 'gold_price'
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
     try {
-      // Using GLD (Gold ETF) as proxy for gold price
-      const response = await axios.get('https://financialmodelingprep.com/api/v3/quote/GLD', {
-        params: { apikey: 'demo' }
+      if (!API_CONFIG.FINNHUB_API_KEY) {
+        return this.getFallbackGoldData()
+      }
+
+      // GC=F is Gold Futures symbol
+      const response = await axios.get(`${this.finnhubBaseURL}/quote`, {
+        params: {
+          symbol: 'GC=F',
+          token: API_CONFIG.FINNHUB_API_KEY
+        }
       })
 
-      const gldData = response.data?.[0]
-
-      if (gldData) {
-        return {
-          symbol: 'GOLD',
-          price: gldData.price * 10, // Approximate gold price (GLD is ~1/10 of gold price)
-          change: gldData.change * 10,
-          changePercent: gldData.changesPercentage,
-          isPositive: gldData.change > 0
-        }
-      }
-
-      throw new Error('No gold data')
-    } catch (error) {
-      console.error('Gold price fetch error:', error)
-      return {
+      const data = response.data
+      const result = {
         symbol: 'GOLD',
-        price: 2650.00,
-        change: 5.50,
-        changePercent: 0.21,
-        isPositive: true,
-        note: '추정가 (실시간 아님)'
+        price: data.c,
+        change: data.d,
+        changePercent: data.dp,
+        isPositive: data.d > 0
       }
+
+      this.setCache(cacheKey, result)
+      console.log('✅ Finnhub: Real-time gold price fetched', result)
+      return result
+
+    } catch (error) {
+      console.error('❌ Finnhub gold price error:', error.message)
+      return this.getFallbackGoldData()
     }
   }
 
   /**
-   * Fetch currency rates (CORS-safe)
+   * ✅ CoinGecko - 실시간 암호화폐 가격
+   * 100% 무료, API 키 불필요
    */
-  async getCurrencyRates() {
+  async getCryptoPrices() {
+    const cacheKey = 'crypto_prices'
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
     try {
-      // Using exchangerate-api.com (FREE, CORS-enabled)
-      const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD')
+      const response = await axios.get(`${this.coingeckoBaseURL}/simple/price`, {
+        params: {
+          ids: 'bitcoin,ethereum,binancecoin,solana',
+          vs_currencies: 'usd',
+          include_24hr_change: true,
+          include_24hr_vol: true,
+          include_market_cap: true
+        }
+      })
 
-      const prevRates = this.cache.get('prevRates')?.data || {}
-
-      const rates = {
-        usdKrw: {
-          rate: response.data.rates.KRW,
-          symbol: 'USD/KRW',
-          change: prevRates.KRW ? ((response.data.rates.KRW - prevRates.KRW) / prevRates.KRW * 100) : 0
+      const data = response.data
+      const result = {
+        bitcoin: {
+          name: 'Bitcoin',
+          symbol: 'BTC',
+          price: data.bitcoin.usd,
+          change24h: data.bitcoin.usd_24h_change,
+          isPositive: data.bitcoin.usd_24h_change > 0,
+          volume: data.bitcoin.usd_24h_vol,
+          marketCap: data.bitcoin.usd_market_cap
         },
-        eurUsd: {
-          rate: 1 / response.data.rates.EUR,
-          symbol: 'EUR/USD',
-          change: prevRates.EUR ? ((1/response.data.rates.EUR - 1/prevRates.EUR) / (1/prevRates.EUR) * 100) : 0
+        ethereum: {
+          name: 'Ethereum',
+          symbol: 'ETH',
+          price: data.ethereum.usd,
+          change24h: data.ethereum.usd_24h_change,
+          isPositive: data.ethereum.usd_24h_change > 0,
+          volume: data.ethereum.usd_24h_vol,
+          marketCap: data.ethereum.usd_market_cap
         },
-        usdJpy: {
-          rate: response.data.rates.JPY,
-          symbol: 'USD/JPY',
-          change: prevRates.JPY ? ((response.data.rates.JPY - prevRates.JPY) / prevRates.JPY * 100) : 0
+        binancecoin: {
+          name: 'Binance Coin',
+          symbol: 'BNB',
+          price: data.binancecoin.usd,
+          change24h: data.binancecoin.usd_24h_change,
+          isPositive: data.binancecoin.usd_24h_change > 0,
+          volume: data.binancecoin.usd_24h_vol,
+          marketCap: data.binancecoin.usd_market_cap
+        },
+        solana: {
+          name: 'Solana',
+          symbol: 'SOL',
+          price: data.solana.usd,
+          change24h: data.solana.usd_24h_change,
+          isPositive: data.solana.usd_24h_change > 0,
+          volume: data.solana.usd_24h_vol,
+          marketCap: data.solana.usd_market_cap
         }
       }
 
-      // Store for next comparison
-      this.cache.set('prevRates', { data: response.data.rates, timestamp: Date.now() })
+      this.setCache(cacheKey, result)
+      console.log('✅ CoinGecko: Real-time crypto prices fetched', result)
+      return result
 
-      return rates
     } catch (error) {
-      console.error('Currency rates error:', error)
+      console.error('❌ CoinGecko crypto error:', error.message)
+      return this.getFallbackCryptoData()
+    }
+  }
+
+  /**
+   * ✅ ExchangeRate-API - 실시간 환율
+   * 100% 무료, API 키 불필요
+   */
+  async getExchangeRates() {
+    const cacheKey = 'exchange_rates'
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      const response = await axios.get(`${this.exchangeRateBaseURL}/USD`)
+      const rates = response.data.rates
+
+      const result = {
+        usdKrw: {
+          base: 'USD',
+          target: 'KRW',
+          rate: rates.KRW,
+          name: 'US Dollar to Korean Won'
+        },
+        usdEur: {
+          base: 'USD',
+          target: 'EUR',
+          rate: rates.EUR,
+          name: 'US Dollar to Euro'
+        },
+        usdJpy: {
+          base: 'USD',
+          target: 'JPY',
+          rate: rates.JPY,
+          name: 'US Dollar to Japanese Yen'
+        },
+        usdGbp: {
+          base: 'USD',
+          target: 'GBP',
+          rate: rates.GBP,
+          name: 'US Dollar to British Pound'
+        }
+      }
+
+      this.setCache(cacheKey, result)
+      console.log('✅ ExchangeRate: Real-time exchange rates fetched', result)
+      return result
+
+    } catch (error) {
+      console.error('❌ ExchangeRate error:', error.message)
       return this.getFallbackCurrencyData()
     }
   }
 
   /**
-   * Fallback data when APIs fail
+   * ✅ 모든 시장 데이터 한번에 가져오기
    */
+  async getAllMarketData() {
+    try {
+      const [stocks, gold, crypto, currency] = await Promise.all([
+        this.fetchStockIndices(),
+        this.fetchGoldPrice(),
+        this.getCryptoPrices(),
+        this.getExchangeRates()
+      ])
+
+      return {
+        stocks,
+        gold,
+        crypto,
+        currency,
+        lastUpdated: new Date().toISOString()
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch market data:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Fallback data - Only used when APIs are unavailable
+   */
+  getFallbackStockData() {
+    console.warn('⚠️ Using fallback stock data - please configure Finnhub API key')
+    return {
+      sp500: {
+        symbol: '^GSPC',
+        price: 0,
+        change: 0,
+        changePercent: 0,
+        isPositive: true,
+        error: 'API key not configured'
+      },
+      nasdaq: {
+        symbol: '^IXIC',
+        price: 0,
+        change: 0,
+        changePercent: 0,
+        isPositive: true,
+        error: 'API key not configured'
+      },
+      dow: {
+        symbol: '^DJI',
+        price: 0,
+        change: 0,
+        changePercent: 0,
+        isPositive: true,
+        error: 'API key not configured'
+      }
+    }
+  }
+
+  getFallbackGoldData() {
+    return {
+      symbol: 'GOLD',
+      price: 0,
+      change: 0,
+      changePercent: 0,
+      isPositive: true,
+      error: 'API key not configured'
+    }
+  }
+
   getFallbackCryptoData() {
+    console.warn('⚠️ Using fallback crypto data - CoinGecko API unavailable')
     return {
       bitcoin: {
         name: 'Bitcoin',
         symbol: 'BTC',
         price: 0,
         change24h: 0,
-        marketCap: 0,
-        isPositive: false,
-        error: 'Unable to fetch data'
+        isPositive: true,
+        error: 'API unavailable'
       },
       ethereum: {
         name: 'Ethereum',
         symbol: 'ETH',
         price: 0,
         change24h: 0,
-        marketCap: 0,
-        isPositive: false,
-        error: 'Unable to fetch data'
-      }
-    }
-  }
-
-  getFallbackStockData() {
-    return {
-      sp500: {
-        symbol: '^GSPC',
-        price: 5900.00,
-        change: 15.50,
-        changePercent: 0.26,
         isPositive: true,
-        note: '추정가 (실시간 아님)'
+        error: 'API unavailable'
       },
-      nasdaq: {
-        symbol: '^IXIC',
-        price: 19500.00,
-        change: 50.25,
-        changePercent: 0.26,
+      binancecoin: {
+        name: 'Binance Coin',
+        symbol: 'BNB',
+        price: 0,
+        change24h: 0,
         isPositive: true,
-        note: '추정가 (실시간 아님)'
+        error: 'API unavailable'
       },
-      dow: {
-        symbol: '^DJI',
-        price: 43800.00,
-        change: 120.00,
-        changePercent: 0.27,
+      solana: {
+        name: 'Solana',
+        symbol: 'SOL',
+        price: 0,
+        change24h: 0,
         isPositive: true,
-        note: '추정가 (실시간 아님)'
-      },
-      gold: {
-        symbol: 'GOLD',
-        price: 2650.00,
-        change: 8.50,
-        changePercent: 0.32,
-        isPositive: true,
-        note: '추정가 (실시간 아님)'
+        error: 'API unavailable'
       }
     }
   }
 
   getFallbackCurrencyData() {
+    console.warn('⚠️ Using fallback currency data - ExchangeRate API unavailable')
     return {
-      usdKrw: { rate: 1340.00, symbol: 'USD/KRW', change: 0 },
-      eurUsd: { rate: 1.08, symbol: 'EUR/USD', change: 0 },
-      usdJpy: { rate: 149.50, symbol: 'USD/JPY', change: 0 }
-    }
-  }
-
-  /**
-   * Format large numbers
-   */
-  formatMarketCap(value) {
-    if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`
-    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`
-    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`
-    return `$${value.toFixed(2)}`
-  }
-
-  /**
-   * Get all market data
-   */
-  async getAllMarketData() {
-    try {
-      const [cryptoData, stockData, currencyData] = await Promise.all([
-        this.getCachedOrFetch('crypto', () => this.getCryptoPrices()),
-        this.getCachedOrFetch('stocks', () => this.getStockIndices()),
-        this.getCachedOrFetch('currency', () => this.getCurrencyRates())
-      ])
-
-      return {
-        crypto: cryptoData,
-        stocks: stockData,
-        currency: currencyData,
-        lastUpdate: new Date()
+      usdKrw: {
+        base: 'USD',
+        target: 'KRW',
+        rate: 1340,
+        name: 'US Dollar to Korean Won',
+        error: 'API unavailable'
+      },
+      usdEur: {
+        base: 'USD',
+        target: 'EUR',
+        rate: 0.92,
+        name: 'US Dollar to Euro',
+        error: 'API unavailable'
+      },
+      usdJpy: {
+        base: 'USD',
+        target: 'JPY',
+        rate: 149.50,
+        name: 'US Dollar to Japanese Yen',
+        error: 'API unavailable'
+      },
+      usdGbp: {
+        base: 'USD',
+        target: 'GBP',
+        rate: 0.79,
+        name: 'US Dollar to British Pound',
+        error: 'API unavailable'
       }
-    } catch (error) {
-      console.error('Market data fetch error:', error)
-      throw error
     }
   }
 }
 
-export default new MarketDataService()
+// Export singleton instance
+const marketDataService = new MarketDataService()
+export default marketDataService

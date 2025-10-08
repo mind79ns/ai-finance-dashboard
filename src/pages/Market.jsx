@@ -89,14 +89,17 @@ const Market = () => {
       {/* Data Source Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          <strong>📡 실시간 데이터:</strong> CoinGecko API (암호화폐), Yahoo Finance (주식/지수), ExchangeRate API (환율)
+          <strong>📡 실시간 데이터:</strong> Finnhub (미국 주식/지수/금), CoinGecko (암호화폐), ExchangeRate API (환율)
+        </p>
+        <p className="text-xs text-blue-700 mt-1">
+          ⚠️ Finnhub API 키가 필요합니다. <a href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer" className="underline">무료 발급받기</a>
         </p>
       </div>
 
       {/* Stock Indices */}
       {marketData?.stocks && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">주요 지수</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">주요 지수 (실시간)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <IndexCard
               name="S&P 500"
@@ -112,7 +115,7 @@ const Market = () => {
             />
             <IndexCard
               name="Gold"
-              data={marketData.stocks.gold}
+              data={marketData.gold}
             />
           </div>
         </div>
@@ -122,10 +125,11 @@ const Market = () => {
       {marketData?.crypto && (
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">암호화폐 (실시간)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <CryptoCard crypto={marketData.crypto.bitcoin} />
             <CryptoCard crypto={marketData.crypto.ethereum} />
             <CryptoCard crypto={marketData.crypto.binancecoin} />
+            <CryptoCard crypto={marketData.crypto.solana} />
           </div>
         </div>
       )}
@@ -134,18 +138,26 @@ const Market = () => {
       {marketData?.currency && (
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">환율 (실시간)</h3>
-          <div className="space-y-3">
-            <CurrencyRow
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <CurrencyCard
               pair="USD/KRW"
+              name="원화"
               rate={marketData.currency.usdKrw.rate}
             />
-            <CurrencyRow
-              pair="EUR/USD"
-              rate={marketData.currency.eurUsd.rate}
+            <CurrencyCard
+              pair="USD/EUR"
+              name="유로"
+              rate={marketData.currency.usdEur.rate}
             />
-            <CurrencyRow
+            <CurrencyCard
               pair="USD/JPY"
+              name="엔화"
               rate={marketData.currency.usdJpy.rate}
+            />
+            <CurrencyCard
+              pair="USD/GBP"
+              name="파운드"
+              rate={marketData.currency.usdGbp.rate}
             />
           </div>
         </div>
@@ -228,18 +240,15 @@ const CryptoCard = ({ crypto }) => {
   )
 }
 
-// Currency Row Component
-const CurrencyRow = ({ pair, rate }) => {
+// Currency Card Component
+const CurrencyCard = ({ pair, name, rate }) => {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-      <div>
-        <p className="font-medium text-gray-900">{pair}</p>
-      </div>
-      <div className="text-right">
-        <p className="font-bold text-gray-900">
-          {rate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-        </p>
-      </div>
+    <div className="p-4 bg-gray-50 rounded-lg">
+      <p className="text-xs text-gray-600 mb-1">{pair}</p>
+      <p className="text-sm font-medium text-gray-700 mb-2">{name}</p>
+      <p className="text-xl font-bold text-gray-900">
+        {rate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+      </p>
     </div>
   )
 }
