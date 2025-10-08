@@ -57,8 +57,14 @@ class MarketDataService {
   }
 
   /**
-   * ✅ Finnhub - 실시간 미국 주식 지수
-   * S&P 500, Nasdaq, Dow Jones 직접 지수 데이터
+   * ✅ Finnhub - 실시간 미국 주식 ETF (지수 추적)
+   *
+   * Finnhub 무료 플랜은 지수(^GSPC 등)를 지원하지 않음
+   * 대신 ETF를 사용하여 실시간 시장 추세를 반영
+   *
+   * SPY = S&P 500 ETF (가장 인기 있는 S&P 500 추적 ETF)
+   * QQQ = Nasdaq 100 ETF
+   * DIA = Dow Jones ETF
    */
   async fetchStockIndices() {
     const cacheKey = 'stock_indices'
@@ -71,76 +77,75 @@ class MarketDataService {
         return this.getFallbackStockData()
       }
 
-      // Finnhub index symbols
-      const indices = {
-        sp500: '^GSPC',   // S&P 500
-        nasdaq: '^IXIC',  // Nasdaq Composite
-        dow: '^DJI'       // Dow Jones Industrial Average
-      }
-
+      // Using ETFs that track major indices (Finnhub supports stocks/ETFs only)
       const responses = await Promise.all([
         axios.get(`${this.finnhubBaseURL}/quote`, {
           params: {
-            symbol: indices.sp500,
+            symbol: 'SPY',  // SPDR S&P 500 ETF Trust
             token: API_CONFIG.FINNHUB_API_KEY
           }
         }),
         axios.get(`${this.finnhubBaseURL}/quote`, {
           params: {
-            symbol: indices.nasdaq,
+            symbol: 'QQQ',  // Invesco QQQ (Nasdaq 100)
             token: API_CONFIG.FINNHUB_API_KEY
           }
         }),
         axios.get(`${this.finnhubBaseURL}/quote`, {
           params: {
-            symbol: indices.dow,
+            symbol: 'DIA',  // SPDR Dow Jones Industrial Average ETF
             token: API_CONFIG.FINNHUB_API_KEY
           }
         })
       ])
 
-      const sp500Data = responses[0].data
-      const nasdaqData = responses[1].data
-      const dowData = responses[2].data
+      const spyData = responses[0].data
+      const qqqData = responses[1].data
+      const diaData = responses[2].data
+
+      console.log('📊 Finnhub Raw Data:', { spyData, qqqData, diaData })
 
       const result = {
         sp500: {
-          symbol: '^GSPC',
-          price: sp500Data.c, // Current price
-          change: sp500Data.d, // Change
-          changePercent: sp500Data.dp, // Percent change
-          isPositive: sp500Data.d > 0,
-          high: sp500Data.h,
-          low: sp500Data.l,
-          open: sp500Data.o,
-          previousClose: sp500Data.pc
+          symbol: 'SPY',
+          name: 'S&P 500 (SPY ETF)',
+          price: spyData.c, // Current price
+          change: spyData.d, // Change
+          changePercent: spyData.dp, // Percent change
+          isPositive: spyData.d > 0,
+          high: spyData.h,
+          low: spyData.l,
+          open: spyData.o,
+          previousClose: spyData.pc
         },
         nasdaq: {
-          symbol: '^IXIC',
-          price: nasdaqData.c,
-          change: nasdaqData.d,
-          changePercent: nasdaqData.dp,
-          isPositive: nasdaqData.d > 0,
-          high: nasdaqData.h,
-          low: nasdaqData.l,
-          open: nasdaqData.o,
-          previousClose: nasdaqData.pc
+          symbol: 'QQQ',
+          name: 'Nasdaq 100 (QQQ ETF)',
+          price: qqqData.c,
+          change: qqqData.d,
+          changePercent: qqqData.dp,
+          isPositive: qqqData.d > 0,
+          high: qqqData.h,
+          low: qqqData.l,
+          open: qqqData.o,
+          previousClose: qqqData.pc
         },
         dow: {
-          symbol: '^DJI',
-          price: dowData.c,
-          change: dowData.d,
-          changePercent: dowData.dp,
-          isPositive: dowData.d > 0,
-          high: dowData.h,
-          low: dowData.l,
-          open: dowData.o,
-          previousClose: dowData.pc
+          symbol: 'DIA',
+          name: 'Dow Jones (DIA ETF)',
+          price: diaData.c,
+          change: diaData.d,
+          changePercent: diaData.dp,
+          isPositive: diaData.d > 0,
+          high: diaData.h,
+          low: diaData.l,
+          open: diaData.o,
+          previousClose: diaData.pc
         }
       }
 
       this.setCache(cacheKey, result)
-      console.log('✅ Finnhub: Real-time stock indices fetched', result)
+      console.log('✅ Finnhub: Real-time ETF data fetched', result)
       return result
 
     } catch (error) {
@@ -150,7 +155,8 @@ class MarketDataService {
   }
 
   /**
-   * ✅ Finnhub - 금 가격 (Commodities)
+   * ✅ Finnhub - 금 가격 (GLD ETF)
+   * SPDR Gold Shares ETF - 금 가격 추적
    */
   async fetchGoldPrice() {
     const cacheKey = 'gold_price'
@@ -162,17 +168,20 @@ class MarketDataService {
         return this.getFallbackGoldData()
       }
 
-      // GC=F is Gold Futures symbol
+      // GLD = SPDR Gold Shares ETF (tracks gold price)
       const response = await axios.get(`${this.finnhubBaseURL}/quote`, {
         params: {
-          symbol: 'GC=F',
+          symbol: 'GLD',
           token: API_CONFIG.FINNHUB_API_KEY
         }
       })
 
       const data = response.data
+      console.log('📊 Finnhub Gold (GLD) Data:', data)
+
       const result = {
-        symbol: 'GOLD',
+        symbol: 'GLD',
+        name: 'Gold (GLD ETF)',
         price: data.c,
         change: data.d,
         changePercent: data.dp,
@@ -180,7 +189,7 @@ class MarketDataService {
       }
 
       this.setCache(cacheKey, result)
-      console.log('✅ Finnhub: Real-time gold price fetched', result)
+      console.log('✅ Finnhub: Real-time gold ETF fetched', result)
       return result
 
     } catch (error) {

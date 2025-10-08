@@ -89,32 +89,36 @@ const Market = () => {
       {/* Data Source Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          <strong>📡 실시간 데이터:</strong> Finnhub (미국 주식/지수/금), CoinGecko (암호화폐), ExchangeRate API (환율)
+          <strong>📡 실시간 데이터:</strong> Finnhub (미국 주식 ETF), CoinGecko (암호화폐), ExchangeRate API (환율)
         </p>
         <p className="text-xs text-blue-700 mt-1">
-          ⚠️ Finnhub API 키가 필요합니다. <a href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer" className="underline">무료 발급받기</a>
+          💡 SPY, QQQ, DIA, GLD ETF로 주요 지수 시장 추세를 실시간 반영합니다
         </p>
       </div>
 
       {/* Stock Indices */}
       {marketData?.stocks && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">주요 지수 (실시간)</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">주요 지수 ETF (실시간)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <IndexCard
               name="S&P 500"
+              subtitle="SPY ETF"
               data={marketData.stocks.sp500}
             />
             <IndexCard
-              name="Nasdaq"
+              name="Nasdaq 100"
+              subtitle="QQQ ETF"
               data={marketData.stocks.nasdaq}
             />
             <IndexCard
               name="Dow Jones"
+              subtitle="DIA ETF"
               data={marketData.stocks.dow}
             />
             <IndexCard
               name="Gold"
+              subtitle="GLD ETF"
               data={marketData.gold}
             />
           </div>
@@ -167,11 +171,12 @@ const Market = () => {
 }
 
 // Index Card Component
-const IndexCard = ({ name, data }) => {
+const IndexCard = ({ name, subtitle, data }) => {
   if (!data || data.error || data.price === 0 || data.price === undefined || data.price === null) {
     return (
       <div className="card bg-gray-50">
         <p className="text-sm text-gray-600 mb-1">{name}</p>
+        {subtitle && <p className="text-xs text-gray-500 mb-2">{subtitle}</p>}
         <p className="text-xs text-orange-600 mb-2">
           {data?.error || 'Finnhub API 키가 필요합니다'}
         </p>
@@ -193,9 +198,12 @@ const IndexCard = ({ name, data }) => {
 
   return (
     <div className="card hover:shadow-md transition-shadow">
-      <p className="text-sm text-gray-600 mb-1">{name}</p>
+      <div className="mb-2">
+        <p className="text-sm text-gray-600">{name}</p>
+        {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+      </div>
       <p className="text-2xl font-bold text-gray-900 mb-2">
-        {price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
       <div className={`flex items-center gap-1 text-sm ${
         data.isPositive ? 'text-success' : 'text-danger'
