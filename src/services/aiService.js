@@ -18,9 +18,29 @@ class AIService {
 
   /**
    * Route request to appropriate AI based on task complexity
+   * @param {string} forceProvider - 'auto', 'gpt', or 'gemini' to force specific AI
    */
-  async routeAIRequest(prompt, taskLevel = this.TASK_LEVEL.BASIC, systemPrompt = '') {
+  async routeAIRequest(prompt, taskLevel = this.TASK_LEVEL.BASIC, systemPrompt = '', forceProvider = 'auto') {
     try {
+      // Force GPT
+      if (forceProvider === 'gpt') {
+        if (!API_CONFIG.OPENAI_API_KEY) {
+          throw new Error('GPT API key not configured')
+        }
+        console.log('🧠 Forced GPT-4.1 usage')
+        return await this.callOpenAI(prompt, systemPrompt)
+      }
+
+      // Force Gemini
+      if (forceProvider === 'gemini') {
+        if (!API_CONFIG.GEMINI_API_KEY) {
+          throw new Error('Gemini API key not configured')
+        }
+        console.log('⚡ Forced Gemini 2.5 Flash usage')
+        return await this.callGemini(prompt, systemPrompt)
+      }
+
+      // Auto selection (original logic)
       // Advanced tasks → GPT-5 (if available)
       if (taskLevel === this.TASK_LEVEL.ADVANCED && API_CONFIG.OPENAI_API_KEY) {
         console.log('🧠 Using GPT-5 for advanced analysis')

@@ -15,6 +15,7 @@ const AIReport = () => {
   const [chatInput, setChatInput] = useState('')
   const [marketData, setMarketData] = useState(null)
   const [portfolioData, setPortfolioData] = useState(null)
+  const [selectedAI, setSelectedAI] = useState('auto') // 'auto', 'gpt', 'gemini'
 
   // Load real market and portfolio data
   useEffect(() => {
@@ -79,7 +80,25 @@ const AIReport = () => {
 
     setLoading(true)
     try {
-      const report = await aiService.generateMarketReport(marketData)
+      const prompt = `다음 시장 데이터를 전문적으로 분석하여 상세 투자 리포트를 작성해주세요:
+
+${JSON.stringify(marketData, null, 2)}
+
+다음 항목을 포함하세요:
+1. 시장 개요 및 주요 동향
+2. 섹터별 분석
+3. 리스크 요인 및 기회 요인
+4. 투자 전략 제안
+5. 향후 전망
+
+전문 애널리스트 수준의 깊이 있는 분석을 제공하세요.`
+
+      const report = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 20년 경력의 전문 투자 애널리스트입니다. 시장 데이터를 깊이 있게 분석하여 실용적인 투자 리포트를 작성합니다.',
+        selectedAI
+      )
       setMarketReport(report)
     } catch (error) {
       setMarketReport('리포트 생성 중 오류가 발생했습니다. API 키를 확인해주세요.')
@@ -96,7 +115,26 @@ const AIReport = () => {
 
     setLoading(true)
     try {
-      const analysis = await aiService.analyzePortfolio(portfolioData)
+      const prompt = `다음 포트폴리오를 전문적으로 분석하고 상세한 개선 제안을 해주세요:
+
+${JSON.stringify(portfolioData, null, 2)}
+
+다음 항목을 포함해주세요:
+1. 자산 배분 분석 (Diversification)
+2. 리스크 평가 (Risk Assessment)
+3. 수익성 분석 (Performance Analysis)
+4. 세부 개선 제안사항 (Actionable Recommendations)
+5. 리밸런싱 전략
+6. 목표 달성 가능성 평가
+
+구체적이고 실행 가능한 조언을 제공하세요.`
+
+      const analysis = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 자산관리 전문가(CFP)입니다. 포트폴리오를 정밀하게 분석하고 최적화 전략을 제시합니다.',
+        selectedAI
+      )
       setPortfolioAnalysis(analysis)
     } catch (error) {
       setPortfolioAnalysis('분석 생성 중 오류가 발생했습니다. API 키를 확인해주세요.')
@@ -174,7 +212,8 @@ ${portfolioData.assets.map(a => `- ${a.symbol} (${a.type}): $${a.value.toFixed(2
       const suggestion = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
-        '당신은 자산배분 전문가입니다. 포트폴리오 리밸런싱 전략을 제시합니다.'
+        '당신은 자산배분 전문가입니다. 포트폴리오 리밸런싱 전략을 제시합니다.',
+        selectedAI
       )
       setRebalancingSuggestion(suggestion)
     } catch (error) {
@@ -198,7 +237,20 @@ ${portfolioData.assets.map(a => `- ${a.symbol} (${a.type}): $${a.value.toFixed(2
         portfolio: portfolioData,
         market: marketData
       }
-      const response = await aiService.generateInvestmentInsights(userMessage, context)
+
+      const prompt = `사용자 질문: ${userMessage}
+
+컨텍스트 정보:
+${JSON.stringify(context, null, 2)}
+
+전문가 관점에서 상세하고 실용적인 답변을 제공해주세요.`
+
+      const response = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 투자 전문가입니다. 사용자의 질문에 전문적이고 실용적인 답변을 제공합니다.',
+        selectedAI
+      )
       setChatMessages(prev => [...prev, { role: 'assistant', content: response }])
     } catch (error) {
       setChatMessages(prev => [...prev, {
@@ -226,20 +278,75 @@ ${portfolioData.assets.map(a => `- ${a.symbol} (${a.type}): $${a.value.toFixed(2
         <AIStrategyBadge />
       </div>
 
-      {/* AI Strategy Info Card */}
+      {/* AI Model Selection */}
       <div className="card bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
         <div className="flex items-start gap-4">
           <div className="p-2 bg-white rounded-lg">
             <Zap className="w-6 h-6 text-purple-600" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 mb-2">💡 이중 AI 전략 활용</h3>
-            <div className="space-y-1 text-sm text-gray-700">
-              <p>• <strong>Gemini 2.5 Flash</strong> (무료/저비용): 빠른 요약, 기본 데이터 수집</p>
-              <p>• <strong>GPT-5</strong> (유료): 심층 투자 분석, 전략 수립, 포트폴리오 최적화</p>
-              <p className="text-xs text-gray-600 mt-2">
-                💰 비용 절감: 간단한 작업은 Gemini로, 중요한 분석은 GPT-5로 자동 라우팅됩니다.
-              </p>
+            <h3 className="font-semibold text-gray-900 mb-3">💡 AI 모델 선택</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button
+                  onClick={() => setSelectedAI('auto')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    selectedAI === 'auto'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 bg-white hover:border-purple-300'
+                  }`}
+                >
+                  <div className="text-left">
+                    <p className="font-semibold text-sm text-gray-900">🤖 자동 선택</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      작업에 맞게 AI 자동 배정
+                    </p>
+                    <p className="text-xs text-purple-600 mt-1">💰 비용 최적화</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setSelectedAI('gpt')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    selectedAI === 'gpt'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 bg-white hover:border-green-300'
+                  }`}
+                >
+                  <div className="text-left">
+                    <p className="font-semibold text-sm text-gray-900">🧠 GPT-4.1</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      고급 분석 및 전략 수립
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">⭐ 최고 성능</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setSelectedAI('gemini')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    selectedAI === 'gemini'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 bg-white hover:border-blue-300'
+                  }`}
+                >
+                  <div className="text-left">
+                    <p className="font-semibold text-sm text-gray-900">⚡ Gemini 2.5 Flash</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      빠른 요약 및 기본 분석
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">🚀 빠른 속도</p>
+                  </div>
+                </button>
+              </div>
+
+              <div className="text-xs text-gray-600 bg-white p-2 rounded">
+                <strong>현재 선택:</strong> {
+                  selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
+                  selectedAI === 'gpt' ? '🧠 GPT-4.1 (모든 작업)' :
+                  '⚡ Gemini 2.5 Flash (모든 작업)'
+                }
+              </div>
             </div>
           </div>
         </div>
