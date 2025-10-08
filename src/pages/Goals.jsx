@@ -1,18 +1,24 @@
-import React, { useState } from 'react'
-import { Target, Plus, TrendingUp, Calendar, X } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Target, Plus, TrendingUp, Calendar, X, Link as LinkIcon } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import ChartCard from '../components/ChartCard'
 
 const Goals = () => {
+  const [portfolioTotalUSD, setPortfolioTotalUSD] = useState(0)
+  const [portfolioTotalKRW, setPortfolioTotalKRW] = useState(0)
+  const [exchangeRate, setExchangeRate] = useState(1340)
+
   const [goals, setGoals] = useState([
     {
       id: 1,
       name: '1억 달성',
       targetAmount: 100000,
-      currentAmount: 12500,
+      currentAmount: 0, // Will be synced from portfolio
       targetDate: '2030-12-31',
       category: '장기목표',
-      status: 'active'
+      status: 'active',
+      linkedToPortfolio: true,
+      currency: 'USD'
     },
     {
       id: 2,
@@ -21,9 +27,51 @@ const Goals = () => {
       currentAmount: 85,
       targetDate: '2026-12-31',
       category: '배당수익',
-      status: 'active'
+      status: 'active',
+      linkedToPortfolio: false,
+      currency: 'USD'
     },
   ])
+
+  // Load portfolio data and sync with goals
+  useEffect(() => {
+    const savedAssets = localStorage.getItem('portfolio_assets')
+    if (savedAssets) {
+      try {
+        const assets = JSON.parse(savedAssets)
+
+        // Calculate totals
+        const usdAssets = assets.filter(a => a.currency === 'USD')
+        const usdTotal = usdAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
+
+        const krwAssets = assets.filter(a => a.currency === 'KRW')
+        const krwTotal = krwAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
+
+        setPortfolioTotalUSD(usdTotal)
+        setPortfolioTotalKRW(krwTotal)
+
+        // Update linked goals with portfolio total
+        setGoals(prevGoals => prevGoals.map(goal => {
+          if (goal.linkedToPortfolio) {
+            return {
+              ...goal,
+              currentAmount: goal.currency === 'KRW'
+                ? krwTotal + (usdTotal * exchangeRate)
+                : usdTotal + (krwTotal / exchangeRate)
+            }
+          }
+          return goal
+        }))
+      } catch (error) {
+        console.error('Failed to load portfolio:', error)
+      }
+    }
+  }, [exchangeRate])
+
+  // Save goals to localStorage
+  useEffect(() => {
+    localStorage.setItem('investment_goals', JSON.stringify(goals))
+  }, [goals])
 
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({
@@ -31,7 +79,9 @@ const Goals = () => {
     targetAmount: '',
     currentAmount: '',
     targetDate: '',
-    category: '장기목표'
+    category: '장기목표',
+    linkedToPortfolio: false,
+    currency: 'USD'
   })
 
   const projectionData = [
@@ -66,7 +116,9 @@ const Goals = () => {
       targetAmount: '',
       currentAmount: '',
       targetDate: '',
-      category: '장기목표'
+      category: '장기목표',
+      linkedToPortfolio: false,
+      currency: 'USD'
     })
   }
 
@@ -85,10 +137,16 @@ const Goals = () => {
       id: Date.now(),
       name: formData.name,
       targetAmount: parseFloat(formData.targetAmount),
-      currentAmount: parseFloat(formData.currentAmount || 0),
+      currentAmount: formData.linkedToPortfolio
+        ? (formData.currency === 'KRW'
+          ? portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)
+          : portfolioTotalUSD + (portfolioTotalKRW / exchangeRate))
+        : parseFloat(formData.currentAmount || 0),
       targetDate: formData.targetDate,
       category: formData.category,
-      status: 'active'
+      status: 'active',
+      linkedToPortfolio: formData.linkedToPortfolio,
+      currency: formData.currency
     }
 
     setGoals(prev => [...prev, newGoal])
@@ -125,7 +183,15 @@ const Goals = () => {
             <div key={goal.id} className="card">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{goal.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900">{goal.name}</h3>
+                    {goal.linkedToPortfolio && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700" title="포트폴리오와 자동 연동">
+                        <LinkIcon className="w-3 h-3" />
+                        연동
+                      </span>
+                    )}
+                  </div>
                   <span className="inline-block mt-1 px-2 py-1 text-xs font-medium rounded bg-primary-50 text-primary-700">
                     {goal.category}
                   </span>
@@ -155,13 +221,17 @@ const Goals = () => {
                   <div>
                     <p className="text-xs text-gray-600 mb-1">현재 금액</p>
                     <p className="text-lg font-bold text-gray-900">
-                      ${goal.currentAmount.toLocaleString()}
+                      {goal.currency === 'KRW'
+                        ? `₩${Math.round(goal.currentAmount).toLocaleString()}`
+                        : `$${goal.currentAmount.toLocaleString()}`}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">목표 금액</p>
                     <p className="text-lg font-bold text-gray-900">
-                      ${goal.targetAmount.toLocaleString()}
+                      {goal.currency === 'KRW'
+                        ? `₩${Math.round(goal.targetAmount).toLocaleString()}`
+                        : `$${goal.targetAmount.toLocaleString()}`}
                     </p>
                   </div>
                   <div>
@@ -178,7 +248,9 @@ const Goals = () => {
                     <div className="flex items-center gap-1">
                       <TrendingUp className="w-4 h-4 text-success" />
                       <p className="text-sm font-medium text-success">
-                        ${monthlyRequired.toFixed(0)}
+                        {goal.currency === 'KRW'
+                          ? `₩${Math.round(monthlyRequired).toLocaleString()}`
+                          : `$${monthlyRequired.toFixed(0)}`}
                       </p>
                     </div>
                   </div>
@@ -327,26 +399,67 @@ const Goals = () => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  통화
+                </label>
+                <select
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="KRW">KRW (₩)</option>
+                </select>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="linkedToPortfolio"
+                    checked={formData.linkedToPortfolio}
+                    onChange={(e) => setFormData(prev => ({ ...prev, linkedToPortfolio: e.target.checked }))}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">포트폴리오와 연동</p>
+                    <p className="text-xs text-blue-700">체크하면 포트폴리오 총액이 자동으로 현재 금액에 반영됩니다</p>
+                  </div>
+                </label>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    현재 금액 ($)
+                    현재 금액 ({formData.currency === 'KRW' ? '₩' : '$'})
                   </label>
-                  <input
-                    type="number"
-                    name="currentAmount"
-                    value={formData.currentAmount}
-                    onChange={handleInputChange}
-                    step="0.01"
-                    min="0"
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  {formData.linkedToPortfolio ? (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                      {formData.currency === 'KRW'
+                        ? `₩${Math.round(portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)).toLocaleString()}`
+                        : `$${(portfolioTotalUSD + (portfolioTotalKRW / exchangeRate)).toFixed(0)}`}
+                      <span className="text-xs ml-1">(자동 연동)</span>
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      name="currentAmount"
+                      value={formData.currentAmount}
+                      onChange={handleInputChange}
+                      step="0.01"
+                      min="0"
+                      placeholder="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    목표 금액 ($)
+                    목표 금액 ({formData.currency === 'KRW' ? '₩' : '$'})
                   </label>
                   <input
                     type="number"

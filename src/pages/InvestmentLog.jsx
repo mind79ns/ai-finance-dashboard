@@ -5,38 +5,8 @@ import 'react-calendar/dist/Calendar.css'
 import ChartCard from '../components/ChartCard'
 
 const InvestmentLog = () => {
-  const [logs, setLogs] = useState([
-    {
-      id: 1,
-      date: '2025-10-05',
-      type: 'buy',
-      asset: 'AAPL',
-      quantity: 5,
-      price: 185.23,
-      total: 926.15,
-      note: '기술주 추가 매수'
-    },
-    {
-      id: 2,
-      date: '2025-10-03',
-      type: 'sell',
-      asset: 'TSLA',
-      quantity: 2,
-      price: 242.15,
-      total: 484.30,
-      note: '수익 실현'
-    },
-    {
-      id: 3,
-      date: '2025-10-01',
-      type: 'buy',
-      asset: 'BTC',
-      quantity: 0.05,
-      price: 67234,
-      total: 3361.70,
-      note: '비트코인 추가 매수'
-    },
-  ])
+  const [logs, setLogs] = useState([])
+  const [portfolioAssets, setPortfolioAssets] = useState([])
 
   const [filterType, setFilterType] = useState('all')
   const [filterMonth, setFilterMonth] = useState('all')
@@ -52,12 +22,21 @@ const InvestmentLog = () => {
     note: ''
   })
 
-  // Load logs from localStorage on mount
+  // Load logs and portfolio assets from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('investment_logs')
-    if (saved) {
+    const savedLogs = localStorage.getItem('investment_logs')
+    if (savedLogs) {
       try {
-        setLogs(JSON.parse(saved))
+        setLogs(JSON.parse(savedLogs))
+      } catch (error) {
+        console.error('Failed to load logs:', error)
+      }
+    }
+
+    const savedAssets = localStorage.getItem('portfolio_assets')
+    if (savedAssets) {
+      try {
+        setPortfolioAssets(JSON.parse(savedAssets))
       } catch (error) {
         console.error('Failed to load logs:', error)
       }
@@ -124,7 +103,67 @@ const InvestmentLog = () => {
     const updatedLogs = [newLog, ...logs]
     setLogs(updatedLogs)
     localStorage.setItem('investment_logs', JSON.stringify(updatedLogs))
+
+    // 포트폴리오 자동 업데이트
+    updatePortfolioFromTransaction(newLog)
+
     handleCloseModal()
+  }
+
+  // 거래 내역으로 포트폴리오 업데이트
+  const updatePortfolioFromTransaction = (transaction) => {
+    const savedAssets = localStorage.getItem('portfolio_assets')
+    if (!savedAssets) return
+
+    try {
+      const assets = JSON.parse(savedAssets)
+      const assetIndex = assets.findIndex(a => a.symbol === transaction.asset)
+
+      if (transaction.type === 'buy') {
+        if (assetIndex >= 0) {
+          // 기존 자산에 추가 매수
+          const asset = assets[assetIndex]
+          const totalQuantity = asset.quantity + transaction.quantity
+          const totalCost = (asset.quantity * asset.avgPrice) + (transaction.quantity * transaction.price)
+          const newAvgPrice = totalCost / totalQuantity
+
+          assets[assetIndex] = {
+            ...asset,
+            quantity: totalQuantity,
+            avgPrice: newAvgPrice,
+            totalValue: totalQuantity * asset.currentPrice,
+            profit: (totalQuantity * asset.currentPrice) - (totalQuantity * newAvgPrice),
+            profitPercent: ((asset.currentPrice - newAvgPrice) / newAvgPrice) * 100
+          }
+        }
+        // 새 자산은 포트폴리오에서 직접 추가해야 함
+      } else if (transaction.type === 'sell') {
+        if (assetIndex >= 0) {
+          // 보유 자산 매도
+          const asset = assets[assetIndex]
+          const newQuantity = asset.quantity - transaction.quantity
+
+          if (newQuantity <= 0) {
+            // 전량 매도 시 자산 제거
+            assets.splice(assetIndex, 1)
+          } else {
+            // 일부 매도
+            assets[assetIndex] = {
+              ...asset,
+              quantity: newQuantity,
+              totalValue: newQuantity * asset.currentPrice,
+              profit: (newQuantity * asset.currentPrice) - (newQuantity * asset.avgPrice),
+              profitPercent: ((asset.currentPrice - asset.avgPrice) / asset.avgPrice) * 100
+            }
+          }
+        }
+      }
+
+      localStorage.setItem('portfolio_assets', JSON.stringify(assets))
+      setPortfolioAssets(assets)
+    } catch (error) {
+      console.error('Failed to update portfolio:', error)
+    }
   }
 
   const handleDeleteLog = (id) => {
@@ -540,17 +579,50 @@ const InvestmentLog = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  자산명 (예: AAPL, BTC, TSLA)
+                  자산 선택
                 </label>
-                <input
-                  type="text"
-                  name="asset"
-                  value={formData.asset}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="AAPL"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
+                {portfolioAssets.length > 0 ? (
+                  <div className="space-y-2">
+                    <select
+                      name="asset"
+                      value={formData.asset}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">포트폴리오에서 선택</option>
+                      {portfolioAssets.map(asset => (
+                        <option key={asset.id} value={asset.symbol}>
+                          {asset.symbol} - {asset.name} ({asset.currency})
+                        </option>
+                      ))}
+                      <option value="__custom__">직접 입력</option>
+                    </select>
+                    {formData.asset === '__custom__' && (
+                      <input
+                        type="text"
+                        name="customAsset"
+                        placeholder="종목 심볼 직접 입력 (예: AAPL)"
+                        onChange={(e) => setFormData(prev => ({ ...prev, asset: e.target.value.toUpperCase() }))}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    name="asset"
+                    value={formData.asset}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="종목 심볼 입력 (예: AAPL)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 포트폴리오에 등록된 자산을 선택하거나 직접 입력하세요
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

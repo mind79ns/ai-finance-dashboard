@@ -32,6 +32,7 @@ import {
  */
 const AssetDetailView = ({ asset, exchangeRate }) => {
   const [priceHistory, setPriceHistory] = useState([])
+  const [transactionHistory, setTransactionHistory] = useState([])
 
   // 가격 히스토리 시뮬레이션 (실제로는 API에서 가져와야 함)
   useEffect(() => {
@@ -62,6 +63,19 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
     }
 
     setPriceHistory(generatePriceHistory())
+
+    // Load transaction history from investment logs
+    const savedLogs = localStorage.getItem('investment_logs')
+    if (savedLogs) {
+      try {
+        const logs = JSON.parse(savedLogs)
+        // Filter logs for this asset
+        const assetLogs = logs.filter(log => log.asset === asset.symbol)
+        setTransactionHistory(assetLogs)
+      } catch (error) {
+        console.error('Failed to load transaction history:', error)
+      }
+    }
   }, [asset])
 
   if (!asset) return null
@@ -262,31 +276,52 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
         </div>
       </div>
 
-      {/* 거래 내역 (임시) */}
+      {/* 거래 내역 */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <Calendar className="w-5 h-5 text-primary-600" />
           <h4 className="text-lg font-semibold text-gray-900">거래 내역</h4>
+          <span className="text-xs text-gray-500">({transactionHistory.length}건)</span>
         </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between py-3 border-b border-gray-100">
-            <div>
-              <p className="text-sm font-medium text-gray-900">매수</p>
-              <p className="text-xs text-gray-500 mt-1">2025-01-15</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">
-                {asset.quantity} @ {formatCurrency(asset.avgPrice, asset.currency)}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {formatCurrency(asset.quantity * asset.avgPrice, asset.currency)}
-              </p>
-            </div>
+        {transactionHistory.length > 0 ? (
+          <div className="space-y-2">
+            {transactionHistory.map((log) => (
+              <div key={log.id} className="flex items-center justify-between py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${
+                      log.type === 'buy'
+                        ? 'bg-primary-100 text-primary-700'
+                        : 'bg-success/10 text-success'
+                    }`}>
+                      {log.type === 'buy' ? '매수' : '매도'}
+                    </span>
+                    <p className="text-sm font-medium text-gray-900">{log.date}</p>
+                  </div>
+                  {log.note && (
+                    <p className="text-xs text-gray-500 mt-1">{log.note}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">
+                    {log.quantity} @ {formatCurrency(log.price, asset.currency)}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    총액: {formatCurrency(log.total, asset.currency)}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="text-xs text-gray-500 text-center py-4">
-            💡 거래 내역은 투자일지와 연동됩니다
-          </p>
-        </div>
+        ) : (
+          <div className="text-center py-8">
+            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-500">거래 내역이 없습니다</p>
+            <p className="text-xs text-gray-400 mt-1">
+              투자일지에서 거래를 추가하면 자동으로 연동됩니다
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 액션 버튼 */}
