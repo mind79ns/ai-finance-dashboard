@@ -9,6 +9,7 @@ const Market = () => {
   const [error, setError] = useState(null)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [marketData, setMarketData] = useState(null)
+  const [activeCategory, setActiveCategory] = useState('all') // all, stocks, crypto, currency
 
   const fetchMarketData = async () => {
     setLoading(true)
@@ -86,6 +87,52 @@ const Market = () => {
         </button>
       </div>
 
+      {/* Category Filter */}
+      <div className="card">
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeCategory === 'all'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            전체
+          </button>
+          <button
+            onClick={() => setActiveCategory('stocks')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeCategory === 'stocks'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            주식/ETF
+          </button>
+          <button
+            onClick={() => setActiveCategory('crypto')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeCategory === 'crypto'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            암호화폐
+          </button>
+          <button
+            onClick={() => setActiveCategory('currency')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeCategory === 'currency'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            환율
+          </button>
+        </div>
+      </div>
+
       {/* Data Source Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
@@ -97,7 +144,7 @@ const Market = () => {
       </div>
 
       {/* Stock Indices */}
-      {marketData?.stocks && (
+      {marketData?.stocks && (activeCategory === 'all' || activeCategory === 'stocks') && (
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">주요 지수 ETF (실시간)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -126,7 +173,7 @@ const Market = () => {
       )}
 
       {/* Cryptocurrencies */}
-      {marketData?.crypto && (
+      {marketData?.crypto && (activeCategory === 'all' || activeCategory === 'crypto') && (
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">암호화폐 (실시간)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -139,7 +186,7 @@ const Market = () => {
       )}
 
       {/* Currency Rates */}
-      {marketData?.currency && (
+      {marketData?.currency && (activeCategory === 'all' || activeCategory === 'currency') && (
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">환율 (실시간)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

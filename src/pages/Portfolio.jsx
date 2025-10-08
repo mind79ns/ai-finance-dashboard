@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye } from 'lucide-react'
+import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye, Search, Filter, SortAsc } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
 import SlidePanel from '../components/SlidePanel'
 import AssetDetailView from '../components/AssetDetailView'
@@ -63,6 +63,9 @@ const Portfolio = () => {
   const [loading, setLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [exchangeRate, setExchangeRate] = useState(1340) // USD/KRW rate
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState('전체')
+  const [sortBy, setSortBy] = useState('default') // default, profit, profitPercent, value
 
   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
   useEffect(() => {
@@ -214,6 +217,39 @@ const Portfolio = () => {
     return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
   }
 
+  // Filter and search logic
+  const filteredAssets = assets
+    .filter(asset => {
+      // Type filter
+      if (filterType !== '전체' && asset.type !== filterType) {
+        return false
+      }
+      // Search filter (symbol or name)
+      if (searchQuery.trim() !== '') {
+        const query = searchQuery.toLowerCase()
+        return asset.symbol.toLowerCase().includes(query) ||
+               asset.name.toLowerCase().includes(query)
+      }
+      return true
+    })
+    .sort((a, b) => {
+      // Sort logic
+      switch (sortBy) {
+        case 'profit':
+          return b.profit - a.profit
+        case 'profitPercent':
+          return b.profitPercent - a.profitPercent
+        case 'value':
+          return b.totalValue - a.totalValue
+        case 'default':
+        default:
+          return 0
+      }
+    })
+
+  // Get unique asset types for filter
+  const assetTypes = ['전체', ...new Set(assets.map(a => a.type))]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -283,6 +319,84 @@ const Portfolio = () => {
         </ResponsiveContainer>
       </ChartCard>
 
+      {/* Search and Filter */}
+      <div className="card">
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="종목명 또는 심볼 검색 (예: AAPL, Bitcoin)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Filters and Sort */}
+          <div className="flex flex-wrap gap-3">
+            {/* Type Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">유형:</span>
+              <div className="flex gap-2">
+                {assetTypes.map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(type)}
+                    className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                      filterType === type
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sort Options */}
+            <div className="flex items-center gap-2 ml-auto">
+              <SortAsc className="w-4 h-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">정렬:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="default">기본</option>
+                <option value="value">평가액 높은순</option>
+                <option value="profit">수익금 높은순</option>
+                <option value="profitPercent">수익률 높은순</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Active Filters Info */}
+          {(searchQuery || filterType !== '전체' || sortBy !== 'default') && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span>
+                {filteredAssets.length}개 자산 표시 중
+                {searchQuery && ` (검색: "${searchQuery}")`}
+                {filterType !== '전체' && ` (유형: ${filterType})`}
+              </span>
+              <button
+                onClick={() => {
+                  setSearchQuery('')
+                  setFilterType('전체')
+                  setSortBy('default')
+                }}
+                className="text-primary-600 hover:text-primary-700 underline"
+              >
+                초기화
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Assets Table */}
       <div className="card">
         <div className="flex items-center justify-between mb-6">
@@ -313,7 +427,18 @@ const Portfolio = () => {
               </tr>
             </thead>
             <tbody>
-              {assets.map((asset) => (
+              {filteredAssets.length === 0 ? (
+                <tr>
+                  <td colSpan="10" className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <Search className="w-12 h-12 mb-3 text-gray-300" />
+                      <p className="text-lg font-medium">검색 결과가 없습니다</p>
+                      <p className="text-sm mt-1">다른 검색어를 입력하거나 필터를 변경해보세요</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredAssets.map((asset) => (
                 <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-4 px-4">
                     <div>
@@ -377,7 +502,8 @@ const Portfolio = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
