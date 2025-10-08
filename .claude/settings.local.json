@@ -17,7 +17,8 @@
       "WebFetch(domain:www.alphavantage.co)",
       "Read(//c/Users/Mr Kim/Desktop/**)",
       "Bash(npm install:*)",
-      "Bash(iconv:*)"
+      "Bash(iconv:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

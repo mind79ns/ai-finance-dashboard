@@ -1,16 +1,16 @@
 /**
- * Korean Stock Price Service (Yahoo Finance Alternative)
+ * Korean Stock Price Service (via Netlify Functions)
  *
- * 한국투자증권 OpenAPI는 CORS 제한으로 브라우저에서 직접 호출 불가
- * 대신 Yahoo Finance API를 사용하여 한국 주식/ETF 실시간 시세 조회
+ * 한국투자증권 OpenAPI를 Netlify Functions를 통해 호출
+ * CORS 문제를 서버리스 프록시로 해결
  */
 
 import axios from 'axios'
 
 class KISService {
   constructor() {
-    // Yahoo Finance API - No CORS restrictions, free to use
-    this.baseURL = 'https://query1.finance.yahoo.com/v8/finance/chart'
+    // Netlify Functions endpoint (serverless proxy)
+    this.baseURL = '/.netlify/functions'
     this.cache = {}
     this.cacheExpiry = {}
   }
@@ -34,7 +34,7 @@ class KISService {
   }
 
   /**
-   * 주식 현재가 조회 (Yahoo Finance)
+   * 주식 현재가 조회 (via Netlify Functions)
    * @param {string} stockCode - 종목코드 (6자리, 예: "005930")
    */
   async getStockPrice(stockCode) {
@@ -43,74 +43,30 @@ class KISService {
     if (cached) return cached
 
     try {
-      // Convert Korean stock code to Yahoo Finance format
-      // 005930 -> 005930.KS (KOSPI) or 005930.KQ (KOSDAQ)
-      const yahooSymbol = `${stockCode.padStart(6, '0')}.KS`
-
-      const response = await axios.get(`${this.baseURL}/${yahooSymbol}`, {
+      // Call Netlify Function (serverless proxy to KIS API)
+      const response = await axios.get(`${this.baseURL}/kis-price`, {
         params: {
-          interval: '1d',
-          range: '1d'
+          stockCode: stockCode.padStart(6, '0')
         }
       })
 
-      const result = response.data.chart.result[0]
-      const quote = result.meta
-      const regularMarketPrice = quote.regularMarketPrice
-
-      if (!regularMarketPrice) {
-        // Try KOSDAQ if KOSPI fails
-        const kosdaqSymbol = `${stockCode.padStart(6, '0')}.KQ`
-        const kosdaqResponse = await axios.get(`${this.baseURL}/${kosdaqSymbol}`, {
-          params: {
-            interval: '1d',
-            range: '1d'
-          }
-        })
-
-        const kosdaqResult = kosdaqResponse.data.chart.result[0]
-        const kosdaqQuote = kosdaqResult.meta
-
-        const priceData = {
-          symbol: stockCode,
-          price: kosdaqQuote.regularMarketPrice,
-          change: kosdaqQuote.regularMarketPrice - kosdaqQuote.previousClose,
-          changePercent: ((kosdaqQuote.regularMarketPrice - kosdaqQuote.previousClose) / kosdaqQuote.previousClose) * 100,
-          high: kosdaqQuote.regularMarketDayHigh || kosdaqQuote.regularMarketPrice,
-          low: kosdaqQuote.regularMarketDayLow || kosdaqQuote.regularMarketPrice,
-          open: kosdaqQuote.regularMarketOpen || kosdaqQuote.regularMarketPrice,
-          previousClose: kosdaqQuote.previousClose
-        }
-
-        this.setCache(stockCode, priceData)
-        return priceData
-      }
-
-      const priceData = {
-        symbol: stockCode,
-        price: regularMarketPrice,
-        change: regularMarketPrice - quote.previousClose,
-        changePercent: ((regularMarketPrice - quote.previousClose) / quote.previousClose) * 100,
-        high: quote.regularMarketDayHigh || regularMarketPrice,
-        low: quote.regularMarketDayLow || regularMarketPrice,
-        open: quote.regularMarketOpen || regularMarketPrice,
-        previousClose: quote.previousClose
-      }
+      const priceData = response.data
 
       this.setCache(stockCode, priceData)
+      console.log(`✅ KIS (via Netlify): ${stockCode} = ₩${priceData.price}`)
       return priceData
     } catch (error) {
-      console.error(`❌ Yahoo Finance error for ${stockCode}:`, error.message)
+      console.error(`❌ KIS API error for ${stockCode}:`, error.response?.data || error.message)
       return null
     }
   }
 
   /**
-   * ETF 현재가 조회 (Yahoo Finance)
+   * ETF 현재가 조회 (via Netlify Functions)
    * @param {string} etfCode - ETF 종목코드 (6자리)
    */
   async getETFPrice(etfCode) {
-    // ETF도 주식과 동일한 방식으로 조회
+    // ETF도 주식과 동일한 KIS API 사용
     return await this.getStockPrice(etfCode)
   }
 
@@ -121,15 +77,15 @@ class KISService {
   async getMultiplePrices(symbols) {
     const prices = {}
 
-    // Yahoo Finance는 rate limit이 관대하므로 병렬 처리 가능
-    const promises = symbols.map(symbol => this.getStockPrice(symbol))
-    const results = await Promise.all(promises)
-
-    results.forEach((price, index) => {
+    // KIS API는 rate limit이 있으므로 순차 처리 (초당 20건)
+    for (const symbol of symbols) {
+      const price = await this.getStockPrice(symbol)
       if (price) {
-        prices[symbols[index]] = price
+        prices[symbol] = price
       }
-    })
+      // 50ms delay to respect rate limit (20 calls/sec)
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
 
     return prices
   }
