@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { PlusCircle, Edit2, Trash2, X, RefreshCw } from 'lucide-react'
+import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
+import SlidePanel from '../components/SlidePanel'
+import AssetDetailView from '../components/AssetDetailView'
 import marketDataService from '../services/marketDataService'
 
 const Portfolio = () => {
@@ -48,6 +50,8 @@ const Portfolio = () => {
   ])
 
   const [showModal, setShowModal] = useState(false)
+  const [showDetailPanel, setShowDetailPanel] = useState(false)
+  const [selectedAsset, setSelectedAsset] = useState(null)
   const [formData, setFormData] = useState({
     symbol: '',
     name: '',
@@ -183,6 +187,11 @@ const Portfolio = () => {
     if (window.confirm('이 자산을 삭제하시겠습니까?')) {
       setAssets(prev => prev.filter(asset => asset.id !== id))
     }
+  }
+
+  const handleViewDetail = (asset) => {
+    setSelectedAsset(asset)
+    setShowDetailPanel(true)
   }
 
   const formatCurrency = (value, currency) => {
@@ -339,8 +348,16 @@ const Portfolio = () => {
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        onClick={() => handleViewDetail(asset)}
+                        className="p-1 hover:bg-primary-50 rounded transition-colors"
+                        title="상세 보기"
+                      >
+                        <Eye className="w-4 h-4 text-primary-600" />
+                      </button>
+                      <button
                         onClick={() => handleDeleteAsset(asset.id)}
                         className="p-1 hover:bg-red-50 rounded transition-colors"
+                        title="삭제"
                       >
                         <Trash2 className="w-4 h-4 text-danger" />
                       </button>
@@ -493,6 +510,21 @@ const Portfolio = () => {
           </div>
         </div>
       )}
+
+      {/* Asset Detail Slide Panel */}
+      <SlidePanel
+        isOpen={showDetailPanel}
+        onClose={() => setShowDetailPanel(false)}
+        title={selectedAsset ? `${selectedAsset.symbol} 상세 정보` : '자산 상세'}
+        width="max-w-3xl"
+      >
+        {selectedAsset && (
+          <AssetDetailView
+            asset={selectedAsset}
+            exchangeRate={exchangeRate}
+          />
+        )}
+      </SlidePanel>
     </div>
   )
 }
