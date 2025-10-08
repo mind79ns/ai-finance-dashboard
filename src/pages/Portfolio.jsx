@@ -129,7 +129,7 @@ const Portfolio = () => {
 
   const performanceData = assets.map(asset => ({
     name: asset.symbol,
-    수익률: parseFloat(asset.profitPercent.toFixed(2))
+    수익률: parseFloat((asset.profitPercent || 0).toFixed(2))
   }))
 
   const totalValue = assets.reduce((sum, asset) => sum + asset.totalValue, 0)
@@ -458,7 +458,7 @@ const Portfolio = () => {
         <div className="card">
           <p className="text-sm text-gray-600 mb-1">평균 수익률</p>
           <p className={`text-3xl font-bold ${avgProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
-            {avgProfitPercent >= 0 ? '+' : ''}{avgProfitPercent.toFixed(2)}%
+            {avgProfitPercent >= 0 ? '+' : ''}{(avgProfitPercent || 0).toFixed(2)}%
           </p>
         </div>
       </div>
@@ -666,8 +666,8 @@ const Portfolio = () => {
                     </span>
                   </td>
                   <td className="py-4 px-4 text-right text-sm font-medium">
-                    <span className={asset.profitPercent >= 0 ? 'text-success' : 'text-danger'}>
-                      {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(2)}%
+                    <span className={(asset.profitPercent || 0) >= 0 ? 'text-success' : 'text-danger'}>
+                      {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(2)}%
                     </span>
                   </td>
                   <td className="py-4 px-4">
