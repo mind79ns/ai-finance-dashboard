@@ -15,7 +15,8 @@
       "Bash(curl -s \"https://api.exchangerate-api.com/v4/latest/USD\")",
       "WebSearch",
       "WebFetch(domain:www.alphavantage.co)",
-      "Read(//c/Users/Mr Kim/Desktop/**)"
+      "Read(//c/Users/Mr Kim/Desktop/**)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
