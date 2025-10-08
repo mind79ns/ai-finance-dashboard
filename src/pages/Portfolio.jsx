@@ -80,8 +80,8 @@ const Portfolio = () => {
           }
           // KRW assets: keep current price as-is (manual update required)
           else if (asset.currency === 'KRW') {
-            // Korean stocks/ETFs need manual price updates or alternative API
-            console.log(`⏭️ Skipping KRW asset ${asset.symbol} (manual update required)`)
+            // Korean stocks/ETFs - Finnhub doesn't support KRX, keep avgPrice
+            currentPrice = asset.avgPrice
           }
           // Update crypto prices from CoinGecko
           else if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
@@ -587,8 +587,17 @@ const Portfolio = () => {
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">보유 자산</h3>
-            <p className="text-sm text-gray-600 mt-1">전체 {assets.length}개 자산</p>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">보유 자산</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                전체 {assets.length}개 자산
+                {assets.some(a => a.currency === 'KRW') && (
+                  <span className="ml-2 text-xs text-orange-600">
+                    ⚠️ KRW 자산은 수동 가격 업데이트 필요
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
