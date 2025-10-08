@@ -5,6 +5,13 @@ export const API_CONFIG = {
   GEMINI_MODEL: import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash',
   AI_PROVIDER: import.meta.env.VITE_AI_PROVIDER || 'openai',
   FRED_API_KEY: import.meta.env.VITE_FRED_API_KEY || '',
+
+  // 한국투자증권 OpenAPI
+  KIS_APP_KEY: import.meta.env.VITE_KIS_APP_KEY || '',
+  KIS_APP_SECRET: import.meta.env.VITE_KIS_APP_SECRET || '',
+
+  // Finnhub (미국 주식)
+  FINNHUB_API_KEY: import.meta.env.VITE_FINNHUB_API_KEY || '',
 }
 
 export const MARKET_SYMBOLS = {

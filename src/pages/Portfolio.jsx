@@ -5,6 +5,7 @@ import ChartCard from '../components/ChartCard'
 import SlidePanel from '../components/SlidePanel'
 import AssetDetailView from '../components/AssetDetailView'
 import marketDataService from '../services/marketDataService'
+import kisService from '../services/kisService'
 
 const Portfolio = () => {
   const [assets, setAssets] = useState([])
@@ -44,6 +45,11 @@ const Portfolio = () => {
   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
   useEffect(() => {
     const updatePrices = async () => {
+      // Skip if no assets loaded yet
+      if (assets.length === 0) {
+        return
+      }
+
       try {
         setLoading(true)
         const marketData = await marketDataService.getAllMarketData()
@@ -53,18 +59,33 @@ const Portfolio = () => {
           setExchangeRate(marketData.currency.usdKrw.rate)
         }
 
-        // Get list of USD stock/ETF symbols to fetch (skip KRW assets)
-        const stockSymbols = assets
+        // Get list of USD stock/ETF symbols to fetch
+        const usdStockSymbols = assets
           .filter(asset =>
             (asset.type === '주식' || asset.type === 'ETF') &&
             asset.currency === 'USD'
           )
           .map(asset => asset.symbol)
 
-        // Fetch stock prices from Finnhub (USD only)
-        let stockPrices = {}
-        if (stockSymbols.length > 0) {
-          stockPrices = await marketDataService.getMultipleStockPrices(stockSymbols)
+        // Get list of KRW stock/ETF symbols to fetch
+        const krwStockSymbols = assets
+          .filter(asset =>
+            (asset.type === '주식' || asset.type === 'ETF') &&
+            asset.currency === 'KRW'
+          )
+          .map(asset => asset.symbol)
+
+        // Fetch USD stock prices from Finnhub
+        let usdStockPrices = {}
+        if (usdStockSymbols.length > 0) {
+          usdStockPrices = await marketDataService.getMultipleStockPrices(usdStockSymbols)
+        }
+
+        // Fetch KRW stock prices from 한국투자증권
+        let krwStockPrices = {}
+        if (krwStockSymbols.length > 0) {
+          krwStockPrices = await kisService.getMultiplePrices(krwStockSymbols)
+          console.log(`📊 KIS: Fetched ${Object.keys(krwStockPrices).length} KRW stock prices`)
         }
 
         // Update all asset prices
@@ -74,14 +95,16 @@ const Portfolio = () => {
           // Update USD stock/ETF prices from Finnhub
           if ((asset.type === '주식' || asset.type === 'ETF') &&
               asset.currency === 'USD' &&
-              stockPrices[asset.symbol]) {
-            currentPrice = stockPrices[asset.symbol].price
-            console.log(`📊 Updated ${asset.symbol}: $${currentPrice}`)
+              usdStockPrices[asset.symbol]) {
+            currentPrice = usdStockPrices[asset.symbol].price
+            console.log(`📊 Finnhub: ${asset.symbol} = $${currentPrice}`)
           }
-          // KRW assets: keep current price as-is (manual update required)
-          else if (asset.currency === 'KRW') {
-            // Korean stocks/ETFs - Finnhub doesn't support KRX, keep avgPrice
-            currentPrice = asset.avgPrice
+          // Update KRW stock/ETF prices from 한국투자증권
+          else if ((asset.type === '주식' || asset.type === 'ETF') &&
+                   asset.currency === 'KRW' &&
+                   krwStockPrices[asset.symbol]) {
+            currentPrice = krwStockPrices[asset.symbol].price
+            console.log(`📊 KIS: ${asset.symbol} = ₩${currentPrice}`)
           }
           // Update crypto prices from CoinGecko
           else if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
@@ -591,9 +614,9 @@ const Portfolio = () => {
               <h3 className="text-lg font-semibold text-gray-900">보유 자산</h3>
               <p className="text-sm text-gray-600 mt-1">
                 전체 {assets.length}개 자산
-                {assets.some(a => a.currency === 'KRW') && (
-                  <span className="ml-2 text-xs text-orange-600">
-                    ⚠️ KRW 자산은 수동 가격 업데이트 필요
+                {lastUpdate && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    • 마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
                   </span>
                 )}
               </p>
