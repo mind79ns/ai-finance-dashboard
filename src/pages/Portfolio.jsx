@@ -64,7 +64,7 @@ const Portfolio = () => {
   const [lastUpdate, setLastUpdate] = useState(null)
   const [exchangeRate, setExchangeRate] = useState(1340) // USD/KRW rate
 
-  // Fetch real-time prices for crypto assets
+  // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
   useEffect(() => {
     const updatePrices = async () => {
       try {
@@ -76,28 +76,41 @@ const Portfolio = () => {
           setExchangeRate(marketData.currency.usdKrw.rate)
         }
 
-        // Update crypto prices
+        // Get list of stock/ETF symbols to fetch
+        const stockSymbols = assets
+          .filter(asset => asset.type === '주식' || asset.type === 'ETF')
+          .map(asset => asset.symbol)
+
+        // Fetch stock prices from Finnhub
+        let stockPrices = {}
+        if (stockSymbols.length > 0) {
+          stockPrices = await marketDataService.getMultipleStockPrices(stockSymbols)
+        }
+
+        // Update all asset prices
         setAssets(prevAssets => prevAssets.map(asset => {
           let currentPrice = asset.currentPrice
 
-          // Update BTC price
-          if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
+          // Update stock/ETF prices from Finnhub
+          if ((asset.type === '주식' || asset.type === 'ETF') && stockPrices[asset.symbol]) {
+            currentPrice = stockPrices[asset.symbol].price
+            console.log(`📊 Updated ${asset.symbol}: $${currentPrice}`)
+          }
+          // Update crypto prices from CoinGecko
+          else if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
             currentPrice = marketData.crypto.bitcoin.price
           }
-          // Update ETH price
           else if (asset.symbol === 'ETH' && marketData.crypto?.ethereum) {
             currentPrice = marketData.crypto.ethereum.price
           }
-          // Update BNB price
           else if (asset.symbol === 'BNB' && marketData.crypto?.binancecoin) {
             currentPrice = marketData.crypto.binancecoin.price
           }
-          // Update SOL price
           else if (asset.symbol === 'SOL' && marketData.crypto?.solana) {
             currentPrice = marketData.crypto.solana.price
           }
 
-          // Recalculate values
+          // Recalculate values based on real-time current price
           const totalValue = asset.quantity * currentPrice
           const profit = totalValue - (asset.quantity * asset.avgPrice)
           const profitPercent = ((currentPrice - asset.avgPrice) / asset.avgPrice) * 100
@@ -123,7 +136,7 @@ const Portfolio = () => {
     // Auto-refresh every 2 minutes
     const interval = setInterval(updatePrices, 120000)
     return () => clearInterval(interval)
-  }, [])
+  }, [assets.length]) // Re-run when assets are added/removed
 
   const performanceData = assets.map(asset => ({
     name: asset.symbol,

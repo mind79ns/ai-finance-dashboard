@@ -291,11 +291,24 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
 
       {/* 액션 버튼 */}
       <div className="grid grid-cols-2 gap-3">
-        <button className="btn-secondary">
+        <button
+          onClick={() => alert(`${asset.symbol} 거래 추가 기능은 투자일지 페이지와 연동 예정입니다.`)}
+          className="btn-secondary flex items-center justify-center gap-2"
+        >
           <Calendar className="w-4 h-4" />
           거래 추가
         </button>
-        <button className="btn-secondary">
+        <button
+          onClick={() => {
+            const targetPrice = prompt(`${asset.symbol}의 목표가를 입력하세요 (현재가: $${asset.currentPrice.toFixed(2)})`, asset.currentPrice * 1.2)
+            if (targetPrice) {
+              const target = parseFloat(targetPrice)
+              const gain = ((target - asset.currentPrice) / asset.currentPrice * 100).toFixed(2)
+              alert(`✅ 목표가 설정 완료!\n\n종목: ${asset.symbol}\n목표가: $${target}\n현재가: $${asset.currentPrice.toFixed(2)}\n기대 수익률: ${gain > 0 ? '+' : ''}${gain}%\n\n💡 목표가 알림 기능은 향후 업데이트 예정입니다.`)
+            }
+          }}
+          className="btn-secondary flex items-center justify-center gap-2"
+        >
           <Percent className="w-4 h-4" />
           목표가 설정
         </button>

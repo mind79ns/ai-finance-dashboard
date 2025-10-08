@@ -319,6 +319,81 @@ class MarketDataService {
   }
 
   /**
+   * ✅ Finnhub - 개별 주식/ETF 실시간 가격 조회
+   * 포트폴리오에서 사용
+   */
+  async getStockPrice(symbol) {
+    const cacheKey = `stock_${symbol}`
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      if (!API_CONFIG.FINNHUB_API_KEY) {
+        console.warn(`⚠️ Finnhub API key not configured for ${symbol}`)
+        return null
+      }
+
+      const response = await axios.get(`${this.finnhubBaseURL}/quote`, {
+        params: {
+          symbol: symbol.toUpperCase(),
+          token: API_CONFIG.FINNHUB_API_KEY
+        }
+      })
+
+      const data = response.data
+
+      // Finnhub returns c (current price)
+      if (!data.c || data.c === 0) {
+        console.warn(`⚠️ No price data for ${symbol}`)
+        return null
+      }
+
+      const result = {
+        symbol: symbol.toUpperCase(),
+        price: data.c,
+        change: data.d,
+        changePercent: data.dp,
+        isPositive: data.d > 0,
+        high: data.h,
+        low: data.l,
+        open: data.o,
+        previousClose: data.pc
+      }
+
+      this.setCache(cacheKey, result)
+      console.log(`✅ Finnhub: ${symbol} price = $${result.price}`)
+      return result
+
+    } catch (error) {
+      console.error(`❌ Finnhub error for ${symbol}:`, error.message)
+      return null
+    }
+  }
+
+  /**
+   * ✅ 여러 종목 가격 한번에 조회
+   */
+  async getMultipleStockPrices(symbols) {
+    try {
+      const promises = symbols.map(symbol => this.getStockPrice(symbol))
+      const results = await Promise.all(promises)
+
+      // Convert to object with symbol as key
+      const priceMap = {}
+      results.forEach((result, index) => {
+        if (result) {
+          priceMap[symbols[index].toUpperCase()] = result
+        }
+      })
+
+      return priceMap
+    } catch (error) {
+      console.error('❌ Failed to fetch multiple stock prices:', error)
+      return {}
+    }
+  }
+
+  /**
    * ✅ 모든 시장 데이터 한번에 가져오기
    */
   async getAllMarketData() {
