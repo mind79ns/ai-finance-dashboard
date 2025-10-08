@@ -53,12 +53,15 @@ const Portfolio = () => {
           setExchangeRate(marketData.currency.usdKrw.rate)
         }
 
-        // Get list of stock/ETF symbols to fetch
+        // Get list of USD stock/ETF symbols to fetch (skip KRW assets)
         const stockSymbols = assets
-          .filter(asset => asset.type === '주식' || asset.type === 'ETF')
+          .filter(asset =>
+            (asset.type === '주식' || asset.type === 'ETF') &&
+            asset.currency === 'USD'
+          )
           .map(asset => asset.symbol)
 
-        // Fetch stock prices from Finnhub
+        // Fetch stock prices from Finnhub (USD only)
         let stockPrices = {}
         if (stockSymbols.length > 0) {
           stockPrices = await marketDataService.getMultipleStockPrices(stockSymbols)
@@ -68,10 +71,17 @@ const Portfolio = () => {
         const updatedAssets = assets.map(asset => {
           let currentPrice = asset.currentPrice
 
-          // Update stock/ETF prices from Finnhub
-          if ((asset.type === '주식' || asset.type === 'ETF') && stockPrices[asset.symbol]) {
+          // Update USD stock/ETF prices from Finnhub
+          if ((asset.type === '주식' || asset.type === 'ETF') &&
+              asset.currency === 'USD' &&
+              stockPrices[asset.symbol]) {
             currentPrice = stockPrices[asset.symbol].price
             console.log(`📊 Updated ${asset.symbol}: $${currentPrice}`)
+          }
+          // KRW assets: keep current price as-is (manual update required)
+          else if (asset.currency === 'KRW') {
+            // Korean stocks/ETFs need manual price updates or alternative API
+            console.log(`⏭️ Skipping KRW asset ${asset.symbol} (manual update required)`)
           }
           // Update crypto prices from CoinGecko
           else if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
@@ -201,7 +211,16 @@ const Portfolio = () => {
     return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
   }
 
-  // CSV Import Handler
+  // Symbol mapping for Korean stocks (A379780 → 379780.KS format)
+  const mapSymbolToFinnhub = (symbol, currency) => {
+    // Remove 'A' prefix from Korean stock symbols
+    if (currency === 'KRW' && symbol.startsWith('A')) {
+      return symbol.substring(1) // A379780 → 379780
+    }
+    return symbol
+  }
+
+  // CSV Import Handler - Support brokerage CSV format
   const handleCSVImport = (event) => {
     const file = event.target.files[0]
     if (!file) return
@@ -212,37 +231,86 @@ const Portfolio = () => {
         const text = e.target.result
         const lines = text.split('\n').filter(line => line.trim())
 
-        // Skip header row
-        const dataLines = lines.slice(1)
+        if (lines.length < 2) {
+          alert('⚠️ CSV 파일이 비어있거나 형식이 올바르지 않습니다.')
+          return
+        }
 
+        // Detect CSV format by checking header
+        const header = lines[0].toLowerCase()
+        const dataLines = lines.slice(1)
         const importedAssets = []
 
-        dataLines.forEach(line => {
-          const [symbol, name, type, quantity, avgPrice, currency, account, category] = line.split(',').map(s => s.trim())
+        dataLines.forEach((line, index) => {
+          try {
+            // Parse CSV with proper handling of quoted values
+            const columns = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g)?.map(col =>
+              col.replace(/^"|"$/g, '').trim()
+            ) || []
 
-          if (!symbol || !quantity || !avgPrice) return
+            let accountNumber, accountType, symbol, name, type, quantity, avgPrice, currency
 
-          const qty = parseFloat(quantity)
-          const price = parseFloat(avgPrice)
-          const curr = currency || 'USD'
-          const acc = account || '기본계좌'
-          const cat = category || '해외주식'
+            // Brokerage format: Account Number,Account Type,Symbol,Name,Type,Quantity,AvgPrice,Type
+            if (header.includes('account number')) {
+              [accountNumber, accountType, symbol, name, type, quantity, avgPrice, currency] = columns
+            }
+            // Simple format: Symbol,Name,Type,Quantity,AvgPrice,Currency,Account,Category
+            else {
+              const [sym, nm, tp, qty, price, curr, acc, cat] = columns
+              symbol = sym
+              name = nm
+              type = tp
+              quantity = qty
+              avgPrice = price
+              currency = curr
+              accountType = acc
+            }
 
-          importedAssets.push({
-            id: Date.now() + Math.random(),
-            symbol: symbol.toUpperCase(),
-            name: name || symbol,
-            type: type || '주식',
-            quantity: qty,
-            avgPrice: price,
-            currentPrice: price,
-            totalValue: qty * price,
-            profit: 0,
-            profitPercent: 0,
-            currency: curr,
-            account: acc,
-            category: cat
-          })
+            // Clean and validate data
+            if (!symbol || !quantity || !avgPrice) {
+              console.warn(`Skipping row ${index + 2}: Missing required fields`)
+              return
+            }
+
+            // Parse quantity: handle different formats
+            const qty = parseFloat(quantity.replace(/,/g, ''))
+
+            // Parse price: remove quotes and commas (e.g., "20,220" → 20220)
+            const price = parseFloat(avgPrice.replace(/[",]/g, ''))
+
+            // Determine currency
+            const curr = (currency || 'USD').toUpperCase().trim()
+
+            // Clean symbol (remove A prefix for Korean stocks)
+            const cleanSymbol = mapSymbolToFinnhub(symbol.trim().toUpperCase(), curr)
+
+            // Determine account and category from account type
+            const acc = accountType || '기본계좌'
+            const cat = curr === 'KRW' ? '국내주식' : '해외주식'
+
+            if (isNaN(qty) || isNaN(price)) {
+              console.warn(`Skipping row ${index + 2}: Invalid number format (qty=${quantity}, price=${avgPrice})`)
+              return
+            }
+
+            importedAssets.push({
+              id: Date.now() + Math.random() + index,
+              symbol: cleanSymbol,
+              name: name || symbol,
+              type: type || (curr === 'KRW' ? 'ETF' : '주식'),
+              quantity: qty,
+              avgPrice: price,
+              currentPrice: price,
+              totalValue: qty * price,
+              profit: 0,
+              profitPercent: 0,
+              currency: curr,
+              account: acc,
+              category: cat
+            })
+          } catch (rowError) {
+            console.error(`Error parsing row ${index + 2}:`, rowError)
+          }
         })
 
         if (importedAssets.length > 0) {
@@ -252,15 +320,15 @@ const Portfolio = () => {
           alert(`✅ ${importedAssets.length}개 자산을 성공적으로 가져왔습니다!`)
           setShowImportModal(false)
         } else {
-          alert('⚠️ CSV 파일에서 유효한 데이터를 찾을 수 없습니다.')
+          alert('⚠️ CSV 파일에서 유효한 데이터를 찾을 수 없습니다.\n\n파일 형식을 확인해주세요.')
         }
       } catch (error) {
         console.error('CSV Import Error:', error)
-        alert('❌ CSV 파일을 읽는 중 오류가 발생했습니다.')
+        alert(`❌ CSV 파일을 읽는 중 오류가 발생했습니다.\n\n${error.message}`)
       }
     }
 
-    reader.readAsText(file)
+    reader.readAsText(file, 'UTF-8')
   }
 
   // CSV Export Handler
@@ -529,6 +597,7 @@ const Portfolio = () => {
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">종목</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">유형</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">계좌</th>
                 <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">통화</th>
                 <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">보유량</th>
                 <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">평균단가</th>
@@ -562,6 +631,11 @@ const Portfolio = () => {
                   <td className="py-4 px-4">
                     <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-primary-50 text-primary-700">
                       {asset.type}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700">
+                      {asset.account || '기본계좌'}
                     </span>
                   </td>
                   <td className="py-4 px-4 text-center">
