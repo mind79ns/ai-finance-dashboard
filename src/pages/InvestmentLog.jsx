@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Upload, Download } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Upload, Download, Trash2 } from 'lucide-react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import ChartCard from '../components/ChartCard'
@@ -125,6 +125,14 @@ const InvestmentLog = () => {
     setLogs(updatedLogs)
     localStorage.setItem('investment_logs', JSON.stringify(updatedLogs))
     handleCloseModal()
+  }
+
+  const handleDeleteLog = (id) => {
+    if (window.confirm('이 거래 기록을 삭제하시겠습니까?')) {
+      const updatedLogs = logs.filter(log => log.id !== id)
+      setLogs(updatedLogs)
+      localStorage.setItem('investment_logs', JSON.stringify(updatedLogs))
+    }
   }
 
   // Export handlers
@@ -338,6 +346,7 @@ const InvestmentLog = () => {
                   <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">가격</th>
                   <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">총액</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">메모</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">관리</th>
                 </tr>
               </thead>
               <tbody>
@@ -372,6 +381,15 @@ const InvestmentLog = () => {
                     </td>
                     <td className="py-4 px-4 text-sm text-gray-600">
                       {log.note}
+                    </td>
+                    <td className="py-4 px-4">
+                      <button
+                        onClick={() => handleDeleteLog(log.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

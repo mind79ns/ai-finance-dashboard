@@ -17,7 +17,9 @@ const Portfolio = () => {
     type: '주식',
     quantity: '',
     avgPrice: '',
-    currency: 'USD'
+    currency: 'USD',
+    account: '기본계좌',
+    category: '해외주식'
   })
   const [loading, setLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(null)
@@ -136,7 +138,9 @@ const Portfolio = () => {
       type: '주식',
       quantity: '',
       avgPrice: '',
-      currency: 'USD'
+      currency: 'USD',
+      account: '기본계좌',
+      category: '해외주식'
     })
   }
 
@@ -166,7 +170,9 @@ const Portfolio = () => {
       totalValue,
       profit: 0,
       profitPercent: 0,
-      currency: formData.currency
+      currency: formData.currency,
+      account: formData.account,
+      category: formData.category
     }
 
     const updatedAssets = [...assets, newAsset]
@@ -212,13 +218,15 @@ const Portfolio = () => {
         const importedAssets = []
 
         dataLines.forEach(line => {
-          const [symbol, name, type, quantity, avgPrice, currency] = line.split(',').map(s => s.trim())
+          const [symbol, name, type, quantity, avgPrice, currency, account, category] = line.split(',').map(s => s.trim())
 
           if (!symbol || !quantity || !avgPrice) return
 
           const qty = parseFloat(quantity)
           const price = parseFloat(avgPrice)
-          const curr = currency || 'USD' // Default to USD if not specified
+          const curr = currency || 'USD'
+          const acc = account || '기본계좌'
+          const cat = category || '해외주식'
 
           importedAssets.push({
             id: Date.now() + Math.random(),
@@ -231,7 +239,9 @@ const Portfolio = () => {
             totalValue: qty * price,
             profit: 0,
             profitPercent: 0,
-            currency: curr
+            currency: curr,
+            account: acc,
+            category: cat
           })
         })
 
@@ -255,14 +265,16 @@ const Portfolio = () => {
 
   // CSV Export Handler
   const handleCSVExport = () => {
-    const headers = ['Symbol', 'Name', 'Type', 'Quantity', 'AvgPrice', 'Currency']
+    const headers = ['Symbol', 'Name', 'Type', 'Quantity', 'AvgPrice', 'Currency', 'Account', 'Category']
     const csvData = assets.map(asset => [
       asset.symbol,
       asset.name,
       asset.type,
       asset.quantity,
       asset.avgPrice,
-      asset.currency
+      asset.currency || 'USD',
+      asset.account || '기본계좌',
+      asset.category || '해외주식'
     ])
 
     const csvContent = [
@@ -685,6 +697,47 @@ const Portfolio = () => {
                   >
                     <option value="USD">USD ($)</option>
                     <option value="KRW">KRW (₩)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    계좌
+                  </label>
+                  <select
+                    name="account"
+                    value={formData.account}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="기본계좌">기본계좌</option>
+                    <option value="해외계좌">해외계좌</option>
+                    <option value="ISA계좌">ISA계좌</option>
+                    <option value="연금계좌">연금계좌</option>
+                    <option value="기타">기타</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    카테고리
+                  </label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="해외주식">해외주식</option>
+                    <option value="국내주식">국내주식</option>
+                    <option value="암호화폐">암호화폐</option>
+                    <option value="ETF">ETF</option>
+                    <option value="채권">채권</option>
+                    <option value="기타">기타</option>
                   </select>
                 </div>
               </div>
