@@ -91,7 +91,7 @@ const Portfolio = () => {
         }
 
         // Update all asset prices
-        setAssets(prevAssets => prevAssets.map(asset => {
+        const updatedAssets = assets.map(asset => {
           let currentPrice = asset.currentPrice
 
           // Update stock/ETF prices from Finnhub
@@ -125,8 +125,10 @@ const Portfolio = () => {
             profit,
             profitPercent
           }
-        }))
+        })
 
+        setAssets(updatedAssets)
+        localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
         setLastUpdate(new Date())
       } catch (error) {
         console.error('Price update error:', error)
@@ -195,13 +197,17 @@ const Portfolio = () => {
       currency: formData.currency
     }
 
-    setAssets(prev => [...prev, newAsset])
+    const updatedAssets = [...assets, newAsset]
+    setAssets(updatedAssets)
+    localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
     handleCloseModal()
   }
 
   const handleDeleteAsset = (id) => {
     if (window.confirm('이 자산을 삭제하시겠습니까?')) {
-      setAssets(prev => prev.filter(asset => asset.id !== id))
+      const updatedAssets = assets.filter(asset => asset.id !== id)
+      setAssets(updatedAssets)
+      localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
     }
   }
 
