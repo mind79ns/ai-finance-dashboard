@@ -17,7 +17,7 @@ const Market = () => {
     try {
       const data = await marketDataService.getAllMarketData()
       setMarketData(data)
-      setLastUpdate(data.lastUpdate)
+      setLastUpdate(new Date(data.lastUpdated))
     } catch (err) {
       console.error('Market data error:', err)
       setError('실시간 데이터를 가져오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
@@ -168,27 +168,41 @@ const Market = () => {
 
 // Index Card Component
 const IndexCard = ({ name, data }) => {
-  if (!data || data.error) {
+  if (!data || data.error || data.price === 0 || data.price === undefined || data.price === null) {
     return (
       <div className="card bg-gray-50">
         <p className="text-sm text-gray-600 mb-1">{name}</p>
-        <p className="text-sm text-gray-500">데이터 로드 실패</p>
+        <p className="text-xs text-orange-600 mb-2">
+          {data?.error || 'Finnhub API 키가 필요합니다'}
+        </p>
+        <a
+          href="https://finnhub.io/register"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-primary-600 underline"
+        >
+          무료 API 키 발급받기 →
+        </a>
       </div>
     )
   }
+
+  const price = data.price || 0
+  const change = data.change || 0
+  const changePercent = data.changePercent || 0
 
   return (
     <div className="card hover:shadow-md transition-shadow">
       <p className="text-sm text-gray-600 mb-1">{name}</p>
       <p className="text-2xl font-bold text-gray-900 mb-2">
-        {data.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
       <div className={`flex items-center gap-1 text-sm ${
         data.isPositive ? 'text-success' : 'text-danger'
       }`}>
         {data.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
         <span>
-          {data.isPositive ? '+' : ''}{data.change.toFixed(2)} ({data.isPositive ? '+' : ''}{data.changePercent.toFixed(2)}%)
+          {data.isPositive ? '+' : ''}{change.toFixed(2)} ({data.isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
         </span>
       </div>
     </div>
@@ -197,20 +211,24 @@ const IndexCard = ({ name, data }) => {
 
 // Crypto Card Component
 const CryptoCard = ({ crypto }) => {
-  if (!crypto || crypto.error) {
+  if (!crypto || crypto.error || crypto.price === 0 || crypto.price === undefined || crypto.price === null) {
     return (
       <div className="card bg-gray-50">
         <p className="text-sm text-gray-600">{crypto?.name || 'Crypto'}</p>
-        <p className="text-sm text-gray-500">데이터 로드 실패</p>
+        <p className="text-xs text-gray-500">CoinGecko API 로딩 중...</p>
       </div>
     )
   }
 
   const formatMarketCap = (value) => {
+    if (!value) return 'N/A'
     if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`
     if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`
     return `$${value.toFixed(2)}`
   }
+
+  const price = crypto.price || 0
+  const change24h = crypto.change24h || 0
 
   return (
     <div className="card hover:shadow-md transition-shadow">
@@ -226,14 +244,14 @@ const CryptoCard = ({ crypto }) => {
         )}
       </div>
       <p className="text-2xl font-bold text-gray-900 mb-2">
-        ${crypto.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
       <div className={`flex items-center gap-1 text-sm ${
         crypto.isPositive ? 'text-success' : 'text-danger'
       }`}>
         {crypto.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
         <span>
-          {crypto.isPositive ? '+' : ''}{crypto.change24h.toFixed(2)}% (24h)
+          {crypto.isPositive ? '+' : ''}{change24h.toFixed(2)}% (24h)
         </span>
       </div>
     </div>
@@ -242,12 +260,14 @@ const CryptoCard = ({ crypto }) => {
 
 // Currency Card Component
 const CurrencyCard = ({ pair, name, rate }) => {
+  const displayRate = rate || 0
+
   return (
     <div className="p-4 bg-gray-50 rounded-lg">
       <p className="text-xs text-gray-600 mb-1">{pair}</p>
       <p className="text-sm font-medium text-gray-700 mb-2">{name}</p>
       <p className="text-xl font-bold text-gray-900">
-        {rate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+        {displayRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
       </p>
     </div>
   )
