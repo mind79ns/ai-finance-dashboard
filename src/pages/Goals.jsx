@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Target, Plus, TrendingUp, Calendar, X, Link as LinkIcon, Trash2, Sparkles, RefreshCw } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import ChartCard from '../components/ChartCard'
@@ -186,7 +186,10 @@ const Goals = () => {
     return data
   }
 
-  const projectionData = generateProjectionData()
+  // Memoize projection data to prevent TDZ errors on re-render
+  const projectionData = useMemo(() => {
+    return generateProjectionData()
+  }, [goals])
 
   // Calculate required annual return based on first goal
   const calculateRequiredReturn = () => {
@@ -207,7 +210,10 @@ const Goals = () => {
     return requiredReturn
   }
 
-  const requiredAnnualReturn = calculateRequiredReturn()
+  // Memoize required return to prevent TDZ errors on re-render
+  const requiredAnnualReturn = useMemo(() => {
+    return calculateRequiredReturn()
+  }, [goals])
 
   // Calculate total expected profit
   const calculateExpectedProfit = () => {
@@ -219,7 +225,10 @@ const Goals = () => {
     return totalTarget - totalCurrent
   }
 
-  const expectedProfit = calculateExpectedProfit()
+  // Memoize expected profit to prevent TDZ errors on re-render
+  const expectedProfit = useMemo(() => {
+    return calculateExpectedProfit()
+  }, [goals])
 
   // Risk level assessment
   const assessRiskLevel = () => {
@@ -231,7 +240,10 @@ const Goals = () => {
     return { level: '초고위험', color: 'text-red-600' }
   }
 
-  const riskAssessment = assessRiskLevel()
+  // Memoize risk assessment to prevent TDZ errors on re-render
+  const riskAssessment = useMemo(() => {
+    return assessRiskLevel()
+  }, [requiredAnnualReturn])
 
   const calculateProgress = (current, target) => {
     return Math.min((current / target) * 100, 100)
