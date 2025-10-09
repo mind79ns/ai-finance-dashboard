@@ -9,7 +9,9 @@ import {
   Wallet,
   Building,
   CreditCard,
-  PiggyBank
+  PiggyBank,
+  Check,
+  X
 } from 'lucide-react'
 import {
   LineChart,
@@ -33,9 +35,11 @@ const AssetStatus = () => {
   const [editingMonth, setEditingMonth] = useState(null)
   const [editingYear, setEditingYear] = useState(null)
   const [accountData, setAccountData] = useState({}) // { year: { accountType: value } }
+  const [editingCategoryId, setEditingCategoryId] = useState(null)
+  const [editingCategoryName, setEditingCategoryName] = useState('')
 
-  // Categories for income
-  const incomeCategories = [
+  // Default categories
+  const defaultIncomeCategories = [
     { id: 'salary', name: '아르바이트', color: '#10b981' },
     { id: 'freelance', name: '월 급여', color: '#3b82f6' },
     { id: 'sideIncome', name: '주제외 급여', color: '#8b5cf6' },
@@ -43,8 +47,7 @@ const AssetStatus = () => {
     { id: 'other', name: '재테크 수입', color: '#f59e0b' }
   ]
 
-  // Categories for expenses
-  const expenseCategories = [
+  const defaultExpenseCategories = [
     { id: 'savings', name: '주택 담보대출', color: '#ef4444' },
     { id: 'insurance', name: '보험료 지출', color: '#f97316' },
     { id: 'living', name: '생활비용 대금', color: '#eab308' },
@@ -53,6 +56,10 @@ const AssetStatus = () => {
     { id: 'card', name: '카드 지출', color: '#ec4899' },
     { id: 'vnd', name: 'VND 지출', color: '#6366f1' }
   ]
+
+  // Categories from localStorage or defaults
+  const [incomeCategories, setIncomeCategories] = useState(defaultIncomeCategories)
+  const [expenseCategories, setExpenseCategories] = useState(defaultExpenseCategories)
 
   // Account types for breakdown
   const accountTypes = [
@@ -83,6 +90,16 @@ const AssetStatus = () => {
     if (savedAccounts) {
       setAccountData(JSON.parse(savedAccounts))
     }
+
+    const savedIncome = localStorage.getItem('asset_income_categories')
+    if (savedIncome) {
+      setIncomeCategories(JSON.parse(savedIncome))
+    }
+
+    const savedExpense = localStorage.getItem('asset_expense_categories')
+    if (savedExpense) {
+      setExpenseCategories(JSON.parse(savedExpense))
+    }
   }, [])
 
   // Save status data to localStorage
@@ -98,6 +115,19 @@ const AssetStatus = () => {
       localStorage.setItem('asset_account_data', JSON.stringify(accountData))
     }
   }, [accountData])
+
+  // Save categories to localStorage
+  useEffect(() => {
+    if (incomeCategories.length > 0) {
+      localStorage.setItem('asset_income_categories', JSON.stringify(incomeCategories))
+    }
+  }, [incomeCategories])
+
+  useEffect(() => {
+    if (expenseCategories.length > 0) {
+      localStorage.setItem('asset_expense_categories', JSON.stringify(expenseCategories))
+    }
+  }, [expenseCategories])
 
   // Get available years
   const availableYears = useMemo(() => {
@@ -242,6 +272,45 @@ const AssetStatus = () => {
     return new Intl.NumberFormat('ko-KR').format(Math.round(value))
   }
 
+  // Category name editing handlers
+  const handleStartEditCategory = (categoryId, currentName) => {
+    setEditingCategoryId(categoryId)
+    setEditingCategoryName(currentName)
+  }
+
+  const handleSaveCategoryName = (isIncome) => {
+    if (!editingCategoryName.trim()) {
+      setEditingCategoryId(null)
+      return
+    }
+
+    if (isIncome) {
+      setIncomeCategories(prev =>
+        prev.map(cat =>
+          cat.id === editingCategoryId
+            ? { ...cat, name: editingCategoryName.trim() }
+            : cat
+        )
+      )
+    } else {
+      setExpenseCategories(prev =>
+        prev.map(cat =>
+          cat.id === editingCategoryId
+            ? { ...cat, name: editingCategoryName.trim() }
+            : cat
+        )
+      )
+    }
+
+    setEditingCategoryId(null)
+    setEditingCategoryName('')
+  }
+
+  const handleCancelEditCategory = () => {
+    setEditingCategoryId(null)
+    setEditingCategoryName('')
+  }
+
   return (
     <div className="space-y-6">
       {/* Header with year filter */}
@@ -343,7 +412,46 @@ const AssetStatus = () => {
               {incomeCategories.map((category) => (
                 <tr key={category.id} className="border-b border-gray-200 hover:bg-gray-50">
                   <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 bg-white z-10">
-                    {category.name}
+                    {editingCategoryId === category.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingCategoryName}
+                          onChange={(e) => setEditingCategoryName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveCategoryName(true)
+                            if (e.key === 'Escape') handleCancelEditCategory()
+                          }}
+                          className="flex-1 px-2 py-1 border border-primary-500 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleSaveCategoryName(true)}
+                          className="p-1 text-green-600 hover:bg-green-50 rounded"
+                          title="저장"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleCancelEditCategory}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          title="취소"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group">
+                        <span>{category.name}</span>
+                        <button
+                          onClick={() => handleStartEditCategory(category.id, category.name)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
+                          title="이름 수정"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                   {calculateMonthlyData.map((monthData, idx) => (
                     <td
@@ -377,7 +485,46 @@ const AssetStatus = () => {
               {expenseCategories.map((category) => (
                 <tr key={category.id} className="border-b border-gray-200 hover:bg-gray-50">
                   <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 bg-white z-10">
-                    {category.name}
+                    {editingCategoryId === category.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingCategoryName}
+                          onChange={(e) => setEditingCategoryName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveCategoryName(false)
+                            if (e.key === 'Escape') handleCancelEditCategory()
+                          }}
+                          className="flex-1 px-2 py-1 border border-primary-500 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleSaveCategoryName(false)}
+                          className="p-1 text-green-600 hover:bg-green-50 rounded"
+                          title="저장"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleCancelEditCategory}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          title="취소"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group">
+                        <span>{category.name}</span>
+                        <button
+                          onClick={() => handleStartEditCategory(category.id, category.name)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
+                          title="이름 수정"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                   {calculateMonthlyData.map((monthData, idx) => (
                     <td
