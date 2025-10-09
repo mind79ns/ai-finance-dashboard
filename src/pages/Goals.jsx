@@ -132,6 +132,19 @@ const Goals = () => {
     currency: 'USD'
   })
 
+  // Helper functions (declared before being used)
+  const calculateProgress = (current, target) => {
+    return Math.min((current / target) * 100, 100)
+  }
+
+  const calculateMonthsRemaining = (targetDate) => {
+    const now = new Date()
+    const target = new Date(targetDate)
+    const diffTime = target - now
+    const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30))
+    return diffMonths
+  }
+
   // Dynamic projection data based on first active goal
   const generateProjectionData = () => {
     // Use the first goal with the furthest target date for projection
@@ -244,18 +257,6 @@ const Goals = () => {
   const riskAssessment = useMemo(() => {
     return assessRiskLevel()
   }, [requiredAnnualReturn])
-
-  const calculateProgress = (current, target) => {
-    return Math.min((current / target) * 100, 100)
-  }
-
-  const calculateMonthsRemaining = (targetDate) => {
-    const now = new Date()
-    const target = new Date(targetDate)
-    const diffTime = target - now
-    const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30))
-    return diffMonths
-  }
 
   const handleAddGoal = () => {
     setShowModal(true)
