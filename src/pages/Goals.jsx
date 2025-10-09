@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Target, Plus, TrendingUp, Calendar, X, Link as LinkIcon } from 'lucide-react'
+import { Target, Plus, TrendingUp, Calendar, X, Link as LinkIcon, Trash2 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import ChartCard from '../components/ChartCard'
 
@@ -8,30 +8,19 @@ const Goals = () => {
   const [portfolioTotalKRW, setPortfolioTotalKRW] = useState(0)
   const [exchangeRate, setExchangeRate] = useState(1340)
 
-  const [goals, setGoals] = useState([
-    {
-      id: 1,
-      name: '1억 달성',
-      targetAmount: 100000,
-      currentAmount: 0, // Will be synced from portfolio
-      targetDate: '2030-12-31',
-      category: '장기목표',
-      status: 'active',
-      linkedToPortfolio: true,
-      currency: 'USD'
-    },
-    {
-      id: 2,
-      name: '월 배당 $500',
-      targetAmount: 500,
-      currentAmount: 85,
-      targetDate: '2026-12-31',
-      category: '배당수익',
-      status: 'active',
-      linkedToPortfolio: false,
-      currency: 'USD'
-    },
-  ])
+  const [goals, setGoals] = useState([])
+
+  // Load goals from localStorage on mount
+  useEffect(() => {
+    const savedGoals = localStorage.getItem('investment_goals')
+    if (savedGoals) {
+      try {
+        setGoals(JSON.parse(savedGoals))
+      } catch (error) {
+        console.error('Failed to load goals from localStorage:', error)
+      }
+    }
+  }, [])
 
   // Load portfolio data and sync with goals
   useEffect(() => {
@@ -74,6 +63,8 @@ const Goals = () => {
   }, [goals])
 
   const [showModal, setShowModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [goalToDelete, setGoalToDelete] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     targetAmount: '',
@@ -153,6 +144,24 @@ const Goals = () => {
     handleCloseModal()
   }
 
+  const handleDeleteClick = (goal) => {
+    setGoalToDelete(goal)
+    setShowDeleteConfirm(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (goalToDelete) {
+      setGoals(prev => prev.filter(g => g.id !== goalToDelete.id))
+      setShowDeleteConfirm(false)
+      setGoalToDelete(null)
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false)
+    setGoalToDelete(null)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -196,7 +205,13 @@ const Goals = () => {
                     {goal.category}
                   </span>
                 </div>
-                <Target className="w-6 h-6 text-primary-600" />
+                <button
+                  onClick={() => handleDeleteClick(goal)}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="목표 삭제"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
               </div>
 
               <div className="space-y-4">
@@ -505,6 +520,50 @@ const Goals = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && goalToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 rounded-full">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">목표 삭제</h3>
+                <p className="text-sm text-gray-600">이 작업은 되돌릴 수 없습니다</p>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                다음 목표를 삭제하시겠습니까?
+              </p>
+              <p className="font-semibold text-gray-900">{goalToDelete.name}</p>
+              <p className="text-sm text-gray-600 mt-1">
+                {goalToDelete.category} - {goalToDelete.currency === 'KRW'
+                  ? `₩${Math.round(goalToDelete.targetAmount).toLocaleString()}`
+                  : `$${goalToDelete.targetAmount.toLocaleString()}`}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDelete}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                삭제
+              </button>
+            </div>
           </div>
         </div>
       )}
