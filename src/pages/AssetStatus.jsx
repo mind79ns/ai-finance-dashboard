@@ -11,7 +11,8 @@ import {
   CreditCard,
   PiggyBank,
   Check,
-  X
+  X,
+  Trash2
 } from 'lucide-react'
 import {
   LineChart,
@@ -61,21 +62,24 @@ const AssetStatus = () => {
   const [incomeCategories, setIncomeCategories] = useState(defaultIncomeCategories)
   const [expenseCategories, setExpenseCategories] = useState(defaultExpenseCategories)
 
-  // Account types for breakdown
-  const accountTypes = [
-    { id: 'hana', name: '하나은행', icon: Building },
-    { id: 'shinhan', name: '신한은행', icon: Building },
-    { id: 'woori', name: '우리은행', icon: Building },
-    { id: 'kakao', name: '카카오뱅크', icon: Wallet },
-    { id: 'shinhanDebit', name: '신한 토스', icon: CreditCard },
-    { id: 'toss', name: '토스 투자', icon: TrendingUp },
-    { id: 'samsung', name: '삼성증권', icon: TrendingUp },
-    { id: 'korea', name: '한국투자증권', icon: TrendingUp },
-    { id: 'mirae', name: '미래에셋증권', icon: TrendingUp },
-    { id: 'samsung2', name: '삼성생명보험', icon: PiggyBank },
-    { id: 'union', name: '오리경영보험', icon: PiggyBank },
-    { id: 'gold', name: '골드', icon: DollarSign }
+  // Default account types for breakdown
+  const defaultAccountTypes = [
+    { id: 'hana', name: '하나은행', icon: 'Building' },
+    { id: 'shinhan', name: '신한은행', icon: 'Building' },
+    { id: 'woori', name: '우리은행', icon: 'Building' },
+    { id: 'kakao', name: '카카오뱅크', icon: 'Wallet' },
+    { id: 'shinhanDebit', name: '신한 토스', icon: 'CreditCard' },
+    { id: 'toss', name: '토스 투자', icon: 'TrendingUp' },
+    { id: 'samsung', name: '삼성증권', icon: 'TrendingUp' },
+    { id: 'korea', name: '한국투자증권', icon: 'TrendingUp' },
+    { id: 'mirae', name: '미래에셋증권', icon: 'TrendingUp' },
+    { id: 'samsung2', name: '삼성생명보험', icon: 'PiggyBank' },
+    { id: 'union', name: '오리경영보험', icon: 'PiggyBank' },
+    { id: 'gold', name: '골드', icon: 'DollarSign' }
   ]
+
+  // Account types from localStorage or defaults
+  const [accountTypes, setAccountTypes] = useState(defaultAccountTypes)
 
   const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
@@ -99,6 +103,11 @@ const AssetStatus = () => {
     const savedExpense = localStorage.getItem('asset_expense_categories')
     if (savedExpense) {
       setExpenseCategories(JSON.parse(savedExpense))
+    }
+
+    const savedAccounts = localStorage.getItem('asset_account_types')
+    if (savedAccounts) {
+      setAccountTypes(JSON.parse(savedAccounts))
     }
   }, [])
 
@@ -128,6 +137,12 @@ const AssetStatus = () => {
       localStorage.setItem('asset_expense_categories', JSON.stringify(expenseCategories))
     }
   }, [expenseCategories])
+
+  useEffect(() => {
+    if (accountTypes.length > 0) {
+      localStorage.setItem('asset_account_types', JSON.stringify(accountTypes))
+    }
+  }, [accountTypes])
 
   // Get available years
   const availableYears = useMemo(() => {
@@ -272,6 +287,19 @@ const AssetStatus = () => {
     return new Intl.NumberFormat('ko-KR').format(Math.round(value))
   }
 
+  // Icon mapper
+  const getIconComponent = (iconName) => {
+    const iconMap = {
+      Building,
+      Wallet,
+      CreditCard,
+      TrendingUp,
+      PiggyBank,
+      DollarSign
+    }
+    return iconMap[iconName] || Building
+  }
+
   // Category name editing handlers
   const handleStartEditCategory = (categoryId, currentName) => {
     setEditingCategoryId(categoryId)
@@ -307,6 +335,65 @@ const AssetStatus = () => {
   }
 
   const handleCancelEditCategory = () => {
+    setEditingCategoryId(null)
+    setEditingCategoryName('')
+  }
+
+  // Add/Delete category handlers
+  const handleAddIncomeCategory = () => {
+    const newId = `income_${Date.now()}`
+    setIncomeCategories(prev => [
+      ...prev,
+      { id: newId, name: '새 수입 항목', color: '#10b981' }
+    ])
+  }
+
+  const handleAddExpenseCategory = () => {
+    const newId = `expense_${Date.now()}`
+    setExpenseCategories(prev => [
+      ...prev,
+      { id: newId, name: '새 지출 항목', color: '#ef4444' }
+    ])
+  }
+
+  const handleDeleteCategory = (categoryId, isIncome) => {
+    if (!confirm('이 항목을 삭제하시겠습니까?')) return
+
+    if (isIncome) {
+      setIncomeCategories(prev => prev.filter(cat => cat.id !== categoryId))
+    } else {
+      setExpenseCategories(prev => prev.filter(cat => cat.id !== categoryId))
+    }
+  }
+
+  // Add/Delete account handlers
+  const handleAddAccount = () => {
+    const newId = `account_${Date.now()}`
+    setAccountTypes(prev => [
+      ...prev,
+      { id: newId, name: '새 계좌', icon: 'Building' }
+    ])
+  }
+
+  const handleDeleteAccount = (accountId) => {
+    if (!confirm('이 계좌를 삭제하시겠습니까?')) return
+    setAccountTypes(prev => prev.filter(acc => acc.id !== accountId))
+  }
+
+  const handleSaveAccountName = () => {
+    if (!editingCategoryName.trim()) {
+      setEditingCategoryId(null)
+      return
+    }
+
+    setAccountTypes(prev =>
+      prev.map(acc =>
+        acc.id === editingCategoryId
+          ? { ...acc, name: editingCategoryName.trim() }
+          : acc
+      )
+    )
+
     setEditingCategoryId(null)
     setEditingCategoryName('')
   }
@@ -391,6 +478,24 @@ const AssetStatus = () => {
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h2 className="text-xl font-bold text-gray-900">월별 수입/지출 현황표</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAddIncomeCategory}
+              className="btn-secondary flex items-center gap-2 text-sm"
+              title="수입 항목 추가"
+            >
+              <Plus className="w-4 h-4" />
+              수입 추가
+            </button>
+            <button
+              onClick={handleAddExpenseCategory}
+              className="btn-secondary flex items-center gap-2 text-sm"
+              title="지출 항목 추가"
+            >
+              <Plus className="w-4 h-4" />
+              지출 추가
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -449,6 +554,13 @@ const AssetStatus = () => {
                           title="이름 수정"
                         >
                           <Edit className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(category.id, true)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-opacity"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     )}
@@ -522,6 +634,13 @@ const AssetStatus = () => {
                           title="이름 수정"
                         >
                           <Edit className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(category.id, false)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-opacity"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     )}
@@ -602,13 +721,22 @@ const AssetStatus = () => {
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h2 className="text-xl font-bold text-gray-900">계좌별 자산 현황</h2>
-          <button
-            onClick={() => setShowEditModal(true)}
-            className="btn-secondary flex items-center gap-2 text-sm"
-          >
-            <Edit className="w-4 h-4" />
-            계좌 수정
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAddAccount}
+              className="btn-secondary flex items-center gap-2 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              계좌 추가
+            </button>
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="btn-secondary flex items-center gap-2 text-sm"
+            >
+              <Edit className="w-4 h-4" />
+              금액 수정
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -629,14 +757,59 @@ const AssetStatus = () => {
 
             <tbody>
               {accountBreakdown.map((account) => {
-                const Icon = account.icon
+                const Icon = getIconComponent(account.icon)
                 return (
                   <tr key={account.id} className="border-b border-gray-200 hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium text-gray-900">
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-gray-600" />
-                        {account.name}
-                      </div>
+                      {editingCategoryId === account.id ? (
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-gray-600" />
+                          <input
+                            type="text"
+                            value={editingCategoryName}
+                            onChange={(e) => setEditingCategoryName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveAccountName()
+                              if (e.key === 'Escape') handleCancelEditCategory()
+                            }}
+                            className="flex-1 px-2 py-1 border border-primary-500 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSaveAccountName}
+                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            title="저장"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={handleCancelEditCategory}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            title="취소"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 group">
+                          <Icon className="w-4 h-4 text-gray-600" />
+                          <span>{account.name}</span>
+                          <button
+                            onClick={() => handleStartEditCategory(account.id, account.name)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
+                            title="이름 수정"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAccount(account.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-opacity"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="text-right py-3 px-4 text-gray-700">-</td>
                     <td className="text-right py-3 px-4 text-gray-700">-</td>
