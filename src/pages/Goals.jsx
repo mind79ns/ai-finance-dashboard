@@ -479,7 +479,9 @@ ${JSON.stringify(context, null, 2)}
         {goals.map((goal) => {
           const progress = calculateProgress(goal.currentAmount, goal.targetAmount)
           const monthsLeft = calculateMonthsRemaining(goal.targetDate)
-          const monthlyRequired = (goal.targetAmount - goal.currentAmount) / monthsLeft
+          const monthlyRequired = monthsLeft > 0
+            ? (goal.targetAmount - goal.currentAmount) / monthsLeft
+            : 0
 
           return (
             <div key={goal.id} className="card">
@@ -581,7 +583,13 @@ ${JSON.stringify(context, null, 2)}
       {goals.length > 0 ? (
         <ChartCard
           title="목표 달성 예상 경로"
-          subtitle={`${goals.length > 0 ? goals.filter(g => g.status === 'active').sort((a, b) => new Date(b.targetDate) - new Date(a.targetDate))[0]?.name || '목표' : '목표'} 기준 시뮬레이션 (연 8% 복리 수익률 가정)`}
+          subtitle={(() => {
+            const activeGoals = goals.filter(g => g.status === 'active')
+            if (activeGoals.length === 0) return '목표 기준 시뮬레이션 (연 8% 복리 수익률 가정)'
+            const sortedGoals = activeGoals.sort((a, b) => new Date(b.targetDate) - new Date(a.targetDate))
+            const primaryGoal = sortedGoals[0]
+            return `${primaryGoal?.name || '목표'} 기준 시뮬레이션 (연 8% 복리 수익률 가정)`
+          })()}
         >
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={projectionData}>
