@@ -535,108 +535,154 @@ const Portfolio = () => {
         </div>
       </div>
 
-      {/* Portfolio Summary */}
+      {/* Portfolio Summary - Premium Design */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* 총 평가액 (원화 기준 통합) */}
-        <div className="card">
-          <p className="text-sm text-gray-600 mb-1">총 평가액 (원화 통합)</p>
-          <p className="text-3xl font-bold text-gray-900">
-            ₩{totalValueKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
-          </p>
-          <div className="mt-3 space-y-1">
-            {usdAssets.length > 0 && (
-              <p className="text-xs text-gray-500">
-                🇺🇸 USD: ${usdTotalValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                <span className="text-gray-400 ml-1">
-                  (₩{(usdTotalValue * exchangeRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })})
-                </span>
-              </p>
-            )}
-            {krwAssets.length > 0 && (
-              <p className="text-xs text-gray-500">
-                🇰🇷 KRW: ₩{krwTotalValue.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
-              </p>
-            )}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 p-6 shadow-xl">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
+          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
+          <div className="relative">
+            <p className="text-sm font-medium text-blue-100 mb-2">총 평가액 (원화 통합)</p>
+            <p className="text-4xl font-bold text-white mb-4">
+              ₩{totalValueKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
+            </p>
+            <div className="space-y-2 pt-3 border-t border-blue-400/30">
+              {usdAssets.length > 0 && (
+                <div className="flex items-center justify-between text-blue-50">
+                  <span className="text-xs font-medium">🇺🇸 USD</span>
+                  <span className="text-sm font-semibold">${usdTotalValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                </div>
+              )}
+              {krwAssets.length > 0 && (
+                <div className="flex items-center justify-between text-blue-50">
+                  <span className="text-xs font-medium">🇰🇷 KRW</span>
+                  <span className="text-sm font-semibold">₩{krwTotalValue.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* 총 수익금 (원화 기준 통합) */}
-        <div className="card">
-          <p className="text-sm text-gray-600 mb-1">총 수익금 (원화 통합)</p>
-          <p className={`text-3xl font-bold ${totalProfitKRW >= 0 ? 'text-success' : 'text-danger'}`}>
-            {totalProfitKRW >= 0 ? '+' : ''}₩{totalProfitKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
-          </p>
-          <div className="mt-3 space-y-1">
-            {usdAssets.length > 0 && (
-              <p className={`text-xs ${usdTotalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
-                🇺🇸 USD: {usdTotalProfit >= 0 ? '+' : ''}${usdTotalProfit.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                <span className="text-gray-400 ml-1">
-                  ({usdTotalProfit >= 0 ? '+' : ''}₩{(usdTotalProfit * exchangeRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })})
-                </span>
-              </p>
-            )}
-            {krwAssets.length > 0 && (
-              <p className={`text-xs ${krwTotalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
-                🇰🇷 KRW: {krwTotalProfit >= 0 ? '+' : ''}₩{krwTotalProfit.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
-              </p>
-            )}
+        <div className={`relative overflow-hidden rounded-2xl p-6 shadow-xl ${
+          totalProfitKRW >= 0
+            ? 'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700'
+            : 'bg-gradient-to-br from-red-500 via-rose-600 to-pink-700'
+        }`}>
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
+          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
+          <div className="relative">
+            <p className={`text-sm font-medium mb-2 ${totalProfitKRW >= 0 ? 'text-emerald-100' : 'text-red-100'}`}>
+              총 수익금 (원화 통합)
+            </p>
+            <p className="text-4xl font-bold text-white mb-4">
+              {totalProfitKRW >= 0 ? '+' : ''}₩{totalProfitKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
+            </p>
+            <div className={`space-y-2 pt-3 border-t ${totalProfitKRW >= 0 ? 'border-emerald-400/30' : 'border-red-400/30'}`}>
+              {usdAssets.length > 0 && (
+                <div className={`flex items-center justify-between ${totalProfitKRW >= 0 ? 'text-emerald-50' : 'text-red-50'}`}>
+                  <span className="text-xs font-medium">🇺🇸 USD</span>
+                  <span className="text-sm font-semibold">
+                    {usdTotalProfit >= 0 ? '+' : ''}${usdTotalProfit.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              )}
+              {krwAssets.length > 0 && (
+                <div className={`flex items-center justify-between ${totalProfitKRW >= 0 ? 'text-emerald-50' : 'text-red-50'}`}>
+                  <span className="text-xs font-medium">🇰🇷 KRW</span>
+                  <span className="text-sm font-semibold">
+                    {krwTotalProfit >= 0 ? '+' : ''}₩{krwTotalProfit.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* 평균 수익률 */}
-        <div className="card">
-          <p className="text-sm text-gray-600 mb-1">평균 수익률</p>
-          <p className={`text-3xl font-bold ${totalAvgProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
-            {totalAvgProfitPercent >= 0 ? '+' : ''}{(totalAvgProfitPercent || 0).toFixed(2)}%
-          </p>
-          <div className="mt-3 space-y-1">
-            {usdAssets.length > 0 && (
-              <p className={`text-xs ${usdAvgProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
-                🇺🇸 USD: {usdAvgProfitPercent >= 0 ? '+' : ''}{(usdAvgProfitPercent || 0).toFixed(2)}%
-              </p>
-            )}
-            {krwAssets.length > 0 && (
-              <p className={`text-xs ${krwAvgProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
-                🇰🇷 KRW: {krwAvgProfitPercent >= 0 ? '+' : ''}{(krwAvgProfitPercent || 0).toFixed(2)}%
-              </p>
-            )}
+        <div className={`relative overflow-hidden rounded-2xl p-6 shadow-xl ${
+          totalAvgProfitPercent >= 0
+            ? 'bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-700'
+            : 'bg-gradient-to-br from-orange-500 via-amber-600 to-yellow-700'
+        }`}>
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
+          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
+          <div className="relative">
+            <p className={`text-sm font-medium mb-2 ${totalAvgProfitPercent >= 0 ? 'text-purple-100' : 'text-orange-100'}`}>
+              평균 수익률
+            </p>
+            <p className="text-4xl font-bold text-white mb-4">
+              {totalAvgProfitPercent >= 0 ? '+' : ''}{(totalAvgProfitPercent || 0).toFixed(2)}%
+            </p>
+            <div className={`space-y-2 pt-3 border-t ${totalAvgProfitPercent >= 0 ? 'border-purple-400/30' : 'border-orange-400/30'}`}>
+              {usdAssets.length > 0 && (
+                <div className={`flex items-center justify-between ${totalAvgProfitPercent >= 0 ? 'text-purple-50' : 'text-orange-50'}`}>
+                  <span className="text-xs font-medium">🇺🇸 USD</span>
+                  <span className="text-sm font-semibold">
+                    {usdAvgProfitPercent >= 0 ? '+' : ''}{(usdAvgProfitPercent || 0).toFixed(2)}%
+                  </span>
+                </div>
+              )}
+              {krwAssets.length > 0 && (
+                <div className={`flex items-center justify-between ${totalAvgProfitPercent >= 0 ? 'text-purple-50' : 'text-orange-50'}`}>
+                  <span className="text-xs font-medium">🇰🇷 KRW</span>
+                  <span className="text-sm font-semibold">
+                    {krwAvgProfitPercent >= 0 ? '+' : ''}{(krwAvgProfitPercent || 0).toFixed(2)}%
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 계좌별 대시보드 */}
+      {/* 계좌별 대시보드 - Premium Design */}
       {accountSummary.length > 0 && (
-        <ChartCard title="계좌별 현황" subtitle="계좌별 평가액 및 수익 분석 (USD/KRW 분리)">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">계좌별 현황</h3>
+              <p className="text-sm text-gray-600 mt-1">계좌별 평가액 및 수익 분석 (USD/KRW 분리)</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {accountSummary.map((account) => (
-              <div key={account.account} className="p-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-900">{account.account}</h4>
-                  <span className="text-xs text-gray-600">{account.assets.length}개 자산</span>
+              <div key={account.account} className="relative overflow-hidden rounded-xl bg-white border border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                {/* Header with gradient background */}
+                <div className="bg-gradient-to-r from-slate-700 to-slate-900 p-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-white text-lg">{account.account}</h4>
+                    <span className="px-2 py-1 bg-white/20 rounded-full text-xs font-medium text-white backdrop-blur-sm">
+                      {account.assets.length}개 자산
+                    </span>
+                  </div>
                 </div>
-                <div className="space-y-3">
+
+                {/* Content */}
+                <div className="p-5 space-y-4">
                   {/* USD 자산 */}
                   {account.usdTotalValue > 0 && (
-                    <div className="pb-3 border-b border-gray-200">
-                      <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                        🇺🇸 USD
-                      </p>
-                      <div className="space-y-1">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg">🇺🇸</span>
+                        <span className="text-sm font-bold text-blue-900">USD</span>
+                      </div>
+                      <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-600">평가액</span>
-                          <span className="text-sm font-bold text-gray-900">
-                            ${account.usdTotalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          <span className="text-xs font-medium text-blue-700">평가액</span>
+                          <span className="text-base font-bold text-blue-900">
+                            ${account.usdTotalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-600">수익금</span>
-                          <span className={`text-xs font-semibold ${account.usdTotalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
-                            {account.usdTotalProfit >= 0 ? '+' : ''}${account.usdTotalProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          <span className="text-xs font-medium text-blue-700">수익금</span>
+                          <span className={`text-sm font-bold ${account.usdTotalProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {account.usdTotalProfit >= 0 ? '+' : ''}${account.usdTotalProfit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-600">수익률</span>
-                          <span className={`text-xs font-semibold ${account.usdProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                        <div className="flex justify-between items-center pt-2 border-t border-blue-200">
+                          <span className="text-xs font-medium text-blue-700">수익률</span>
+                          <span className={`text-lg font-bold ${account.usdProfitPercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {account.usdProfitPercent >= 0 ? '+' : ''}{account.usdProfitPercent.toFixed(2)}%
                           </span>
                         </div>
@@ -646,26 +692,27 @@ const Portfolio = () => {
 
                   {/* KRW 자산 */}
                   {account.krwTotalValue > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                        🇰🇷 KRW
-                      </p>
-                      <div className="space-y-1">
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg">🇰🇷</span>
+                        <span className="text-sm font-bold text-purple-900">KRW</span>
+                      </div>
+                      <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-600">평가액</span>
-                          <span className="text-sm font-bold text-gray-900">
+                          <span className="text-xs font-medium text-purple-700">평가액</span>
+                          <span className="text-base font-bold text-purple-900">
                             ₩{Math.round(account.krwTotalValue).toLocaleString('ko-KR')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-600">수익금</span>
-                          <span className={`text-xs font-semibold ${account.krwTotalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
+                          <span className="text-xs font-medium text-purple-700">수익금</span>
+                          <span className={`text-sm font-bold ${account.krwTotalProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {account.krwTotalProfit >= 0 ? '+' : ''}₩{Math.round(account.krwTotalProfit).toLocaleString('ko-KR')}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-600">수익률</span>
-                          <span className={`text-xs font-semibold ${account.krwProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                        <div className="flex justify-between items-center pt-2 border-t border-purple-200">
+                          <span className="text-xs font-medium text-purple-700">수익률</span>
+                          <span className={`text-lg font-bold ${account.krwProfitPercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {account.krwProfitPercent >= 0 ? '+' : ''}{account.krwProfitPercent.toFixed(2)}%
                           </span>
                         </div>
@@ -676,7 +723,7 @@ const Portfolio = () => {
               </div>
             ))}
           </div>
-        </ChartCard>
+        </div>
       )}
 
       {/* Performance Chart */}
