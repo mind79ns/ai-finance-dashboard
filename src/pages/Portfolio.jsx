@@ -152,6 +152,7 @@ const Portfolio = () => {
 
   const performanceData = assets.map(asset => ({
     name: asset.symbol,
+    fullName: asset.name,
     수익률: parseFloat((asset.profitPercent || 0).toFixed(2))
   }))
 
@@ -171,6 +172,30 @@ const Portfolio = () => {
   const totalValueKRW = krwTotalValue + (usdTotalValue * exchangeRate)
   const totalProfitKRW = krwTotalProfit + (usdTotalProfit * exchangeRate)
   const totalAvgProfitPercent = totalValueKRW > totalProfitKRW ? (totalProfitKRW / (totalValueKRW - totalProfitKRW)) * 100 : 0
+
+  // 계좌별 통계 계산
+  const accountStats = assets.reduce((acc, asset) => {
+    const account = asset.account || '기본계좌'
+    if (!acc[account]) {
+      acc[account] = {
+        account,
+        totalValue: 0,
+        totalProfit: 0,
+        assets: []
+      }
+    }
+    acc[account].totalValue += asset.totalValue
+    acc[account].totalProfit += asset.profit
+    acc[account].assets.push(asset)
+    return acc
+  }, {})
+
+  const accountSummary = Object.values(accountStats).map(stat => ({
+    ...stat,
+    profitPercent: stat.totalValue > stat.totalProfit
+      ? (stat.totalProfit / (stat.totalValue - stat.totalProfit)) * 100
+      : 0
+  }))
 
   const handleAddAsset = () => {
     setShowModal(true)
@@ -562,6 +587,42 @@ const Portfolio = () => {
         </div>
       </div>
 
+      {/* 계좌별 대시보드 */}
+      {accountSummary.length > 0 && (
+        <ChartCard title="계좌별 현황" subtitle="계좌별 평가액 및 수익 분석">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {accountSummary.map((account) => (
+              <div key={account.account} className="p-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-gray-900">{account.account}</h4>
+                  <span className="text-xs text-gray-600">{account.assets.length}개 자산</span>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-600">평가액</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {formatCurrency(account.totalValue, account.assets[0]?.currency || 'USD')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">수익금</p>
+                    <p className={`text-sm font-semibold ${account.totalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {account.totalProfit >= 0 ? '+' : ''}{formatCurrency(account.totalProfit, account.assets[0]?.currency || 'USD')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">수익률</p>
+                    <p className={`text-sm font-semibold ${account.profitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {account.profitPercent >= 0 ? '+' : ''}{account.profitPercent.toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+      )}
+
       {/* Performance Chart */}
       <ChartCard title="자산별 수익률" subtitle="현재 보유 자산 성과 비교">
         <ResponsiveContainer width="100%" height={300}>
@@ -574,6 +635,16 @@ const Portfolio = () => {
                 backgroundColor: '#fff',
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px'
+              }}
+              formatter={(value, name, props) => {
+                if (name === '수익률') {
+                  return [`${value}%`, `${props.payload.fullName} (${props.payload.name})`]
+                }
+                return [value, name]
+              }}
+              labelFormatter={(label) => {
+                const item = performanceData.find(d => d.name === label)
+                return item ? `${item.fullName} (${item.name})` : label
               }}
             />
             <Legend />
@@ -703,7 +774,8 @@ const Portfolio = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">종목</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">심볼</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">종목명</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">유형</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">계좌</th>
                 <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">통화</th>
@@ -719,7 +791,7 @@ const Portfolio = () => {
             <tbody>
               {filteredAssets.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="py-12 text-center">
+                  <td colSpan="12" className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500">
                       <Search className="w-12 h-12 mb-3 text-gray-300" />
                       <p className="text-lg font-medium">검색 결과가 없습니다</p>
@@ -731,10 +803,10 @@ const Portfolio = () => {
                 filteredAssets.map((asset) => (
                 <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-4 px-4">
-                    <div>
-                      <p className="font-medium text-gray-900">{asset.symbol}</p>
-                      <p className="text-sm text-gray-600">{asset.name}</p>
-                    </div>
+                    <p className="font-medium text-gray-900">{asset.symbol}</p>
+                  </td>
+                  <td className="py-4 px-4">
+                    <p className="text-sm text-gray-700">{asset.name}</p>
                   </td>
                   <td className="py-4 px-4">
                     <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-primary-50 text-primary-700">
