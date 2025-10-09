@@ -54,6 +54,7 @@ const AssetStatus = () => {
 
   // Default categories
   const defaultIncomeCategories = [
+    { id: 'accumulated', name: '누적금액', color: '#6366f1', isAccumulated: true }, // Special: auto-calculated
     { id: 'salary', name: '아르바이트', color: '#10b981' },
     { id: 'freelance', name: '월 급여', color: '#3b82f6' },
     { id: 'sideIncome', name: '주제외 급여', color: '#8b5cf6' },
@@ -170,13 +171,15 @@ const AssetStatus = () => {
   const calculateMonthlyData = useMemo(() => {
     const yearData = statusData[selectedYear] || {}
     const monthlyData = []
+    let accumulatedAmount = 0 // Running accumulated amount
 
     for (let i = 0; i < 12; i++) {
       const monthKey = i + 1
       const monthData = yearData[monthKey] || {}
 
-      // Calculate income total
+      // Calculate income total (exclude accumulated amount)
       const incomeTotal = incomeCategories.reduce((sum, cat) => {
+        if (cat.isAccumulated) return sum // Exclude accumulated from income total
         return sum + (monthData[cat.id] || 0)
       }, 0)
 
@@ -185,18 +188,28 @@ const AssetStatus = () => {
         return sum + (monthData[cat.id] || 0)
       }, 0)
 
+      // Calculate net change for previous month
+      const netChange = incomeTotal - expenseTotal
+
+      // Update accumulated amount: previous accumulated + previous netChange
+      if (i > 0) {
+        const prevNetChange = monthlyData[i - 1].netChange
+        accumulatedAmount = accumulatedAmount + prevNetChange
+      }
+
       monthlyData.push({
         month: months[i],
         monthIndex: i,
-        income: incomeTotal,
+        income: incomeTotal, // This excludes accumulated amount
         expense: expenseTotal,
-        netChange: incomeTotal - expenseTotal,
+        netChange: netChange,
+        accumulated: accumulatedAmount, // Auto-calculated accumulated amount
         ...monthData
       })
     }
 
     return monthlyData
-  }, [statusData, selectedYear])
+  }, [statusData, selectedYear, incomeCategories, expenseCategories])
 
   // Calculate cumulative data for chart
   const chartData = useMemo(() => {
@@ -219,14 +232,22 @@ const AssetStatus = () => {
       income: {},
       expense: {},
       incomeTotal: 0,
-      expenseTotal: 0
+      expenseTotal: 0,
+      accumulatedTotal: 0
     }
 
-    // Income totals
+    // Income totals (exclude accumulated from incomeTotal)
     incomeCategories.forEach(cat => {
-      const total = calculateMonthlyData.reduce((sum, month) => sum + (month[cat.id] || 0), 0)
-      totals.income[cat.id] = total
-      totals.incomeTotal += total
+      if (cat.id === 'accumulated') {
+        // Get accumulated total from last month's accumulated value
+        const lastMonth = calculateMonthlyData[11]
+        totals.accumulatedTotal = lastMonth?.accumulated || 0
+        totals.income[cat.id] = totals.accumulatedTotal
+      } else {
+        const total = calculateMonthlyData.reduce((sum, month) => sum + (month[cat.id] || 0), 0)
+        totals.income[cat.id] = total
+        totals.incomeTotal += total // Only add non-accumulated income
+      }
     })
 
     // Expense totals
@@ -239,7 +260,7 @@ const AssetStatus = () => {
     totals.netTotal = totals.incomeTotal - totals.expenseTotal
 
     return totals
-  }, [calculateMonthlyData])
+  }, [calculateMonthlyData, incomeCategories, expenseCategories])
 
   // Calculate account percentages
   const accountBreakdown = useMemo(() => {
@@ -547,31 +568,45 @@ const AssetStatus = () => {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 group">
-                        <span>{category.name}</span>
-                        <button
-                          onClick={() => handleStartEditCategory(category.id, category.name)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
-                          title="이름 수정"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(category.id, true)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-opacity"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        <span className={category.isAccumulated ? 'text-indigo-700 font-semibold' : ''}>
+                          {category.name}
+                          {category.isAccumulated && (
+                            <span className="text-xs ml-2 text-indigo-500">(자동계산)</span>
+                          )}
+                        </span>
+                        {!category.isAccumulated && (
+                          <>
+                            <button
+                              onClick={() => handleStartEditCategory(category.id, category.name)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
+                              title="이름 수정"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(category.id, true)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-opacity"
+                              title="삭제"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </td>
                   {calculateMonthlyData.map((monthData, idx) => (
                     <td
                       key={idx}
-                      className="text-right py-3 px-4 text-gray-700 cursor-pointer hover:bg-blue-50"
-                      onClick={() => handleOpenEditModal(idx)}
+                      className={`text-right py-3 px-4 text-gray-700 ${
+                        category.isAccumulated
+                          ? 'bg-indigo-50 font-semibold text-indigo-700'
+                          : 'cursor-pointer hover:bg-blue-50'
+                      }`}
+                      onClick={() => !category.isAccumulated && handleOpenEditModal(idx)}
+                      title={category.isAccumulated ? '자동 계산됨 (전월 누적금액 + 전월 월지출총합)' : ''}
                     >
-                      {formatCurrency(monthData[category.id])}
+                      {formatCurrency(category.isAccumulated ? monthData.accumulated : monthData[category.id])}
                     </td>
                   ))}
                   <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
