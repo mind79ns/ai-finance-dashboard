@@ -8,6 +8,8 @@ import marketDataService from '../services/marketDataService'
 const Goals = () => {
   const [portfolioTotalUSD, setPortfolioTotalUSD] = useState(0)
   const [portfolioTotalKRW, setPortfolioTotalKRW] = useState(0)
+  const [portfolioProfitUSD, setPortfolioProfitUSD] = useState(0)
+  const [portfolioProfitKRW, setPortfolioProfitKRW] = useState(0)
   const [exchangeRate, setExchangeRate] = useState(1340)
 
   const [goals, setGoals] = useState([])
@@ -56,17 +58,21 @@ const Goals = () => {
           const assets = JSON.parse(savedAssets)
           setPortfolioAssets(assets)
 
-          // Calculate totals
+          // Calculate totals and profits
           const usdAssets = assets.filter(a => a.currency === 'USD')
           const usdTotal = usdAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
+          const usdProfit = usdAssets.reduce((sum, asset) => sum + (asset.profit || 0), 0)
 
           const krwAssets = assets.filter(a => a.currency === 'KRW')
           const krwTotal = krwAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
+          const krwProfit = krwAssets.reduce((sum, asset) => sum + (asset.profit || 0), 0)
 
           setPortfolioTotalUSD(usdTotal)
           setPortfolioTotalKRW(krwTotal)
+          setPortfolioProfitUSD(usdProfit)
+          setPortfolioProfitKRW(krwProfit)
 
-          console.log(`📊 Portfolio Totals - USD: $${usdTotal.toFixed(0)}, KRW: ₩${krwTotal.toFixed(0)}`)
+          console.log(`📊 Portfolio - USD: $${usdTotal.toFixed(0)} (Profit: $${usdProfit.toFixed(0)}), KRW: ₩${krwTotal.toFixed(0)} (Profit: ₩${krwProfit.toFixed(0)})`)
         } catch (error) {
           console.error('Failed to load portfolio:', error)
         }
@@ -99,11 +105,21 @@ const Goals = () => {
   useEffect(() => {
     setGoals(prevGoals => prevGoals.map(goal => {
       if (goal.linkedToPortfolio) {
-        const newAmount = goal.currency === 'KRW'
-          ? portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)
-          : portfolioTotalUSD + (portfolioTotalKRW / exchangeRate)
+        let newAmount
 
-        console.log(`🔗 Syncing Goal "${goal.name}" (${goal.currency}): ${goal.currency === 'KRW' ? '₩' : '$'}${newAmount.toFixed(0)}`)
+        if (goal.linkType === 'profit') {
+          // Link to profit only
+          newAmount = goal.currency === 'KRW'
+            ? portfolioProfitKRW + (portfolioProfitUSD * exchangeRate)
+            : portfolioProfitUSD + (portfolioProfitKRW / exchangeRate)
+        } else {
+          // Link to total value (default)
+          newAmount = goal.currency === 'KRW'
+            ? portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)
+            : portfolioTotalUSD + (portfolioTotalKRW / exchangeRate)
+        }
+
+        console.log(`🔗 Syncing Goal "${goal.name}" (${goal.linkType === 'profit' ? '총수익금' : '총액'}, ${goal.currency}): ${goal.currency === 'KRW' ? '₩' : '$'}${newAmount.toFixed(0)}`)
 
         return {
           ...goal,
@@ -112,7 +128,7 @@ const Goals = () => {
       }
       return goal
     }))
-  }, [portfolioTotalUSD, portfolioTotalKRW, exchangeRate])
+  }, [portfolioTotalUSD, portfolioTotalKRW, portfolioProfitUSD, portfolioProfitKRW, exchangeRate])
 
   // Save goals to localStorage
   useEffect(() => {
@@ -129,6 +145,7 @@ const Goals = () => {
     targetDate: '',
     category: '장기목표',
     linkedToPortfolio: false,
+    linkType: 'total', // 'total' or 'profit'
     currency: 'USD'
   })
 
@@ -271,6 +288,7 @@ const Goals = () => {
       targetDate: '',
       category: '장기목표',
       linkedToPortfolio: false,
+      linkType: 'total',
       currency: 'USD'
     })
   }
@@ -286,19 +304,33 @@ const Goals = () => {
   const handleSubmit = (e) => {
     e.preventDefault()
 
+    let currentAmount
+    if (formData.linkedToPortfolio) {
+      if (formData.linkType === 'profit') {
+        // Link to profit
+        currentAmount = formData.currency === 'KRW'
+          ? portfolioProfitKRW + (portfolioProfitUSD * exchangeRate)
+          : portfolioProfitUSD + (portfolioProfitKRW / exchangeRate)
+      } else {
+        // Link to total
+        currentAmount = formData.currency === 'KRW'
+          ? portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)
+          : portfolioTotalUSD + (portfolioTotalKRW / exchangeRate)
+      }
+    } else {
+      currentAmount = parseFloat(formData.currentAmount || 0)
+    }
+
     const newGoal = {
       id: Date.now(),
       name: formData.name,
       targetAmount: parseFloat(formData.targetAmount),
-      currentAmount: formData.linkedToPortfolio
-        ? (formData.currency === 'KRW'
-          ? portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)
-          : portfolioTotalUSD + (portfolioTotalKRW / exchangeRate))
-        : parseFloat(formData.currentAmount || 0),
+      currentAmount: currentAmount,
       targetDate: formData.targetDate,
       category: formData.category,
       status: 'active',
       linkedToPortfolio: formData.linkedToPortfolio,
+      linkType: formData.linkType || 'total',
       currency: formData.currency
     }
 
@@ -500,12 +532,12 @@ ${JSON.stringify(context, null, 2)}
             <div key={goal.id} className="card">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-lg font-semibold text-gray-900">{goal.name}</h3>
                     {goal.linkedToPortfolio && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700" title="포트폴리오와 자동 연동">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700" title={`포트폴리오 ${goal.linkType === 'profit' ? '총수익금' : '총액'}과 자동 연동`}>
                         <LinkIcon className="w-3 h-3" />
-                        연동
+                        {goal.linkType === 'profit' ? '수익금 연동' : '총액 연동'}
                       </span>
                     )}
                   </div>
@@ -863,7 +895,7 @@ ${JSON.stringify(context, null, 2)}
                 </select>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -874,9 +906,39 @@ ${JSON.stringify(context, null, 2)}
                   />
                   <div>
                     <p className="text-sm font-medium text-blue-900">포트폴리오와 연동</p>
-                    <p className="text-xs text-blue-700">체크하면 포트폴리오 총액이 자동으로 현재 금액에 반영됩니다</p>
+                    <p className="text-xs text-blue-700">체크하면 포트폴리오 금액이 자동으로 현재 금액에 반영됩니다</p>
                   </div>
                 </label>
+
+                {formData.linkedToPortfolio && (
+                  <div className="ml-6 space-y-2 pt-2 border-t border-blue-200">
+                    <p className="text-xs font-medium text-blue-900">연동 기준:</p>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="linkType"
+                          value="total"
+                          checked={formData.linkType === 'total'}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-blue-800">포트폴리오 총액</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="linkType"
+                          value="profit"
+                          checked={formData.linkType === 'profit'}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-blue-800">포트폴리오 총수익금</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -886,10 +948,22 @@ ${JSON.stringify(context, null, 2)}
                   </label>
                   {formData.linkedToPortfolio ? (
                     <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
-                      {formData.currency === 'KRW'
-                        ? `₩${Math.round(portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)).toLocaleString()}`
-                        : `$${(portfolioTotalUSD + (portfolioTotalKRW / exchangeRate)).toFixed(0)}`}
-                      <span className="text-xs ml-1">(자동 연동)</span>
+                      {(() => {
+                        let amount
+                        if (formData.linkType === 'profit') {
+                          amount = formData.currency === 'KRW'
+                            ? portfolioProfitKRW + (portfolioProfitUSD * exchangeRate)
+                            : portfolioProfitUSD + (portfolioProfitKRW / exchangeRate)
+                        } else {
+                          amount = formData.currency === 'KRW'
+                            ? portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)
+                            : portfolioTotalUSD + (portfolioTotalKRW / exchangeRate)
+                        }
+                        return formData.currency === 'KRW'
+                          ? `₩${Math.round(amount).toLocaleString()}`
+                          : `$${amount.toFixed(0)}`
+                      })()}
+                      <span className="text-xs ml-1">({formData.linkType === 'profit' ? '수익금' : '총액'} 연동)</span>
                     </div>
                   ) : (
                     <input
