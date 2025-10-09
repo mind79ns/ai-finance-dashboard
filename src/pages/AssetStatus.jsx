@@ -201,10 +201,15 @@ const AssetStatus = () => {
       // Calculate net change for previous month
       const netChange = incomeTotal - expenseTotal
 
-      // Update accumulated amount: previous accumulated + previous netChange
-      if (i > 0) {
+      // Update accumulated amount
+      if (i === 0) {
+        // January: Use manual input as starting balance (기초자산)
+        accumulatedAmount = monthData['accumulated'] || 0
+      } else {
+        // Other months: previous accumulated + previous netChange
         const prevNetChange = monthlyData[i - 1].netChange
-        accumulatedAmount = accumulatedAmount + prevNetChange
+        const prevAccumulated = monthlyData[i - 1].accumulated
+        accumulatedAmount = prevAccumulated + prevNetChange
       }
 
       monthlyData.push({
@@ -213,7 +218,7 @@ const AssetStatus = () => {
         income: incomeTotal, // This excludes accumulated amount
         expense: expenseTotal,
         netChange: netChange,
-        accumulated: accumulatedAmount, // Auto-calculated accumulated amount
+        accumulated: accumulatedAmount, // Auto-calculated (except January)
         ...monthData
       })
     }
@@ -605,20 +610,35 @@ const AssetStatus = () => {
                       </div>
                     )}
                   </td>
-                  {calculateMonthlyData.map((monthData, idx) => (
-                    <td
-                      key={idx}
-                      className={`text-right py-3 px-4 text-gray-700 ${
-                        category.isAccumulated
-                          ? 'bg-indigo-50 font-semibold text-indigo-700'
-                          : 'cursor-pointer hover:bg-blue-50'
-                      }`}
-                      onClick={() => !category.isAccumulated && handleOpenEditModal(idx)}
-                      title={category.isAccumulated ? '자동 계산됨 (전월 누적금액 + 전월 월지출총합)' : ''}
-                    >
-                      {formatCurrency(category.isAccumulated ? monthData.accumulated : monthData[category.id])}
-                    </td>
-                  ))}
+                  {calculateMonthlyData.map((monthData, idx) => {
+                    // January can be edited for accumulated (기초자산), others auto-calculated
+                    const isJanuary = idx === 0
+                    const isAccumulatedEditable = category.isAccumulated && isJanuary
+                    const isEditable = !category.isAccumulated || isAccumulatedEditable
+
+                    return (
+                      <td
+                        key={idx}
+                        className={`text-right py-3 px-4 ${
+                          category.isAccumulated
+                            ? isJanuary
+                              ? 'bg-yellow-50 font-semibold text-yellow-800 cursor-pointer hover:bg-yellow-100'
+                              : 'bg-indigo-50 font-semibold text-indigo-700'
+                            : 'text-gray-700 cursor-pointer hover:bg-blue-50'
+                        }`}
+                        onClick={() => isEditable && handleOpenEditModal(idx)}
+                        title={
+                          category.isAccumulated
+                            ? isJanuary
+                              ? '기초자산 누적금액 (수동 입력 가능)'
+                              : '자동 계산됨 (전월 누적금액 + 전월 월지출총합)'
+                            : ''
+                        }
+                      >
+                        {formatCurrency(category.isAccumulated ? monthData.accumulated : monthData[category.id])}
+                      </td>
+                    )
+                  })}
                   <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
                     {formatCurrency(yearlyTotals.income[category.id])}
                   </td>
