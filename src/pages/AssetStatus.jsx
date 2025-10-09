@@ -28,6 +28,19 @@ import {
   ComposedChart
 } from 'recharts'
 
+// Icon mapper helper
+const getIconComponent = (iconName) => {
+  const iconMap = {
+    Building,
+    Wallet,
+    CreditCard,
+    TrendingUp,
+    PiggyBank,
+    DollarSign
+  }
+  return iconMap[iconName] || Building
+}
+
 const AssetStatus = () => {
   // State
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -238,7 +251,7 @@ const AssetStatus = () => {
       value: yearAccounts[acc.id] || 0,
       percentage: total > 0 ? ((yearAccounts[acc.id] || 0) / total * 100) : 0
     }))
-  }, [accountData, selectedYear])
+  }, [accountData, selectedYear, accountTypes])
 
   const totalAccountValue = useMemo(() => {
     return accountBreakdown.reduce((sum, acc) => sum + acc.value, 0)
@@ -285,19 +298,6 @@ const AssetStatus = () => {
   const formatCurrency = (value) => {
     if (!value && value !== 0) return '-'
     return new Intl.NumberFormat('ko-KR').format(Math.round(value))
-  }
-
-  // Icon mapper
-  const getIconComponent = (iconName) => {
-    const iconMap = {
-      Building,
-      Wallet,
-      CreditCard,
-      TrendingUp,
-      PiggyBank,
-      DollarSign
-    }
-    return iconMap[iconName] || Building
   }
 
   // Category name editing handlers
@@ -1026,7 +1026,7 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {accountTypes.map(acc => {
-            const Icon = acc.icon
+            const Icon = getIconComponent(acc.icon)
             return (
               <div key={acc.id} className="flex items-center gap-3">
                 <div className="w-48 flex items-center gap-2">
