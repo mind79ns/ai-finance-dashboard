@@ -29,6 +29,8 @@ const Portfolio = () => {
   const [filterType, setFilterType] = useState('전체')
   const [sortBy, setSortBy] = useState('default') // default, profit, profitPercent, value
   const [showImportModal, setShowImportModal] = useState(false)
+  const [selectedAssets, setSelectedAssets] = useState([]) // For bulk delete
+  const [selectionMode, setSelectionMode] = useState(false) // Toggle selection mode
 
   // Load assets from localStorage on mount
   useEffect(() => {
@@ -274,6 +276,49 @@ const Portfolio = () => {
       const updatedAssets = assets.filter(asset => asset.id !== id)
       setAssets(updatedAssets)
       localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
+    }
+  }
+
+  // Toggle selection mode
+  const handleToggleSelectionMode = () => {
+    setSelectionMode(!selectionMode)
+    setSelectedAssets([]) // Clear selection when toggling
+  }
+
+  // Toggle individual asset selection
+  const handleToggleAssetSelection = (assetId) => {
+    setSelectedAssets(prev => {
+      if (prev.includes(assetId)) {
+        return prev.filter(id => id !== assetId)
+      } else {
+        return [...prev, assetId]
+      }
+    })
+  }
+
+  // Select all assets
+  const handleSelectAll = () => {
+    if (selectedAssets.length === filteredAssets.length) {
+      setSelectedAssets([])
+    } else {
+      setSelectedAssets(filteredAssets.map(asset => asset.id))
+    }
+  }
+
+  // Bulk delete selected assets
+  const handleBulkDelete = () => {
+    if (selectedAssets.length === 0) {
+      alert('삭제할 자산을 선택해주세요.')
+      return
+    }
+
+    if (window.confirm(`선택한 ${selectedAssets.length}개의 자산을 삭제하시겠습니까?`)) {
+      const updatedAssets = assets.filter(asset => !selectedAssets.includes(asset.id))
+      setAssets(updatedAssets)
+      localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
+      setSelectedAssets([])
+      setSelectionMode(false)
+      alert(`${selectedAssets.length}개의 자산이 삭제되었습니다.`)
     }
   }
 
@@ -866,6 +911,37 @@ const Portfolio = () => {
               <Download className="w-4 h-4" />
               내보내기
             </button>
+
+            {/* Selection mode toggle */}
+            {!selectionMode ? (
+              <button
+                onClick={handleToggleSelectionMode}
+                className="btn-secondary flex items-center gap-2"
+                disabled={assets.length === 0}
+              >
+                <Trash2 className="w-4 h-4" />
+                일괄 삭제
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleBulkDelete}
+                  className="btn-danger flex items-center gap-2"
+                  disabled={selectedAssets.length === 0}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  삭제 ({selectedAssets.length})
+                </button>
+                <button
+                  onClick={handleToggleSelectionMode}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  취소
+                </button>
+              </>
+            )}
+
             <button onClick={handleAddAsset} className="btn-primary flex items-center gap-2">
               <PlusCircle className="w-5 h-5" />
               자산 추가
@@ -877,6 +953,16 @@ const Portfolio = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
+                {selectionMode && (
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={selectedAssets.length === filteredAssets.length && filteredAssets.length > 0}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                  </th>
+                )}
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">심볼</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">종목명</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">유형</th>
@@ -905,6 +991,16 @@ const Portfolio = () => {
               ) : (
                 filteredAssets.map((asset) => (
                 <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  {selectionMode && (
+                    <td className="py-4 px-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedAssets.includes(asset.id)}
+                        onChange={() => handleToggleAssetSelection(asset.id)}
+                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      />
+                    </td>
+                  )}
                   <td className="py-4 px-4">
                     <p className="font-medium text-gray-900">{asset.symbol}</p>
                   </td>
