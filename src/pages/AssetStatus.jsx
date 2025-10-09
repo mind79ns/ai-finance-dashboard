@@ -228,15 +228,13 @@ const AssetStatus = () => {
 
   // Calculate cumulative data for chart
   const chartData = useMemo(() => {
-    let cumulative = 0
-    return calculateMonthlyData.map((data, index) => {
-      cumulative += data.netChange
+    return calculateMonthlyData.map((data) => {
       return {
         month: data.month,
         income: data.income,
         expense: data.expense,
         netChange: data.netChange,
-        cumulative: cumulative
+        accumulated: data.accumulated // Use the accumulated amount from calculateMonthlyData
       }
     })
   }, [calculateMonthlyData])
@@ -760,23 +758,123 @@ const AssetStatus = () => {
 
       {/* Trend Charts */}
       <div className="grid grid-cols-1 gap-6">
-        {/* Combined Chart */}
+        {/* Income/Expense Trend Chart */}
         <div className="card">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">월별 수입/지출 추이 및 누적 자산</h3>
-          <ResponsiveContainer width="100%" height={400}>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">월별 수입/지출 추이</h3>
+          <p className="text-sm text-gray-600 mb-6">매월 수입과 지출 흐름을 한눈에 확인하세요</p>
+          <ResponsiveContainer width="100%" height={350}>
             <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="month" stroke="#6b7280" />
-              <YAxis yAxisId="left" stroke="#6b7280" />
-              <YAxis yAxisId="right" orientation="right" stroke="#6b7280" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                formatter={(value) => formatCurrency(value) + ' KRW'}
+              <defs>
+                <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                </linearGradient>
+                <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+              <XAxis
+                dataKey="month"
+                stroke="#6b7280"
+                tick={{ fill: '#6b7280', fontSize: 12 }}
+                axisLine={{ stroke: '#d1d5db' }}
               />
-              <Legend />
-              <Bar yAxisId="left" dataKey="netChange" fill="#3b82f6" name="수입-지출 현황" />
-              <Line yAxisId="right" type="monotone" dataKey="cumulative" stroke="#9ca3af" strokeWidth={3} name="TOTAL 자산가치" />
-              <Line yAxisId="right" type="monotone" dataKey="income" stroke="#f97316" strokeWidth={2} name="아르바이트" />
+              <YAxis
+                stroke="#6b7280"
+                tick={{ fill: '#6b7280', fontSize: 12 }}
+                axisLine={{ stroke: '#d1d5db' }}
+                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
+                formatter={(value) => formatCurrency(value) + ' KRW'}
+                labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
+              />
+              <Legend
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="circle"
+              />
+              <Bar
+                dataKey="income"
+                fill="url(#incomeGradient)"
+                stroke="#10b981"
+                strokeWidth={2}
+                name="월 수입"
+                radius={[8, 8, 0, 0]}
+              />
+              <Bar
+                dataKey="expense"
+                fill="url(#expenseGradient)"
+                stroke="#ef4444"
+                strokeWidth={2}
+                name="월 지출"
+                radius={[8, 8, 0, 0]}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Accumulated Asset Trend Chart */}
+        <div className="card bg-gradient-to-br from-indigo-50 to-purple-50">
+          <h3 className="text-xl font-bold text-gray-900 mb-2">누적 자산 추이</h3>
+          <p className="text-sm text-gray-600 mb-6">월별 순변동을 반영한 누적 자산 가치</p>
+          <ResponsiveContainer width="100%" height={350}>
+            <ComposedChart data={chartData}>
+              <defs>
+                <linearGradient id="accumulatedGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" vertical={false} />
+              <XAxis
+                dataKey="month"
+                stroke="#6b7280"
+                tick={{ fill: '#6b7280', fontSize: 12 }}
+                axisLine={{ stroke: '#c7d2fe' }}
+              />
+              <YAxis
+                stroke="#6b7280"
+                tick={{ fill: '#6b7280', fontSize: 12 }}
+                axisLine={{ stroke: '#c7d2fe' }}
+                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '2px solid #818cf8',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.2)'
+                }}
+                formatter={(value) => formatCurrency(value) + ' KRW'}
+                labelStyle={{ fontWeight: 'bold', color: '#4f46e5', marginBottom: '8px' }}
+              />
+              <Legend
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="circle"
+              />
+              <Bar
+                dataKey="netChange"
+                fill={(entry) => entry.netChange >= 0 ? '#10b981' : '#ef4444'}
+                name="월 순변동 (수입-지출)"
+                radius={[8, 8, 0, 0]}
+              />
+              <Line
+                type="monotone"
+                dataKey="accumulated"
+                stroke="#6366f1"
+                strokeWidth={4}
+                dot={{ fill: '#6366f1', r: 6, strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 8, strokeWidth: 2 }}
+                name="누적 자산"
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
