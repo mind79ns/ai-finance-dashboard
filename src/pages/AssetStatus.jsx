@@ -90,9 +90,9 @@ const AssetStatus = () => {
       setStatusData(JSON.parse(savedStatus))
     }
 
-    const savedAccounts = localStorage.getItem('asset_account_data')
-    if (savedAccounts) {
-      setAccountData(JSON.parse(savedAccounts))
+    const savedAccountData = localStorage.getItem('asset_account_data')
+    if (savedAccountData) {
+      setAccountData(JSON.parse(savedAccountData))
     }
 
     const savedIncome = localStorage.getItem('asset_income_categories')
@@ -105,9 +105,9 @@ const AssetStatus = () => {
       setExpenseCategories(JSON.parse(savedExpense))
     }
 
-    const savedAccounts = localStorage.getItem('asset_account_types')
-    if (savedAccounts) {
-      setAccountTypes(JSON.parse(savedAccounts))
+    const savedAccountTypes = localStorage.getItem('asset_account_types')
+    if (savedAccountTypes) {
+      setAccountTypes(JSON.parse(savedAccountTypes))
     }
   }, [])
 
