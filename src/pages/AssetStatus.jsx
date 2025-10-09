@@ -760,9 +760,9 @@ const AssetStatus = () => {
       <div className="grid grid-cols-1 gap-6">
         {/* Income/Expense Trend Chart */}
         <div className="card">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">월별 수입/지출 추이</h3>
-          <p className="text-sm text-gray-600 mb-6">매월 수입과 지출 흐름을 한눈에 확인하세요</p>
-          <ResponsiveContainer width="100%" height={350}>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">월별 수입/지출 추이 및 누적금액</h3>
+          <p className="text-sm text-gray-600 mb-6">매월 수입과 지출 흐름 및 누적 자산을 한눈에 확인하세요</p>
+          <ResponsiveContainer width="100%" height={400}>
             <ComposedChart data={chartData}>
               <defs>
                 <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -782,9 +782,18 @@ const AssetStatus = () => {
                 axisLine={{ stroke: '#d1d5db' }}
               />
               <YAxis
+                yAxisId="left"
                 stroke="#6b7280"
                 tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={{ stroke: '#d1d5db' }}
+                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                stroke="#6366f1"
+                tick={{ fill: '#6366f1', fontSize: 12 }}
+                axisLine={{ stroke: '#818cf8' }}
                 tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
               />
               <Tooltip
@@ -802,6 +811,7 @@ const AssetStatus = () => {
                 iconType="circle"
               />
               <Bar
+                yAxisId="left"
                 dataKey="income"
                 fill="url(#incomeGradient)"
                 stroke="#10b981"
@@ -810,12 +820,23 @@ const AssetStatus = () => {
                 radius={[8, 8, 0, 0]}
               />
               <Bar
+                yAxisId="left"
                 dataKey="expense"
                 fill="url(#expenseGradient)"
                 stroke="#ef4444"
                 strokeWidth={2}
                 name="월 지출"
                 radius={[8, 8, 0, 0]}
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="accumulated"
+                stroke="#6366f1"
+                strokeWidth={3}
+                dot={{ fill: '#6366f1', r: 5, strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 7, strokeWidth: 2 }}
+                name="누적금액"
               />
             </ComposedChart>
           </ResponsiveContainer>
