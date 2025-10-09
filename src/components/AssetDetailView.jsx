@@ -7,7 +7,9 @@ import {
   Percent,
   BarChart3,
   Activity,
-  Clock
+  Clock,
+  Plus,
+  X
 } from 'lucide-react'
 import {
   LineChart,
@@ -33,6 +35,14 @@ import {
 const AssetDetailView = ({ asset, exchangeRate }) => {
   const [priceHistory, setPriceHistory] = useState([])
   const [transactionHistory, setTransactionHistory] = useState([])
+  const [showTransactionModal, setShowTransactionModal] = useState(false)
+  const [transactionForm, setTransactionForm] = useState({
+    type: 'buy',
+    quantity: '',
+    price: asset?.currentPrice || '',
+    date: new Date().toISOString().split('T')[0],
+    memo: ''
+  })
 
   // 가격 히스토리 시뮬레이션 (실제로는 API에서 가져와야 함)
   useEffect(() => {
@@ -77,6 +87,107 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
       }
     }
   }, [asset])
+
+  // 거래 추가 모달 열기
+  const handleOpenTransactionModal = () => {
+    setTransactionForm({
+      type: 'buy',
+      quantity: '',
+      price: asset?.currentPrice || '',
+      date: new Date().toISOString().split('T')[0],
+      memo: ''
+    })
+    setShowTransactionModal(true)
+  }
+
+  // 거래 추가 모달 닫기
+  const handleCloseTransactionModal = () => {
+    setShowTransactionModal(false)
+  }
+
+  // 폼 입력 처리
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setTransactionForm(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  // 거래 추가 제출
+  const handleSubmitTransaction = (e) => {
+    e.preventDefault()
+
+    const newTransaction = {
+      id: Date.now(),
+      asset: asset.symbol,
+      assetName: asset.name,
+      type: transactionForm.type,
+      quantity: parseFloat(transactionForm.quantity),
+      price: parseFloat(transactionForm.price),
+      total: parseFloat(transactionForm.quantity) * parseFloat(transactionForm.price),
+      date: transactionForm.date,
+      memo: transactionForm.memo,
+      currency: asset.currency,
+      account: asset.account || '기본계좌'
+    }
+
+    // Save to investment_logs
+    const savedLogs = localStorage.getItem('investment_logs')
+    const logs = savedLogs ? JSON.parse(savedLogs) : []
+    logs.push(newTransaction)
+    localStorage.setItem('investment_logs', JSON.stringify(logs))
+
+    // Update portfolio (same logic as InvestmentLog)
+    const savedAssets = localStorage.getItem('portfolio_assets')
+    if (savedAssets) {
+      const assets = JSON.parse(savedAssets)
+      const assetIndex = assets.findIndex(a => a.symbol === asset.symbol)
+
+      if (assetIndex !== -1) {
+        const currentAsset = assets[assetIndex]
+
+        if (transactionForm.type === 'buy') {
+          // Update weighted average price
+          const totalQuantity = currentAsset.quantity + newTransaction.quantity
+          const totalCost = (currentAsset.quantity * currentAsset.avgPrice) + (newTransaction.quantity * newTransaction.price)
+          const newAvgPrice = totalCost / totalQuantity
+
+          assets[assetIndex] = {
+            ...currentAsset,
+            quantity: totalQuantity,
+            avgPrice: newAvgPrice
+          }
+        } else if (transactionForm.type === 'sell') {
+          // Reduce quantity
+          const newQuantity = currentAsset.quantity - newTransaction.quantity
+
+          if (newQuantity <= 0) {
+            // Remove asset if fully sold
+            assets.splice(assetIndex, 1)
+          } else {
+            assets[assetIndex] = {
+              ...currentAsset,
+              quantity: newQuantity
+            }
+          }
+        }
+
+        localStorage.setItem('portfolio_assets', JSON.stringify(assets))
+      }
+    }
+
+    // Reload transaction history
+    const updatedLogs = JSON.parse(localStorage.getItem('investment_logs'))
+    const assetLogs = updatedLogs.filter(log => log.asset === asset.symbol)
+    setTransactionHistory(assetLogs)
+
+    // Trigger storage event for cross-tab sync
+    window.dispatchEvent(new Event('storage'))
+
+    handleCloseTransactionModal()
+    alert(`✅ ${transactionForm.type === 'buy' ? '매수' : '매도'} 거래가 성공적으로 추가되었습니다!`)
+  }
 
   if (!asset) return null
 
@@ -327,10 +438,10 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
       {/* 액션 버튼 */}
       <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={() => alert(`${asset.symbol} 거래 추가 기능은 투자일지 페이지와 연동 예정입니다.`)}
-          className="btn-secondary flex items-center justify-center gap-2"
+          onClick={handleOpenTransactionModal}
+          className="btn-primary flex items-center justify-center gap-2"
         >
-          <Calendar className="w-4 h-4" />
+          <Plus className="w-4 h-4" />
           거래 추가
         </button>
         <button
@@ -348,6 +459,155 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
           목표가 설정
         </button>
       </div>
+
+      {/* 거래 추가 모달 */}
+      {showTransactionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">거래 추가 - {asset.symbol}</h3>
+              <button
+                onClick={handleCloseTransactionModal}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitTransaction} className="space-y-4">
+              {/* 거래 유형 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  거래 유형
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTransactionForm(prev => ({ ...prev, type: 'buy' }))}
+                    className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+                      transactionForm.type === 'buy'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    매수
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransactionForm(prev => ({ ...prev, type: 'sell' }))}
+                    className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+                      transactionForm.type === 'sell'
+                        ? 'bg-success text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    매도
+                  </button>
+                </div>
+              </div>
+
+              {/* 수량 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  수량
+                </label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={transactionForm.quantity}
+                  onChange={handleInputChange}
+                  required
+                  min="0.001"
+                  step="0.001"
+                  placeholder="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              {/* 가격 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  가격 ({asset.currency === 'USD' ? '$' : '₩'})
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  value={transactionForm.price}
+                  onChange={handleInputChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  현재가: {formatCurrency(asset.currentPrice, asset.currency)}
+                </p>
+              </div>
+
+              {/* 거래일 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  거래일
+                </label>
+                <input
+                  type="date"
+                  name="date"
+                  value={transactionForm.date}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              {/* 메모 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  메모 (선택)
+                </label>
+                <textarea
+                  name="memo"
+                  value={transactionForm.memo}
+                  onChange={handleInputChange}
+                  rows="2"
+                  placeholder="거래 메모..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                />
+              </div>
+
+              {/* 거래 총액 미리보기 */}
+              {transactionForm.quantity && transactionForm.price && (
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-sm text-gray-600">거래 총액</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {formatCurrency(
+                      parseFloat(transactionForm.quantity) * parseFloat(transactionForm.price),
+                      asset.currency
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {/* 버튼 */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseTransactionModal}
+                  className="py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors"
+                >
+                  추가
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
