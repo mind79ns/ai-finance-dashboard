@@ -7,6 +7,7 @@ import {
   FileText,
   BookOpen,
   Target,
+  BarChart3,
   Menu,
   X
 } from 'lucide-react'
@@ -22,6 +23,7 @@ const Layout = ({ children }) => {
     { name: 'AI 리포트', href: '/ai-report', icon: FileText },
     { name: '투자일지', href: '/log', icon: BookOpen },
     { name: '목표관리', href: '/goals', icon: Target },
+    { name: '자산 현황', href: '/asset-status', icon: BarChart3 },
   ]
 
   return (

@@ -7,6 +7,7 @@ import Market from './pages/Market'
 import AIReport from './pages/AIReport'
 import InvestmentLog from './pages/InvestmentLog'
 import Goals from './pages/Goals'
+import AssetStatus from './pages/AssetStatus'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/ai-report" element={<AIReport />} />
           <Route path="/log" element={<InvestmentLog />} />
           <Route path="/goals" element={<Goals />} />
+          <Route path="/asset-status" element={<AssetStatus />} />
         </Routes>
       </Layout>
     </Router>
