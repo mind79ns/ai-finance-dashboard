@@ -173,29 +173,46 @@ const Portfolio = () => {
   const totalProfitKRW = krwTotalProfit + (usdTotalProfit * exchangeRate)
   const totalAvgProfitPercent = totalValueKRW > totalProfitKRW ? (totalProfitKRW / (totalValueKRW - totalProfitKRW)) * 100 : 0
 
-  // 계좌별 통계 계산
+  // 계좌별 통계 계산 (USD/KRW 분리)
   const accountStats = assets.reduce((acc, asset) => {
     const account = asset.account || '기본계좌'
     if (!acc[account]) {
       acc[account] = {
         account,
-        totalValue: 0,
-        totalProfit: 0,
+        usdTotalValue: 0,
+        usdTotalProfit: 0,
+        krwTotalValue: 0,
+        krwTotalProfit: 0,
         assets: []
       }
     }
-    acc[account].totalValue += asset.totalValue
-    acc[account].totalProfit += asset.profit
+
+    if (asset.currency === 'USD') {
+      acc[account].usdTotalValue += asset.totalValue
+      acc[account].usdTotalProfit += asset.profit
+    } else if (asset.currency === 'KRW') {
+      acc[account].krwTotalValue += asset.totalValue
+      acc[account].krwTotalProfit += asset.profit
+    }
+
     acc[account].assets.push(asset)
     return acc
   }, {})
 
-  const accountSummary = Object.values(accountStats).map(stat => ({
-    ...stat,
-    profitPercent: stat.totalValue > stat.totalProfit
-      ? (stat.totalProfit / (stat.totalValue - stat.totalProfit)) * 100
+  const accountSummary = Object.values(accountStats).map(stat => {
+    const usdProfitPercent = stat.usdTotalValue > stat.usdTotalProfit
+      ? (stat.usdTotalProfit / (stat.usdTotalValue - stat.usdTotalProfit)) * 100
       : 0
-  }))
+    const krwProfitPercent = stat.krwTotalValue > stat.krwTotalProfit
+      ? (stat.krwTotalProfit / (stat.krwTotalValue - stat.krwTotalProfit)) * 100
+      : 0
+
+    return {
+      ...stat,
+      usdProfitPercent,
+      krwProfitPercent
+    }
+  })
 
   const handleAddAsset = () => {
     setShowModal(true)
@@ -589,7 +606,7 @@ const Portfolio = () => {
 
       {/* 계좌별 대시보드 */}
       {accountSummary.length > 0 && (
-        <ChartCard title="계좌별 현황" subtitle="계좌별 평가액 및 수익 분석">
+        <ChartCard title="계좌별 현황" subtitle="계좌별 평가액 및 수익 분석 (USD/KRW 분리)">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {accountSummary.map((account) => (
               <div key={account.account} className="p-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border border-gray-200">
@@ -597,25 +614,64 @@ const Portfolio = () => {
                   <h4 className="font-semibold text-gray-900">{account.account}</h4>
                   <span className="text-xs text-gray-600">{account.assets.length}개 자산</span>
                 </div>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-600">평가액</p>
-                    <p className="text-lg font-bold text-gray-900">
-                      {formatCurrency(account.totalValue, account.assets[0]?.currency || 'USD')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600">수익금</p>
-                    <p className={`text-sm font-semibold ${account.totalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {account.totalProfit >= 0 ? '+' : ''}{formatCurrency(account.totalProfit, account.assets[0]?.currency || 'USD')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600">수익률</p>
-                    <p className={`text-sm font-semibold ${account.profitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {account.profitPercent >= 0 ? '+' : ''}{account.profitPercent.toFixed(2)}%
-                    </p>
-                  </div>
+                <div className="space-y-3">
+                  {/* USD 자산 */}
+                  {account.usdTotalValue > 0 && (
+                    <div className="pb-3 border-b border-gray-200">
+                      <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                        🇺🇸 USD
+                      </p>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">평가액</span>
+                          <span className="text-sm font-bold text-gray-900">
+                            ${account.usdTotalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">수익금</span>
+                          <span className={`text-xs font-semibold ${account.usdTotalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
+                            {account.usdTotalProfit >= 0 ? '+' : ''}${account.usdTotalProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">수익률</span>
+                          <span className={`text-xs font-semibold ${account.usdProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                            {account.usdProfitPercent >= 0 ? '+' : ''}{account.usdProfitPercent.toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* KRW 자산 */}
+                  {account.krwTotalValue > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                        🇰🇷 KRW
+                      </p>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">평가액</span>
+                          <span className="text-sm font-bold text-gray-900">
+                            ₩{Math.round(account.krwTotalValue).toLocaleString('ko-KR')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">수익금</span>
+                          <span className={`text-xs font-semibold ${account.krwTotalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
+                            {account.krwTotalProfit >= 0 ? '+' : ''}₩{Math.round(account.krwTotalProfit).toLocaleString('ko-KR')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-600">수익률</span>
+                          <span className={`text-xs font-semibold ${account.krwProfitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                            {account.krwProfitPercent >= 0 ? '+' : ''}{account.krwProfitPercent.toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
