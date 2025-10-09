@@ -111,7 +111,17 @@ const AssetStatus = () => {
 
     const savedIncome = localStorage.getItem('asset_income_categories')
     if (savedIncome) {
-      setIncomeCategories(JSON.parse(savedIncome))
+      const loaded = JSON.parse(savedIncome)
+      // Ensure accumulated category exists at the beginning
+      const hasAccumulated = loaded.some(cat => cat.id === 'accumulated')
+      if (!hasAccumulated) {
+        setIncomeCategories([
+          { id: 'accumulated', name: '누적금액', color: '#6366f1', isAccumulated: true },
+          ...loaded
+        ])
+      } else {
+        setIncomeCategories(loaded)
+      }
     }
 
     const savedExpense = localStorage.getItem('asset_expense_categories')
