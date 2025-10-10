@@ -535,7 +535,7 @@ const AssetStatus = () => {
                 수입 현황
               </h3>
               <span className="text-lg font-bold">
-                {((calculateMonthlyData[selectedMonthView]?.income || 0) / 1000000).toFixed(1)}M
+                {new Intl.NumberFormat('ko-KR').format(calculateMonthlyData[selectedMonthView]?.income || 0)}
               </span>
             </div>
             <div className="space-y-2">
@@ -551,7 +551,7 @@ const AssetStatus = () => {
                     <div key={category.id} className="space-y-0.5">
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-300 truncate">{category.name}</span>
-                        <span className="font-semibold ml-1">{((value || 0) / 1000000).toFixed(1)}M</span>
+                        <span className="font-semibold ml-1">{new Intl.NumberFormat('ko-KR').format(value || 0)}</span>
                       </div>
                       <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                         <div
@@ -573,7 +573,7 @@ const AssetStatus = () => {
                 지출 현황
               </h3>
               <span className="text-lg font-bold">
-                {((calculateMonthlyData[selectedMonthView]?.expense || 0) / 1000000).toFixed(1)}M
+                {new Intl.NumberFormat('ko-KR').format(calculateMonthlyData[selectedMonthView]?.expense || 0)}
               </span>
             </div>
             <div className="space-y-2">
@@ -586,7 +586,7 @@ const AssetStatus = () => {
                   <div key={category.id} className="space-y-0.5">
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-300 truncate">{category.name}</span>
-                      <span className="font-semibold ml-1">{((value || 0) / 1000000).toFixed(1)}M</span>
+                      <span className="font-semibold ml-1">{new Intl.NumberFormat('ko-KR').format(value || 0)}</span>
                     </div>
                     <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                       <div
@@ -605,7 +605,7 @@ const AssetStatus = () => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold">종합 현황</h3>
               <span className="text-lg font-bold">
-                {((calculateMonthlyData[selectedMonthView]?.netChange || 0) / 1000000).toFixed(1)}M
+                {new Intl.NumberFormat('ko-KR').format(calculateMonthlyData[selectedMonthView]?.netChange || 0)}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -622,7 +622,7 @@ const AssetStatus = () => {
                     }}
                   >
                     <span className="text-[10px] font-bold text-white">
-                      {((calculateMonthlyData[selectedMonthView]?.income || 0) / 1000000).toFixed(1)}M
+                      {new Intl.NumberFormat('ko-KR').format(calculateMonthlyData[selectedMonthView]?.income || 0)}
                     </span>
                   </div>
                 </div>
@@ -641,7 +641,7 @@ const AssetStatus = () => {
                     }}
                   >
                     <span className="text-[10px] font-bold text-white">
-                      {((calculateMonthlyData[selectedMonthView]?.expense || 0) / 1000000).toFixed(1)}M
+                      {new Intl.NumberFormat('ko-KR').format(calculateMonthlyData[selectedMonthView]?.expense || 0)}
                     </span>
                   </div>
                 </div>
@@ -664,7 +664,7 @@ const AssetStatus = () => {
                     }}
                   >
                     <span className="text-[10px] font-bold text-white">
-                      {((calculateMonthlyData[selectedMonthView]?.netChange || 0) / 1000000).toFixed(1)}M
+                      {new Intl.NumberFormat('ko-KR').format(calculateMonthlyData[selectedMonthView]?.netChange || 0)}
                     </span>
                   </div>
                 </div>
