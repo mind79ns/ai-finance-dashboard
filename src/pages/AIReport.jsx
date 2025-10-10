@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Sparkles, FileText, Download, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
@@ -25,6 +26,7 @@ const AIReport = () => {
   const [selectedAI, setSelectedAI] = useState('auto') // 'auto', 'gpt', 'gemini'
   const [goalsSummary, setGoalsSummary] = useState(null)
   const [analysisHistory, setAnalysisHistory] = useState([])
+  const [historyViewer, setHistoryViewer] = useState({ open: false, entry: null })
 
   // Load real market and portfolio data
   useEffect(() => {
@@ -56,6 +58,20 @@ const AIReport = () => {
       }
       return updated
     })
+  }
+
+  const copyToClipboard = async (text, successMessage = '클립보드에 복사되었습니다.', errorMessage = '복사에 실패했습니다.') => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) {
+      window.alert('이 브라우저에서는 자동 복사를 지원하지 않습니다.')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      window.alert(successMessage)
+    } catch (error) {
+      console.error('Clipboard copy failed:', error)
+      window.alert(errorMessage)
+    }
   }
 
   const buildMarketHighlights = (data) => {
@@ -589,15 +605,60 @@ ${JSON.stringify(context, null, 2)}
     return (
       <div className="space-y-3">
         {analysisHistory.slice(0, 5).map(entry => (
-          <div key={entry.id} className="border border-gray-200 rounded-lg p-4 bg-white">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-900">{entry.summary}</span>
-              <span className="text-xs text-gray-500 flex items-center gap-1">
+          <div key={entry.id} className="border border-gray-200 rounded-lg p-4 bg-white space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <span className="text-sm font-semibold text-gray-900">{entry.summary}</span>
+                <p className="text-xs text-gray-500 mt-1 capitalize">
+                  타입: {entry.type}
+                </p>
+              </div>
+              <span className="text-xs text-gray-500 flex items-center gap-1 whitespace-nowrap">
                 <Clock className="w-3 h-3" />
                 {new Date(entry.createdAt).toLocaleString('ko-KR')}
               </span>
             </div>
             <div className="text-xs text-gray-600 line-clamp-4 whitespace-pre-line">{entry.content}</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="px-3 py-1.5 text-xs font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50"
+                onClick={() => setHistoryViewer({ open: true, entry })}
+              >
+                전체 보기
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                onClick={() => copyToClipboard(entry.content, '클립보드에 복사되었습니다.', '복사에 실패했습니다. 브라우저 권한을 확인하세요.')}
+              >
+                복사
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                onClick={() => {
+                  try {
+                    const baseName = (entry.summary || 'ai_report').replace(/\s+/g, '_')
+                    const filename = `${baseName}_${new Date(entry.createdAt).toISOString().slice(0, 10)}.md`
+                    const blob = new Blob([entry.content], { type: 'text/markdown;charset=utf-8;' })
+                    const url = URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.href = url
+                    link.download = filename
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                    URL.revokeObjectURL(url)
+                  } catch (err) {
+                    console.error('Download failed:', err)
+                    window.alert('다운로드 생성에 실패했습니다.')
+                  }
+                }}
+              >
+                다운로드
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -1015,6 +1076,73 @@ ${JSON.stringify(context, null, 2)}
     </div>
     {renderHistory()}
   </div>
+
+  {historyViewer.open && historyViewer.entry && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{historyViewer.entry.summary}</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {new Date(historyViewer.entry.createdAt).toLocaleString('ko-KR')} · {historyViewer.entry.type}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="text-gray-500 hover:text-gray-700"
+            onClick={() => setHistoryViewer({ open: false, entry: null })}
+          >
+            ✖
+          </button>
+        </div>
+        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
+          <div className="markdown-body text-sm text-gray-800">
+            <ReactMarkdown>{historyViewer.entry.content}</ReactMarkdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => copyToClipboard(historyViewer.entry.content)}
+          >
+            복사
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              try {
+                const baseName = (historyViewer.entry.summary || 'ai_report').replace(/\s+/g, '_')
+                const filename = `${baseName}_${new Date(historyViewer.entry.createdAt).toISOString().slice(0, 10)}.md`
+                const blob = new Blob([historyViewer.entry.content], { type: 'text/markdown;charset=utf-8;' })
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = filename
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                URL.revokeObjectURL(url)
+              } catch (err) {
+                console.error('Download failed:', err)
+                window.alert('다운로드 생성에 실패했습니다.')
+              }
+            }}
+          >
+            다운로드
+          </button>
+          <button
+            type="button"
+            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+            onClick={() => setHistoryViewer({ open: false, entry: null })}
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
 
   {/* AI Chat Tab */}
   {activeTab === 'chat' && (

@@ -24,4 +24,49 @@
   .btn-danger {
     @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed;
   }
+
+  .markdown-body {
+    @apply space-y-4 leading-relaxed;
+  }
+
+  .markdown-body h1 {
+    @apply text-2xl font-bold text-gray-900 mt-6;
+  }
+
+  .markdown-body h2 {
+    @apply text-xl font-semibold text-gray-900 mt-5;
+  }
+
+  .markdown-body h3 {
+    @apply text-lg font-semibold text-gray-900 mt-4;
+  }
+
+  .markdown-body p {
+    @apply text-sm text-gray-800;
+  }
+
+  .markdown-body ul,
+  .markdown-body ol {
+    @apply pl-5 space-y-2;
+  }
+
+  .markdown-body ul li {
+    @apply list-disc;
+  }
+
+  .markdown-body ol li {
+    @apply list-decimal;
+  }
+
+  .markdown-body blockquote {
+    @apply border-l-4 border-primary-200 pl-4 italic text-gray-700;
+  }
+
+  .markdown-body code {
+    @apply bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono;
+  }
+
+  .markdown-body pre {
+    @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto text-xs leading-6;
+  }
 }
