@@ -526,33 +526,34 @@ const AssetStatus = () => {
         </div>
 
         {/* Monthly Visual Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Income Breakdown Card */}
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
+          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold flex items-center gap-1">
+                <TrendingUp className="w-4 h-4" />
                 수입 현황
               </h3>
-              <span className="text-2xl font-bold">
-                {formatCurrency(calculateMonthlyData[selectedMonthView]?.income || 0)} 원
+              <span className="text-lg font-bold">
+                {((calculateMonthlyData[selectedMonthView]?.income || 0) / 1000000).toFixed(1)}M
               </span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {incomeCategories
                 .filter(cat => !cat.isAccumulated)
+                .slice(0, 5)
                 .map(category => {
                   const value = calculateMonthlyData[selectedMonthView]?.[category.id] || 0
                   const maxIncome = Math.max(...incomeCategories.filter(c => !c.isAccumulated).map(c => calculateMonthlyData[selectedMonthView]?.[c.id] || 0))
                   const percentage = maxIncome > 0 ? (value / maxIncome) * 100 : 0
 
                   return (
-                    <div key={category.id} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-300">{category.name}</span>
-                        <span className="font-semibold">{formatCurrency(value)}</span>
+                    <div key={category.id} className="space-y-0.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-300 truncate">{category.name}</span>
+                        <span className="font-semibold ml-1">{((value || 0) / 1000000).toFixed(1)}M</span>
                       </div>
-                      <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full transition-all duration-500"
                           style={{ width: `${percentage}%` }}
@@ -565,29 +566,29 @@ const AssetStatus = () => {
           </div>
 
           {/* Expense Breakdown Card */}
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <TrendingDown className="w-5 h-5" />
+          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold flex items-center gap-1">
+                <TrendingDown className="w-4 h-4" />
                 지출 현황
               </h3>
-              <span className="text-2xl font-bold">
-                {formatCurrency(calculateMonthlyData[selectedMonthView]?.expense || 0)} 원
+              <span className="text-lg font-bold">
+                {((calculateMonthlyData[selectedMonthView]?.expense || 0) / 1000000).toFixed(1)}M
               </span>
             </div>
-            <div className="space-y-3">
-              {expenseCategories.map(category => {
+            <div className="space-y-2">
+              {expenseCategories.slice(0, 5).map(category => {
                 const value = calculateMonthlyData[selectedMonthView]?.[category.id] || 0
                 const maxExpense = Math.max(...expenseCategories.map(c => calculateMonthlyData[selectedMonthView]?.[c.id] || 0))
                 const percentage = maxExpense > 0 ? (value / maxExpense) * 100 : 0
 
                 return (
-                  <div key={category.id} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-300">{category.name}</span>
-                      <span className="font-semibold">{formatCurrency(value)}</span>
+                  <div key={category.id} className="space-y-0.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-300 truncate">{category.name}</span>
+                      <span className="font-semibold ml-1">{((value || 0) / 1000000).toFixed(1)}M</span>
                     </div>
-                    <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
@@ -600,28 +601,27 @@ const AssetStatus = () => {
           </div>
 
           {/* Combined Summary Card */}
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">종합 수입 & 지출 현황</h3>
-              <span className="text-3xl font-bold">
-                {formatCurrency(calculateMonthlyData[selectedMonthView]?.accumulated || 0)} 원
+          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold">종합 현황</h3>
+              <span className="text-lg font-bold">
+                {((calculateMonthlyData[selectedMonthView]?.accumulated || 0) / 1000000).toFixed(1)}M
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2">
               {/* Income Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-blue-300">수입</span>
-                  <span className="font-semibold">{formatCurrency(calculateMonthlyData[selectedMonthView]?.income || 0)}</span>
+              <div className="space-y-1">
+                <div className="text-center">
+                  <span className="text-xs text-blue-300">수입</span>
                 </div>
-                <div className="relative h-48 bg-slate-700 rounded-lg overflow-hidden">
+                <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
                   <div
-                    className="absolute bottom-0 w-full bg-gradient-to-t from-blue-500 to-blue-400 transition-all duration-500 flex items-end justify-center pb-2"
+                    className="absolute bottom-0 w-full bg-gradient-to-t from-blue-500 to-blue-400 transition-all duration-500 flex items-end justify-center pb-1"
                     style={{
                       height: `${Math.min((calculateMonthlyData[selectedMonthView]?.income || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, calculateMonthlyData[selectedMonthView]?.accumulated || 1) * 100, 100)}%`
                     }}
                   >
-                    <span className="text-xs font-bold text-white">
+                    <span className="text-[10px] font-bold text-white">
                       {((calculateMonthlyData[selectedMonthView]?.income || 0) / 1000000).toFixed(1)}M
                     </span>
                   </div>
@@ -629,19 +629,18 @@ const AssetStatus = () => {
               </div>
 
               {/* Expense Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-red-300">지출</span>
-                  <span className="font-semibold">{formatCurrency(calculateMonthlyData[selectedMonthView]?.expense || 0)}</span>
+              <div className="space-y-1">
+                <div className="text-center">
+                  <span className="text-xs text-red-300">지출</span>
                 </div>
-                <div className="relative h-48 bg-slate-700 rounded-lg overflow-hidden">
+                <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
                   <div
-                    className="absolute bottom-0 w-full bg-gradient-to-t from-red-500 to-red-400 transition-all duration-500 flex items-end justify-center pb-2"
+                    className="absolute bottom-0 w-full bg-gradient-to-t from-red-500 to-red-400 transition-all duration-500 flex items-end justify-center pb-1"
                     style={{
                       height: `${Math.min((calculateMonthlyData[selectedMonthView]?.expense || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, calculateMonthlyData[selectedMonthView]?.accumulated || 1) * 100, 100)}%`
                     }}
                   >
-                    <span className="text-xs font-bold text-white">
+                    <span className="text-[10px] font-bold text-white">
                       {((calculateMonthlyData[selectedMonthView]?.expense || 0) / 1000000).toFixed(1)}M
                     </span>
                   </div>
@@ -649,19 +648,18 @@ const AssetStatus = () => {
               </div>
 
               {/* Accumulated Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-green-300">누적자산</span>
-                  <span className="font-semibold">{formatCurrency(calculateMonthlyData[selectedMonthView]?.accumulated || 0)}</span>
+              <div className="space-y-1">
+                <div className="text-center">
+                  <span className="text-xs text-green-300">누적</span>
                 </div>
-                <div className="relative h-48 bg-slate-700 rounded-lg overflow-hidden">
+                <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
                   <div
-                    className="absolute bottom-0 w-full bg-gradient-to-t from-green-500 to-green-400 transition-all duration-500 flex items-end justify-center pb-2"
+                    className="absolute bottom-0 w-full bg-gradient-to-t from-green-500 to-green-400 transition-all duration-500 flex items-end justify-center pb-1"
                     style={{
                       height: `${Math.min((calculateMonthlyData[selectedMonthView]?.accumulated || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, calculateMonthlyData[selectedMonthView]?.accumulated || 1) * 100, 100)}%`
                     }}
                   >
-                    <span className="text-xs font-bold text-white">
+                    <span className="text-[10px] font-bold text-white">
                       {((calculateMonthlyData[selectedMonthView]?.accumulated || 0) / 1000000).toFixed(1)}M
                     </span>
                   </div>
