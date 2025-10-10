@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Sparkles, FileText, Download, RefreshCw, Zap, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Sparkles, FileText, Download, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
 import AIStrategyBadge from '../components/AIStrategyBadge'
@@ -23,11 +23,82 @@ const AIReport = () => {
   const [marketData, setMarketData] = useState(null)
   const [portfolioData, setPortfolioData] = useState(null)
   const [selectedAI, setSelectedAI] = useState('auto') // 'auto', 'gpt', 'gemini'
+  const [goalsSummary, setGoalsSummary] = useState(null)
+  const [analysisHistory, setAnalysisHistory] = useState([])
 
   // Load real market and portfolio data
   useEffect(() => {
     loadRealData()
+    loadHistory()
   }, [])
+
+  const loadHistory = () => {
+    try {
+      const stored = localStorage.getItem('ai_report_history')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          setAnalysisHistory(parsed)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load AI report history:', error)
+    }
+  }
+
+  const appendHistory = (entry) => {
+    setAnalysisHistory(prev => {
+      const updated = [entry, ...prev].slice(0, 20)
+      try {
+        localStorage.setItem('ai_report_history', JSON.stringify(updated))
+      } catch (error) {
+        console.error('Failed to persist AI report history:', error)
+      }
+      return updated
+    })
+  }
+
+  const buildMarketHighlights = (data) => {
+    if (!data) return null
+    const lines = []
+
+    if (data.stocks) {
+      const { sp500, nasdaq, dow } = data.stocks
+      const stockLines = [sp500, nasdaq, dow]
+        .filter(Boolean)
+        .map(item => `- ${item.name}: ${formatNumber(item.price, 2)} (${item.changePercent > 0 ? '+' : ''}${formatNumber(item.changePercent, 2)}%)`)
+      if (stockLines.length) {
+        lines.push('주요 지수 ETF')
+        lines.push(...stockLines)
+      }
+    }
+
+    if (data.gold) {
+      lines.push('귀금속')
+      lines.push(`- Gold (GLD): ${formatNumber(data.gold.price, 2)} (${data.gold.changePercent > 0 ? '+' : ''}${formatNumber(data.gold.changePercent, 2)}%)`)
+    }
+
+    if (data.crypto) {
+      const cryptoLines = Object.values(data.crypto || {})
+        .slice(0, 4)
+        .map(coin => `- ${coin.name}: ${formatNumber(coin.price, 2)} USD (${coin.change24h > 0 ? '+' : ''}${formatNumber(coin.change24h, 2)}%)`)
+      if (cryptoLines.length) {
+        lines.push('암호화폐')
+        lines.push(...cryptoLines)
+      }
+    }
+
+    if (data.currency) {
+      const { usdKrw, usdEur, usdJpy } = data.currency
+      const fxLines = [usdKrw, usdEur, usdJpy].filter(Boolean).map(pair => `- ${pair.base}/${pair.target}: ${formatNumber(pair.rate, 4)}`)
+      if (fxLines.length) {
+        lines.push('환율')
+        lines.push(...fxLines)
+      }
+    }
+
+    return lines.join('\n')
+  }
 
   const loadRealData = async () => {
     try {
@@ -182,6 +253,61 @@ const AIReport = () => {
           allocation
         })
       }
+
+      const savedGoals = localStorage.getItem('investment_goals')
+      if (savedGoals) {
+        try {
+          const goals = JSON.parse(savedGoals)
+          if (Array.isArray(goals) && goals.length > 0) {
+            const totalGoals = goals.length
+            const linkedGoals = goals.filter(goal => goal.linkedToPortfolio)
+            const averageProgress = goals.reduce((sum, goal) => {
+              const target = Number(goal.targetAmount || 0)
+              const current = Number(goal.currentAmount || 0)
+              if (!target || target <= 0) return sum
+              return sum + Math.min((current / target) * 100, 100)
+            }, 0) / totalGoals
+
+            const futureGoals = goals
+              .filter(goal => goal.targetDate && new Date(goal.targetDate) >= new Date())
+              .sort((a, b) => new Date(a.targetDate) - new Date(b.targetDate))
+
+            const upcomingGoal = futureGoals[0] || null
+
+            setGoalsSummary({
+              totalGoals,
+              linkedGoals: linkedGoals.length,
+              averageProgress: Number.isFinite(averageProgress) ? averageProgress : null,
+              upcomingGoal: upcomingGoal
+                ? {
+                    name: upcomingGoal.name,
+                    targetDate: upcomingGoal.targetDate,
+                    progress: upcomingGoal.targetAmount
+                      ? Math.min((Number(upcomingGoal.currentAmount || 0) / Number(upcomingGoal.targetAmount)) * 100, 100)
+                      : null,
+                    currency: upcomingGoal.currency || 'USD'
+                  }
+                : null,
+              goals: goals.slice(0, 5).map(goal => ({
+                name: goal.name,
+                category: goal.category,
+                targetAmount: goal.targetAmount,
+                currentAmount: goal.currentAmount,
+                currency: goal.currency || 'USD',
+                targetDate: goal.targetDate,
+                linkedToPortfolio: goal.linkedToPortfolio
+              }))
+            })
+          } else {
+            setGoalsSummary(null)
+          }
+        } catch (error) {
+          console.error('Failed to parse goals:', error)
+          setGoalsSummary(null)
+        }
+      } else {
+        setGoalsSummary(null)
+      }
     } catch (error) {
       console.error('Failed to load real data:', error)
     }
@@ -196,18 +322,21 @@ const AIReport = () => {
 
     setLoading(true)
     try {
-      const prompt = `다음 시장 데이터를 전문적으로 분석하여 상세 투자 리포트를 작성해주세요:
+      const highlights = buildMarketHighlights(marketData)
+      const prompt = `다음 시장 데이터를 기반으로 Markdown 형식의 고급 투자 리포트를 작성해주세요.
 
+데이터 스냅샷:
 ${JSON.stringify(marketData, null, 2)}
 
-다음 항목을 포함하세요:
-1. 시장 개요 및 주요 동향
-2. 섹터별 분석
-3. 리스크 요인 및 기회 요인
-4. 투자 전략 제안
-5. 향후 전망
+핵심 하이라이트:
+${highlights || '- 제공된 하이라이트 없음'}
 
-전문 애널리스트 수준의 깊이 있는 분석을 제공하세요.`
+작성 가이드:
+1. 반드시 섹션 제목을 사용하세요: "시장 개요", "섹터 및 자산별 분석", "리스크 요인과 기회", "전략 제안", "전망 및 체크포인트".
+2. 필요한 경우 표나 불릿으로 핵심 수치를 제시하세요.
+3. 최신 환율과 금리, 암호화폐 변동성 등 다양한 자산군을 모두 언급하세요.
+4. 제공된 데이터의 시점과 한계를 명시하고, 추가 확인이 필요한 부분은 경고로 표시하세요.
+5. 실행 가능한 투자 아이디어를 제안할 때는 위험도(저/중/고)와 예상 기간을 병기하세요.`
 
       const report = await aiService.routeAIRequest(
         prompt,
@@ -216,6 +345,13 @@ ${JSON.stringify(marketData, null, 2)}
         selectedAI
       )
       setMarketReport(report)
+      appendHistory({
+        id: Date.now(),
+        type: 'market',
+        createdAt: new Date().toISOString(),
+        summary: '시장 분석 리포트',
+        content: report
+      })
     } catch (error) {
       setMarketReport('리포트 생성 중 오류가 발생했습니다. API 키를 확인해주세요.')
     } finally {
@@ -255,15 +391,17 @@ ${currencySummary || '- 데이터 없음'}
 자산 목록:
 ${assetSummary || '- 데이터 없음'}
 
-분석 항목:
-1. 자산 배분 분석 (Diversification)
-2. 통화별 리스크 및 환율 영향 평가
-3. 수익성 분석 (Performance Analysis)
-4. 세부 개선 제안 (Actionable Recommendations)
-5. 리밸런싱 전략
-6. 목표 달성 가능성 평가
+사용자 목표 요약:
+${goalsSummary
+  ? `- 총 목표 수: ${goalsSummary.totalGoals}\n- 평균 진행률: ${goalsSummary.averageProgress ? formatNumber(goalsSummary.averageProgress, 1) : 'N/A'}%\n- 포트폴리오 연동 목표: ${goalsSummary.linkedGoals}개\n- 가장 임박한 목표: ${goalsSummary.upcomingGoal ? `${goalsSummary.upcomingGoal.name} (${goalsSummary.upcomingGoal.currency}, ${goalsSummary.upcomingGoal.targetDate})` : '없음'}`
+  : '- 등록된 목표 없음'}
 
-통화 단위를 명확히 구분해 설명하고, 필요 시 USD와 KRW 기준을 모두 제시해주세요.`
+작성 가이드:
+1. 섹션 제목은 "포트폴리오 개요", "통화 및 환율 영향", "목표 연계 분석", "리스크 및 수익성", "개선 제안", "실행 체크리스트" 순서를 따르세요.
+2. 모든 금액은 가능하면 KRW와 USD를 함께 표기하고, 환율 변동이 성과에 미치는 영향을 설명하세요.
+3. 목표가 없는 경우에도 어떤 목표를 설정하면 좋을지 제안하고, 목표가 있을 경우 달성 가능성을 평가하세요.
+4. 개선 제안은 우선순위와 예상 영향(긍정/부정)을 명시한 불릿으로 작성하세요.
+5. 제공된 데이터의 한계(실시간성, 환율 변동 가능성 등)를 마지막에 Disclaimer 섹션으로 정리하세요.`
 
       const analysis = await aiService.routeAIRequest(
         prompt,
@@ -272,6 +410,13 @@ ${assetSummary || '- 데이터 없음'}
         selectedAI
       )
       setPortfolioAnalysis(analysis)
+      appendHistory({
+        id: Date.now(),
+        type: 'portfolio',
+        createdAt: new Date().toISOString(),
+        summary: '포트폴리오 심층 분석',
+        content: analysis
+      })
     } catch (error) {
       setPortfolioAnalysis('분석 생성 중 오류가 발생했습니다. API 키를 확인해주세요.')
     } finally {
@@ -363,8 +508,9 @@ ${assetLines}
 2. 목표 위험 수준과 환율 변동 가능성을 고려한 최적 배분 비율을 제안해주세요.
 3. 매수/매도 또는 환헤지 등 실행 가능한 리밸런싱 조치를 구체적으로 제안해주세요.
 4. 리밸런싱 주기, 모니터링 포인트, 체크리스트를 알려주세요.
+5. 실행 우선순위를 번호로 정렬하고, 각 조치별 예상 영향(긍정/부정)을 기재하세요.
 
-원화와 달러 금액을 명확히 구분하여 설명해주세요.`
+원화와 달러 금액을 명확히 구분하고, 데이터의 한계나 추가 검증 필요사항은 Disclaimer로 정리해주세요.`
 
       const suggestion = await aiService.routeAIRequest(
         prompt,
@@ -373,6 +519,13 @@ ${assetLines}
         selectedAI
       )
       setRebalancingSuggestion(suggestion)
+      appendHistory({
+        id: Date.now(),
+        type: 'rebalancing',
+        createdAt: new Date().toISOString(),
+        summary: '리밸런싱 제안',
+        content: suggestion
+      })
     } catch (error) {
       setRebalancingSuggestion('리밸런싱 제안 생성 중 오류가 발생했습니다.')
     } finally {
@@ -392,7 +545,12 @@ ${assetLines}
     try {
       const context = {
         portfolio: portfolioData,
-        market: marketData
+        market: marketData,
+        latestMarketReport: marketReport,
+        latestPortfolioAnalysis: portfolioAnalysis,
+        latestRebalancing: rebalancingSuggestion,
+        riskAnalysis,
+        goalsSummary
       }
 
       const prompt = `사용자 질문: ${userMessage}
@@ -417,6 +575,33 @@ ${JSON.stringify(context, null, 2)}
     } finally {
       setLoading(false)
     }
+  }
+
+  const renderHistory = () => {
+    if (!analysisHistory.length) {
+      return (
+        <div className="border border-dashed border-gray-200 rounded-lg p-4 text-sm text-gray-500">
+          아직 생성된 AI 리포트 기록이 없습니다.
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-3">
+        {analysisHistory.slice(0, 5).map(entry => (
+          <div key={entry.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-gray-900">{entry.summary}</span>
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {new Date(entry.createdAt).toLocaleString('ko-KR')}
+              </span>
+            </div>
+            <div className="text-xs text-gray-600 line-clamp-4 whitespace-pre-line">{entry.content}</div>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -808,20 +993,34 @@ ${JSON.stringify(context, null, 2)}
             </div>
           )}
 
-          {!rebalancingSuggestion && !loading && (
-            <div className="card text-center py-12">
-              <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">리밸런싱 제안을 생성하려면 버튼을 클릭하세요</p>
-            </div>
-          )}
+      {!rebalancingSuggestion && !loading && (
+        <div className="card text-center py-12">
+          <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">리밸런싱 제안을 생성하려면 버튼을 클릭하세요</p>
         </div>
       )}
+    </div>
+  )}
 
-      {/* AI Chat Tab */}
-      {activeTab === 'chat' && (
-        <div className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm text-green-800">
+  {/* Report History */}
+  <div className="card">
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2">
+        <Archive className="w-5 h-5 text-primary-600" />
+        <h3 className="text-lg font-semibold text-gray-900">최근 생성된 AI 리포트</h3>
+      </div>
+      <span className="text-xs text-gray-500">
+        최대 20개의 기록을 저장하며, 최신 5개만 표시합니다.
+      </span>
+    </div>
+    {renderHistory()}
+  </div>
+
+  {/* AI Chat Tab */}
+  {activeTab === 'chat' && (
+    <div className="space-y-4">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <p className="text-sm text-green-800">
               <strong>🧠 GPT-5 사용:</strong> 투자 전문가 수준의 맞춤형 상담을 제공합니다
             </p>
           </div>
