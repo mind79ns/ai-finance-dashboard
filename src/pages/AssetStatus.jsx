@@ -93,6 +93,16 @@ const AssetStatus = () => {
     { id: 'gold', name: '골드', icon: 'DollarSign' }
   ]
 
+  // Asset category types (columns in the table)
+  const assetCategories = [
+    { id: 'bank', name: '은행계좌' },
+    { id: 'usd', name: 'USD계좌' },
+    { id: 'pension', name: '연금저축' },
+    { id: 'investment', name: '투자전환' },
+    { id: 'installment', name: '적금' },
+    { id: 'deposit', name: '예금' }
+  ]
+
   // Account types from localStorage or defaults
   const [accountTypes, setAccountTypes] = useState(defaultAccountTypes)
 
@@ -276,21 +286,45 @@ const AssetStatus = () => {
     return totals
   }, [calculateMonthlyData, incomeCategories, expenseCategories])
 
-  // Calculate account percentages
+  // Calculate account percentages with category breakdown
   const accountBreakdown = useMemo(() => {
     const yearAccounts = accountData[selectedYear] || {}
-    const total = Object.values(yearAccounts).reduce((sum, val) => sum + val, 0)
 
-    return accountTypes.map(acc => ({
-      ...acc,
-      value: yearAccounts[acc.id] || 0,
-      percentage: total > 0 ? ((yearAccounts[acc.id] || 0) / total * 100) : 0
-    }))
-  }, [accountData, selectedYear, accountTypes])
+    return accountTypes.map(acc => {
+      const accountCategories = yearAccounts[acc.id] || {}
+
+      // Calculate total for this account across all categories
+      const total = assetCategories.reduce((sum, cat) => {
+        return sum + (accountCategories[cat.id] || 0)
+      }, 0)
+
+      return {
+        ...acc,
+        categories: accountCategories,
+        total: total
+      }
+    })
+  }, [accountData, selectedYear, accountTypes, assetCategories])
+
+  // Calculate category totals and grand total
+  const categoryTotals = useMemo(() => {
+    const totals = {}
+    let grandTotal = 0
+
+    assetCategories.forEach(cat => {
+      const categoryTotal = accountBreakdown.reduce((sum, acc) => {
+        return sum + (acc.categories[cat.id] || 0)
+      }, 0)
+      totals[cat.id] = categoryTotal
+      grandTotal += categoryTotal
+    })
+
+    return { ...totals, grandTotal }
+  }, [accountBreakdown, assetCategories])
 
   const totalAccountValue = useMemo(() => {
-    return accountBreakdown.reduce((sum, acc) => sum + acc.value, 0)
-  }, [accountBreakdown])
+    return categoryTotals.grandTotal
+  }, [categoryTotals])
 
   // Handlers
   const handleOpenEditModal = (monthIndex) => {
@@ -319,13 +353,16 @@ const AssetStatus = () => {
     })
   }
 
-  const handleSaveAccountData = (accountId, value) => {
+  const handleSaveAccountData = (accountId, categoryId, value) => {
     setAccountData(prev => {
       const updated = { ...prev }
       if (!updated[selectedYear]) {
         updated[selectedYear] = {}
       }
-      updated[selectedYear][accountId] = parseFloat(value) || 0
+      if (!updated[selectedYear][accountId]) {
+        updated[selectedYear][accountId] = {}
+      }
+      updated[selectedYear][accountId][categoryId] = parseFloat(value) || 0
       return updated
     })
   }
@@ -1109,12 +1146,11 @@ const AssetStatus = () => {
             <thead>
               <tr className="bg-blue-100 border-b border-blue-200">
                 <th className="text-left py-3 px-4 font-bold text-blue-900">항목</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900">은행계좌</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900">USD계좌</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900">연금저축</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900">투자전환</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900">적금</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900">예금</th>
+                {assetCategories.map(cat => (
+                  <th key={cat.id} className="text-right py-3 px-4 font-bold text-blue-900 min-w-[100px]">
+                    {cat.name}
+                  </th>
+                ))}
                 <th className="text-right py-3 px-4 font-bold text-blue-900 bg-blue-200">TOTAL</th>
                 <th className="text-center py-3 px-4 font-bold text-blue-900 bg-blue-200">점유율</th>
               </tr>
@@ -1123,6 +1159,8 @@ const AssetStatus = () => {
             <tbody>
               {accountBreakdown.map((account) => {
                 const Icon = getIconComponent(account.icon)
+                const percentage = totalAccountValue > 0 ? (account.total / totalAccountValue * 100) : 0
+
                 return (
                   <tr key={account.id} className="border-b border-gray-200 hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium text-gray-900">
@@ -1176,17 +1214,16 @@ const AssetStatus = () => {
                         </div>
                       )}
                     </td>
-                    <td className="text-right py-3 px-4 text-gray-700">-</td>
-                    <td className="text-right py-3 px-4 text-gray-700">-</td>
-                    <td className="text-right py-3 px-4 text-gray-700">-</td>
-                    <td className="text-right py-3 px-4 text-gray-700">-</td>
-                    <td className="text-right py-3 px-4 text-gray-700">-</td>
-                    <td className="text-right py-3 px-4 text-gray-700">-</td>
+                    {assetCategories.map(cat => (
+                      <td key={cat.id} className="text-right py-3 px-4 text-gray-700">
+                        {formatCurrency(account.categories[cat.id] || 0)}
+                      </td>
+                    ))}
                     <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
-                      {formatCurrency(account.value)}
+                      {formatCurrency(account.total)}
                     </td>
                     <td className="text-center py-3 px-4 font-medium text-gray-900 bg-blue-50">
-                      {account.percentage.toFixed(0)}%
+                      {percentage.toFixed(0)}%
                     </td>
                   </tr>
                 )
@@ -1195,12 +1232,11 @@ const AssetStatus = () => {
               {/* Total Row */}
               <tr className="bg-blue-100 border-t-2 border-blue-300 font-bold">
                 <td className="py-3 px-4 text-blue-900">TOTAL</td>
-                <td className="text-right py-3 px-4 text-blue-900">-</td>
-                <td className="text-right py-3 px-4 text-blue-900">-</td>
-                <td className="text-right py-3 px-4 text-blue-900">-</td>
-                <td className="text-right py-3 px-4 text-blue-900">-</td>
-                <td className="text-right py-3 px-4 text-blue-900">-</td>
-                <td className="text-right py-3 px-4 text-blue-900">-</td>
+                {assetCategories.map(cat => (
+                  <td key={cat.id} className="text-right py-3 px-4 text-blue-900">
+                    {formatCurrency(categoryTotals[cat.id] || 0)}
+                  </td>
+                ))}
                 <td className="text-right py-3 px-4 text-blue-900 bg-blue-200">
                   {formatCurrency(totalAccountValue)}
                 </td>
@@ -1210,12 +1246,14 @@ const AssetStatus = () => {
               {/* Percentage Row */}
               <tr className="bg-blue-50 font-bold">
                 <td className="py-3 px-4 text-blue-900">점유율</td>
-                <td className="text-center py-3 px-4 text-blue-900">-</td>
-                <td className="text-center py-3 px-4 text-blue-900">-</td>
-                <td className="text-center py-3 px-4 text-blue-900">-</td>
-                <td className="text-center py-3 px-4 text-blue-900">-</td>
-                <td className="text-center py-3 px-4 text-blue-900">-</td>
-                <td className="text-center py-3 px-4 text-blue-900">-</td>
+                {assetCategories.map(cat => {
+                  const catPercentage = totalAccountValue > 0 ? ((categoryTotals[cat.id] || 0) / totalAccountValue * 100) : 0
+                  return (
+                    <td key={cat.id} className="text-center py-3 px-4 text-blue-900">
+                      {catPercentage.toFixed(0)}%
+                    </td>
+                  )
+                })}
                 <td className="text-center py-3 px-4 text-blue-900 bg-blue-100" colSpan="2">100%</td>
               </tr>
             </tbody>
@@ -1356,61 +1394,101 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
 const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) => {
   const [formData, setFormData] = useState({})
 
+  // Asset category types (same as parent component)
+  const assetCategories = [
+    { id: 'bank', name: '은행계좌' },
+    { id: 'usd', name: 'USD계좌' },
+    { id: 'pension', name: '연금저축' },
+    { id: 'investment', name: '투자전환' },
+    { id: 'installment', name: '적금' },
+    { id: 'deposit', name: '예금' }
+  ]
+
   useEffect(() => {
     const initial = {}
     accountTypes.forEach(acc => {
       const existing = accountData.find(a => a.id === acc.id)
-      initial[acc.id] = existing?.value || 0
+      initial[acc.id] = {}
+      assetCategories.forEach(cat => {
+        initial[acc.id][cat.id] = existing?.categories?.[cat.id] || 0
+      })
     })
     setFormData(initial)
   }, [accountData, accountTypes])
 
-  const handleChange = (accountId, value) => {
+  const handleChange = (accountId, categoryId, value) => {
     setFormData(prev => ({
       ...prev,
-      [accountId]: value
+      [accountId]: {
+        ...prev[accountId],
+        [categoryId]: value
+      }
     }))
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    Object.entries(formData).forEach(([accountId, value]) => {
-      onSave(accountId, value)
+    Object.entries(formData).forEach(([accountId, categories]) => {
+      Object.entries(categories).forEach(([categoryId, value]) => {
+        onSave(accountId, categoryId, value)
+      })
     })
     onClose()
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
           <h3 className="text-xl font-bold text-gray-900">
             {year}년 계좌별 자산 수정
           </h3>
+          <p className="text-sm text-gray-600 mt-1">각 계좌별로 자산 카테고리 금액을 입력하세요</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {accountTypes.map(acc => {
-            const Icon = getIconComponent(acc.icon)
-            return (
-              <div key={acc.id} className="flex items-center gap-3">
-                <div className="w-48 flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-gray-600" />
-                  <label className="text-sm font-medium text-gray-700">{acc.name}</label>
-                </div>
-                <input
-                  type="number"
-                  value={formData[acc.id] || ''}
-                  onChange={(e) => handleChange(acc.id, e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="0"
-                />
-                <span className="text-sm text-gray-500 w-12">KRW</span>
-              </div>
-            )
-          })}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-blue-100 border-b border-blue-200">
+                  <th className="text-left py-3 px-4 font-bold text-blue-900 sticky left-0 bg-blue-100 z-10">계좌명</th>
+                  {assetCategories.map(cat => (
+                    <th key={cat.id} className="text-center py-3 px-4 font-bold text-blue-900 min-w-[120px]">
+                      {cat.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {accountTypes.map((acc, idx) => {
+                  const Icon = getIconComponent(acc.icon)
+                  return (
+                    <tr key={acc.id} className={`border-b border-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                      <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 z-10" style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f9fafb' }}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-gray-600" />
+                          <span>{acc.name}</span>
+                        </div>
+                      </td>
+                      {assetCategories.map(cat => (
+                        <td key={cat.id} className="py-2 px-2">
+                          <input
+                            type="number"
+                            value={formData[acc.id]?.[cat.id] || ''}
+                            onChange={(e) => handleChange(acc.id, cat.id, e.target.value)}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right text-sm"
+                            placeholder="0"
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <div className="flex gap-3 pt-6 mt-6 border-t border-gray-200">
             <button type="submit" className="btn-primary flex-1">
               저장
             </button>
