@@ -765,19 +765,19 @@ const Portfolio = () => {
                       </div>
                     </td>
                     <td className="text-right py-3 px-4 text-gray-900">
-                      {new Intl.NumberFormat('ko-KR').format(principalData.principal)}
+                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(principalData.principal)}
                     </td>
                     <td className="text-right py-3 px-4 text-gray-900">
-                      {new Intl.NumberFormat('ko-KR').format(principalData.remaining)}
+                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(principalData.remaining)}
                     </td>
                     <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
-                      {new Intl.NumberFormat('ko-KR').format(investmentAmount)}
+                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(investmentAmount))}
                     </td>
                     <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
-                      {new Intl.NumberFormat('ko-KR').format(Math.round(evaluationKRW))}
+                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(evaluationKRW))}
                     </td>
                     <td className={`text-right py-3 px-4 font-bold bg-blue-50 ${profit >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {profit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR').format(Math.round(profit))}
+                      {profit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(profit))}
                     </td>
                     <td className="py-3 px-4 text-gray-700 text-xs">{principalData.note || '-'}</td>
                     <td className="py-3 px-4">
@@ -803,7 +803,7 @@ const Portfolio = () => {
                 <tr className="bg-blue-200 border-t-2 border-blue-300 font-bold">
                   <td colSpan="2" className="text-center py-3 px-4 text-blue-900">TOTAL</td>
                   <td className="text-right py-3 px-4 text-blue-900">
-                    {new Intl.NumberFormat('ko-KR').format(
+                    {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                       accountSummary.reduce((sum, acc) => {
                         const data = accountPrincipals[acc.account] || { principal: 0 }
                         return sum + data.principal
@@ -811,7 +811,7 @@ const Portfolio = () => {
                     )}
                   </td>
                   <td className="text-right py-3 px-4 text-blue-900">
-                    {new Intl.NumberFormat('ko-KR').format(
+                    {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                       accountSummary.reduce((sum, acc) => {
                         const data = accountPrincipals[acc.account] || { remaining: 0 }
                         return sum + data.remaining
@@ -819,7 +819,7 @@ const Portfolio = () => {
                     )}
                   </td>
                   <td className="text-right py-3 px-4 text-blue-900">
-                    {new Intl.NumberFormat('ko-KR').format(
+                    {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                       Math.round(accountSummary.reduce((sum, acc) => {
                         // Calculate total investment: 보유량 * 평균단가
                         return sum + acc.assets.reduce((assetSum, asset) => {
@@ -835,7 +835,7 @@ const Portfolio = () => {
                     )}
                   </td>
                   <td className="text-right py-3 px-4 text-blue-900">
-                    {new Intl.NumberFormat('ko-KR').format(Math.round(totalValueKRW))}
+                    {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(totalValueKRW))}
                   </td>
                   <td className="text-right py-3 px-4 text-blue-900">
                     {(() => {
@@ -854,7 +854,7 @@ const Portfolio = () => {
                       const totalProfit = totalValueKRW - totalInvestment
                       return (
                         <span className={totalProfit >= 0 ? 'text-success' : 'text-danger'}>
-                          {totalProfit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR').format(Math.round(totalProfit))}
+                          {totalProfit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(totalProfit))}
                         </span>
                       )
                     })()}
