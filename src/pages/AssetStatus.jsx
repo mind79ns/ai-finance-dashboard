@@ -950,18 +950,18 @@ const AssetStatus = () => {
               <YAxis
                 yAxisId="left"
                 stroke="#6b7280"
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                tick={{ fill: '#6b7280', fontSize: 11 }}
                 axisLine={{ stroke: '#d1d5db' }}
-                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                tickFormatter={(value) => new Intl.NumberFormat('ko-KR').format(value)}
               />
               <YAxis
                 yAxisId="right"
                 orientation="right"
                 stroke="#6366f1"
-                tick={{ fill: '#6366f1', fontSize: 12 }}
+                tick={{ fill: '#6366f1', fontSize: 11 }}
                 axisLine={{ stroke: '#818cf8' }}
-                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
-                domain={[15000000, 'auto']}
+                tickFormatter={(value) => new Intl.NumberFormat('ko-KR').format(value)}
+                domain={[15000000, 'dataMax']}
               />
               <Tooltip
                 contentStyle={{
@@ -1031,18 +1031,19 @@ const AssetStatus = () => {
               <YAxis
                 yAxisId="left"
                 stroke="#6b7280"
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                tick={{ fill: '#6b7280', fontSize: 11 }}
                 axisLine={{ stroke: '#c7d2fe' }}
-                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                tickFormatter={(value) => new Intl.NumberFormat('ko-KR').format(value)}
                 label={{ value: '월 순변동', angle: -90, position: 'insideLeft', style: { fill: '#6b7280' } }}
               />
               <YAxis
                 yAxisId="right"
                 orientation="right"
                 stroke="#6366f1"
-                tick={{ fill: '#6366f1', fontSize: 12 }}
+                tick={{ fill: '#6366f1', fontSize: 11 }}
                 axisLine={{ stroke: '#818cf8' }}
-                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                tickFormatter={(value) => new Intl.NumberFormat('ko-KR').format(value)}
+                domain={[15000000, 'dataMax']}
                 label={{ value: '누적 자산', angle: 90, position: 'insideRight', style: { fill: '#6366f1' } }}
               />
               <Tooltip
