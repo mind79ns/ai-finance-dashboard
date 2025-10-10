@@ -605,7 +605,7 @@ const AssetStatus = () => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold">종합 현황</h3>
               <span className="text-lg font-bold">
-                {((calculateMonthlyData[selectedMonthView]?.accumulated || 0) / 1000000).toFixed(1)}M
+                {((calculateMonthlyData[selectedMonthView]?.netChange || 0) / 1000000).toFixed(1)}M
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -618,7 +618,7 @@ const AssetStatus = () => {
                   <div
                     className="absolute bottom-0 w-full bg-gradient-to-t from-blue-500 to-blue-400 transition-all duration-500 flex items-end justify-center pb-1"
                     style={{
-                      height: `${Math.min((calculateMonthlyData[selectedMonthView]?.income || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, calculateMonthlyData[selectedMonthView]?.accumulated || 1) * 100, 100)}%`
+                      height: `${Math.min((calculateMonthlyData[selectedMonthView]?.income || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
                     }}
                   >
                     <span className="text-[10px] font-bold text-white">
@@ -637,7 +637,7 @@ const AssetStatus = () => {
                   <div
                     className="absolute bottom-0 w-full bg-gradient-to-t from-red-500 to-red-400 transition-all duration-500 flex items-end justify-center pb-1"
                     style={{
-                      height: `${Math.min((calculateMonthlyData[selectedMonthView]?.expense || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, calculateMonthlyData[selectedMonthView]?.accumulated || 1) * 100, 100)}%`
+                      height: `${Math.min((calculateMonthlyData[selectedMonthView]?.expense || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
                     }}
                   >
                     <span className="text-[10px] font-bold text-white">
@@ -647,20 +647,24 @@ const AssetStatus = () => {
                 </div>
               </div>
 
-              {/* Accumulated Bar */}
+              {/* Net Change Bar (월총합) */}
               <div className="space-y-1">
                 <div className="text-center">
-                  <span className="text-xs text-green-300">누적</span>
+                  <span className="text-xs text-green-300">월총합</span>
                 </div>
                 <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
                   <div
-                    className="absolute bottom-0 w-full bg-gradient-to-t from-green-500 to-green-400 transition-all duration-500 flex items-end justify-center pb-1"
+                    className={`absolute bottom-0 w-full transition-all duration-500 flex items-end justify-center pb-1 ${
+                      (calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0
+                        ? 'bg-gradient-to-t from-green-500 to-green-400'
+                        : 'bg-gradient-to-t from-orange-500 to-orange-400'
+                    }`}
                     style={{
-                      height: `${Math.min((calculateMonthlyData[selectedMonthView]?.accumulated || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, calculateMonthlyData[selectedMonthView]?.accumulated || 1) * 100, 100)}%`
+                      height: `${Math.min(Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
                     }}
                   >
                     <span className="text-[10px] font-bold text-white">
-                      {((calculateMonthlyData[selectedMonthView]?.accumulated || 0) / 1000000).toFixed(1)}M
+                      {((calculateMonthlyData[selectedMonthView]?.netChange || 0) / 1000000).toFixed(1)}M
                     </span>
                   </div>
                 </div>
@@ -957,6 +961,7 @@ const AssetStatus = () => {
                 tick={{ fill: '#6366f1', fontSize: 12 }}
                 axisLine={{ stroke: '#818cf8' }}
                 tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                domain={[15000000, 'auto']}
               />
               <Tooltip
                 contentStyle={{
@@ -1007,7 +1012,7 @@ const AssetStatus = () => {
         {/* Accumulated Asset Trend Chart */}
         <div className="card bg-gradient-to-br from-indigo-50 to-purple-50">
           <h3 className="text-xl font-bold text-gray-900 mb-2">누적 자산 추이</h3>
-          <p className="text-sm text-gray-600 mb-6">월별 순변동을 반영한 누적 자산 가치</p>
+          <p className="text-sm text-gray-600 mb-6">월별 순변동과 누적 자산 가치를 별도 축으로 표시</p>
           <ResponsiveContainer width="100%" height={350}>
             <ComposedChart data={chartData}>
               <defs>
@@ -1024,10 +1029,21 @@ const AssetStatus = () => {
                 axisLine={{ stroke: '#c7d2fe' }}
               />
               <YAxis
+                yAxisId="left"
                 stroke="#6b7280"
                 tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={{ stroke: '#c7d2fe' }}
                 tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                label={{ value: '월 순변동', angle: -90, position: 'insideLeft', style: { fill: '#6b7280' } }}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                stroke="#6366f1"
+                tick={{ fill: '#6366f1', fontSize: 12 }}
+                axisLine={{ stroke: '#818cf8' }}
+                tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                label={{ value: '누적 자산', angle: 90, position: 'insideRight', style: { fill: '#6366f1' } }}
               />
               <Tooltip
                 contentStyle={{
@@ -1044,12 +1060,14 @@ const AssetStatus = () => {
                 iconType="circle"
               />
               <Bar
+                yAxisId="left"
                 dataKey="netChange"
                 fill={(entry) => entry.netChange >= 0 ? '#10b981' : '#ef4444'}
                 name="월 순변동 (수입-지출)"
                 radius={[8, 8, 0, 0]}
               />
               <Line
+                yAxisId="right"
                 type="monotone"
                 dataKey="accumulated"
                 stroke="#6366f1"
