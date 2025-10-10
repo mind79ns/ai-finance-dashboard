@@ -3,6 +3,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  Cell,
   Pie,
   PieChart,
   ResponsiveContainer,
