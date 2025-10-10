@@ -952,7 +952,7 @@ const AssetStatus = () => {
                 stroke="#6b7280"
                 tick={{ fill: '#6b7280', fontSize: 11 }}
                 axisLine={{ stroke: '#d1d5db' }}
-                tickFormatter={(value) => new Intl.NumberFormat('ko-KR').format(value)}
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
               />
               <YAxis
                 yAxisId="right"
@@ -960,8 +960,8 @@ const AssetStatus = () => {
                 stroke="#6366f1"
                 tick={{ fill: '#6366f1', fontSize: 11 }}
                 axisLine={{ stroke: '#818cf8' }}
-                tickFormatter={(value) => new Intl.NumberFormat('ko-KR').format(value)}
-                domain={[15000000, 'dataMax']}
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                domain={[2000000, 'dataMax']}
               />
               <Tooltip
                 contentStyle={{
@@ -1033,7 +1033,7 @@ const AssetStatus = () => {
                 stroke="#6b7280"
                 tick={{ fill: '#6b7280', fontSize: 11 }}
                 axisLine={{ stroke: '#c7d2fe' }}
-                tickFormatter={(value) => new Intl.NumberFormat('ko-KR').format(value)}
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
                 label={{ value: '월 순변동', angle: -90, position: 'insideLeft', style: { fill: '#6b7280' } }}
               />
               <YAxis
@@ -1042,8 +1042,8 @@ const AssetStatus = () => {
                 stroke="#6366f1"
                 tick={{ fill: '#6366f1', fontSize: 11 }}
                 axisLine={{ stroke: '#818cf8' }}
-                tickFormatter={(value) => new Intl.NumberFormat('ko-KR').format(value)}
-                domain={[15000000, 'dataMax']}
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                domain={[2000000, 'dataMax']}
                 label={{ value: '누적 자산', angle: 90, position: 'insideRight', style: { fill: '#6366f1' } }}
               />
               <Tooltip
