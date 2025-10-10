@@ -32,6 +32,11 @@ const Portfolio = () => {
   const [selectedAssets, setSelectedAssets] = useState([]) // For bulk delete
   const [selectionMode, setSelectionMode] = useState(false) // Toggle selection mode
 
+  // Investment Management Table state
+  const [investmentRecords, setInvestmentRecords] = useState([])
+  const [showInvestmentModal, setShowInvestmentModal] = useState(false)
+  const [editingRecord, setEditingRecord] = useState(null)
+
   // Load assets from localStorage on mount
   useEffect(() => {
     const savedAssets = localStorage.getItem('portfolio_assets')
@@ -42,7 +47,24 @@ const Portfolio = () => {
         console.error('Failed to load assets from localStorage:', error)
       }
     }
+
+    // Load investment records
+    const savedRecords = localStorage.getItem('investment_records')
+    if (savedRecords) {
+      try {
+        setInvestmentRecords(JSON.parse(savedRecords))
+      } catch (error) {
+        console.error('Failed to load investment records:', error)
+      }
+    }
   }, [])
+
+  // Save investment records to localStorage
+  useEffect(() => {
+    if (investmentRecords.length >= 0) {
+      localStorage.setItem('investment_records', JSON.stringify(investmentRecords))
+    }
+  }, [investmentRecords])
 
   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
   useEffect(() => {
@@ -678,6 +700,186 @@ const Portfolio = () => {
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Investment Management Table */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">투자 관리표</h3>
+            <p className="text-sm text-gray-600 mt-1">계좌별 투자 현황 종합 관리</p>
+          </div>
+          <button
+            onClick={() => {
+              setEditingRecord(null)
+              setShowInvestmentModal(true)
+            }}
+            className="btn-primary flex items-center gap-2"
+          >
+            <PlusCircle className="w-5 h-5" />
+            항목 추가
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-blue-100 border-b border-blue-200">
+                <th className="text-center py-3 px-4 font-bold text-blue-900">No.</th>
+                <th className="text-left py-3 px-4 font-bold text-blue-900">목표</th>
+                <th className="text-left py-3 px-4 font-bold text-blue-900">계좌번호</th>
+                <th className="text-right py-3 px-4 font-bold text-blue-900">원금</th>
+                <th className="text-right py-3 px-4 font-bold text-blue-900">잔여금</th>
+                <th className="text-right py-3 px-4 font-bold text-blue-900 bg-blue-200">투자금</th>
+                <th className="text-right py-3 px-4 font-bold text-blue-900 bg-blue-200">평가금액(원)</th>
+                <th className="text-right py-3 px-4 font-bold text-blue-900 bg-blue-200">손익</th>
+                <th className="text-left py-3 px-4 font-bold text-blue-900">비고</th>
+                <th className="text-center py-3 px-4 font-bold text-blue-900">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {investmentRecords.map((record, index) => {
+                // Calculate investment amount: 원금 - 잔여금
+                const investmentAmount = (record.principal || 0) - (record.remaining || 0)
+
+                // Calculate evaluation amount from portfolio assets matching this account
+                const accountAssets = assets.filter(asset => asset.account === record.accountNumber)
+                const evaluationKRW = accountAssets.reduce((sum, asset) => {
+                  if (asset.currency === 'KRW') {
+                    return sum + asset.totalValue
+                  } else if (asset.currency === 'USD') {
+                    return sum + (asset.totalValue * exchangeRate)
+                  }
+                  return sum
+                }, 0)
+
+                // Calculate profit: 평가금액 - 투자금
+                const profit = evaluationKRW - investmentAmount
+
+                return (
+                  <tr key={record.id || index} className="border-b border-gray-200 hover:bg-gray-50">
+                    <td className="text-center py-3 px-4 text-gray-900">{index + 1}</td>
+                    <td className="py-3 px-4 text-gray-900">{record.goal || '-'}</td>
+                    <td className="py-3 px-4 text-gray-900">{record.accountNumber || '-'}</td>
+                    <td className="text-right py-3 px-4 text-gray-900">
+                      {new Intl.NumberFormat('ko-KR').format(record.principal || 0)}
+                    </td>
+                    <td className="text-right py-3 px-4 text-gray-900">
+                      {new Intl.NumberFormat('ko-KR').format(record.remaining || 0)}
+                    </td>
+                    <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
+                      {new Intl.NumberFormat('ko-KR').format(investmentAmount)}
+                    </td>
+                    <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
+                      {new Intl.NumberFormat('ko-KR').format(Math.round(evaluationKRW))}
+                    </td>
+                    <td className={`text-right py-3 px-4 font-bold bg-blue-50 ${profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {profit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR').format(Math.round(profit))}
+                    </td>
+                    <td className="py-3 px-4 text-gray-700 text-xs">{record.note || '-'}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingRecord(record)
+                            setShowInvestmentModal(true)
+                          }}
+                          className="p-1 hover:bg-blue-50 rounded transition-colors"
+                          title="수정"
+                        >
+                          <Edit2 className="w-4 h-4 text-primary-600" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm('이 항목을 삭제하시겠습니까?')) {
+                              setInvestmentRecords(prev => prev.filter(r => r.id !== record.id))
+                            }
+                          }}
+                          className="p-1 hover:bg-red-50 rounded transition-colors"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4 text-danger" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+
+              {/* TOTAL Row */}
+              {investmentRecords.length > 0 && (
+                <tr className="bg-blue-200 border-t-2 border-blue-300 font-bold">
+                  <td colSpan="3" className="text-center py-3 px-4 text-blue-900">TOTAL</td>
+                  <td className="text-right py-3 px-4 text-blue-900">
+                    {new Intl.NumberFormat('ko-KR').format(
+                      investmentRecords.reduce((sum, r) => sum + (r.principal || 0), 0)
+                    )}
+                  </td>
+                  <td className="text-right py-3 px-4 text-blue-900">
+                    {new Intl.NumberFormat('ko-KR').format(
+                      investmentRecords.reduce((sum, r) => sum + (r.remaining || 0), 0)
+                    )}
+                  </td>
+                  <td className="text-right py-3 px-4 text-blue-900">
+                    {new Intl.NumberFormat('ko-KR').format(
+                      investmentRecords.reduce((sum, r) => sum + ((r.principal || 0) - (r.remaining || 0)), 0)
+                    )}
+                  </td>
+                  <td className="text-right py-3 px-4 text-blue-900">
+                    {new Intl.NumberFormat('ko-KR').format(
+                      Math.round(investmentRecords.reduce((sum, r) => {
+                        const accountAssets = assets.filter(asset => asset.account === r.accountNumber)
+                        return sum + accountAssets.reduce((assetSum, asset) => {
+                          if (asset.currency === 'KRW') {
+                            return assetSum + asset.totalValue
+                          } else if (asset.currency === 'USD') {
+                            return assetSum + (asset.totalValue * exchangeRate)
+                          }
+                          return assetSum
+                        }, 0)
+                      }, 0))
+                    )}
+                  </td>
+                  <td className="text-right py-3 px-4 text-blue-900">
+                    {(() => {
+                      const totalInvestment = investmentRecords.reduce((sum, r) => sum + ((r.principal || 0) - (r.remaining || 0)), 0)
+                      const totalEvaluation = investmentRecords.reduce((sum, r) => {
+                        const accountAssets = assets.filter(asset => asset.account === r.accountNumber)
+                        return sum + accountAssets.reduce((assetSum, asset) => {
+                          if (asset.currency === 'KRW') {
+                            return assetSum + asset.totalValue
+                          } else if (asset.currency === 'USD') {
+                            return assetSum + (asset.totalValue * exchangeRate)
+                          }
+                          return assetSum
+                        }, 0)
+                      }, 0)
+                      const totalProfit = totalEvaluation - totalInvestment
+                      return (
+                        <span className={totalProfit >= 0 ? 'text-success' : 'text-danger'}>
+                          {totalProfit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR').format(Math.round(totalProfit))}
+                        </span>
+                      )
+                    })()}
+                  </td>
+                  <td colSpan="2"></td>
+                </tr>
+              )}
+
+              {investmentRecords.length === 0 && (
+                <tr>
+                  <td colSpan="10" className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <FileText className="w-12 h-12 mb-3 text-gray-300" />
+                      <p className="text-lg font-medium">등록된 투자 항목이 없습니다</p>
+                      <p className="text-sm mt-1">우측 상단 '항목 추가' 버튼을 클릭하여 추가하세요</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -1339,6 +1541,30 @@ BTC,Bitcoin,코인,0.1,67234,USD`}
         </div>
       )}
 
+      {/* Investment Record Modal */}
+      {showInvestmentModal && (
+        <InvestmentRecordModal
+          record={editingRecord}
+          onSave={(recordData) => {
+            if (editingRecord) {
+              // Update existing record
+              setInvestmentRecords(prev =>
+                prev.map(r => r.id === editingRecord.id ? { ...recordData, id: editingRecord.id } : r)
+              )
+            } else {
+              // Add new record
+              setInvestmentRecords(prev => [...prev, { ...recordData, id: Date.now() }])
+            }
+            setShowInvestmentModal(false)
+            setEditingRecord(null)
+          }}
+          onClose={() => {
+            setShowInvestmentModal(false)
+            setEditingRecord(null)
+          }}
+        />
+      )}
+
       {/* Asset Detail Slide Panel */}
       <SlidePanel
         isOpen={showDetailPanel}
@@ -1353,6 +1579,189 @@ BTC,Bitcoin,코인,0.1,67234,USD`}
           />
         )}
       </SlidePanel>
+    </div>
+  )
+}
+
+// Investment Record Modal Component
+const InvestmentRecordModal = ({ record, onSave, onClose }) => {
+  const [formData, setFormData] = useState({
+    goal: record?.goal || '',
+    accountNumber: record?.accountNumber || '',
+    principal: record?.principal || '',
+    remaining: record?.remaining || '',
+    note: record?.note || ''
+  })
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onSave({
+      goal: formData.goal,
+      accountNumber: formData.accountNumber,
+      principal: parseFloat(formData.principal) || 0,
+      remaining: parseFloat(formData.remaining) || 0,
+      note: formData.note
+    })
+  }
+
+  // Calculate auto values for preview
+  const investmentAmount = (parseFloat(formData.principal) || 0) - (parseFloat(formData.remaining) || 0)
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">
+                {record ? '투자 항목 수정' : '투자 항목 추가'}
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">투자 목표 및 계좌 정보를 입력하세요</p>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Goal */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              목표 / 상품명 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="goal"
+              value={formData.goal}
+              onChange={handleChange}
+              required
+              placeholder="예: 은퇴 자금, S&P500 ETF 장기투자"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Account Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              계좌번호 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="accountNumber"
+              value={formData.accountNumber}
+              onChange={handleChange}
+              required
+              placeholder="예: 기본계좌, 해외계좌, ISA계좌"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              💡 포트폴리오의 계좌명과 일치해야 평가금액이 자동 연동됩니다
+            </p>
+          </div>
+
+          {/* Principal and Remaining */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                원금 (원) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="principal"
+                value={formData.principal}
+                onChange={handleChange}
+                required
+                step="1"
+                min="0"
+                placeholder="10000000"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">수동 입력</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                잔여금 (원) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="remaining"
+                value={formData.remaining}
+                onChange={handleChange}
+                required
+                step="1"
+                min="0"
+                placeholder="2000000"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">수동 입력</p>
+            </div>
+          </div>
+
+          {/* Auto-calculated Investment Amount Preview */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900">투자금 (자동 계산)</span>
+              <span className="text-lg font-bold text-blue-900">
+                {new Intl.NumberFormat('ko-KR').format(investmentAmount)}원
+              </span>
+            </div>
+            <p className="text-xs text-blue-700 mt-1">= 원금 - 잔여금</p>
+          </div>
+
+          {/* Note */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              비고
+            </label>
+            <textarea
+              name="note"
+              value={formData.note}
+              onChange={handleChange}
+              rows="3"
+              placeholder="메모나 특이사항을 입력하세요"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">수동 입력 (선택사항)</p>
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm text-amber-900 font-medium mb-2">📊 자동 계산 항목 안내</p>
+            <ul className="text-xs text-amber-800 space-y-1">
+              <li>• <strong>투자금</strong>: 원금 - 잔여금</li>
+              <li>• <strong>평가금액</strong>: 포트폴리오에서 해당 계좌의 자산 평가액 합계 (원화 환산)</li>
+              <li>• <strong>손익</strong>: 평가금액 - 투자금</li>
+            </ul>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              className="flex-1 btn-primary"
+            >
+              {record ? '수정 완료' : '추가'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
