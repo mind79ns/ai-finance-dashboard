@@ -18,6 +18,8 @@ import {
   Target,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowUp,
+  ArrowDown,
   RefreshCw,
   Building2,
   Info
@@ -52,6 +54,7 @@ const Dashboard = () => {
     linkedGoals: 0
   })
   const [recentTransactions, setRecentTransactions] = useState([])
+  const [assetPerformance, setAssetPerformance] = useState([])
 
   useEffect(() => {
     loadDashboardData()
@@ -80,7 +83,8 @@ const Dashboard = () => {
       const {
         totals,
         allocation,
-        assetsMap
+        assetsMap,
+        performance
       } = buildPortfolioSummary(assetsRaw, usdToKrw)
 
       setPortfolioSummary({
@@ -91,6 +95,7 @@ const Dashboard = () => {
       })
 
       setAllocationData(allocation)
+      setAssetPerformance(performance)
 
       const history = buildPortfolioHistory(logsRaw, usdToKrw, assetsMap, totals.totalValueKRW)
       setPortfolioHistory(history)
@@ -184,7 +189,7 @@ const Dashboard = () => {
         <MarketStrip data={marketHighlights} />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
           title="포트폴리오 밸류曲선"
           subtitle="최근 6개월 누적 평가액 (₩ 기준)"
@@ -283,38 +288,51 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <ChartCard title="최근 거래내역" subtitle="최신 5건의 투자 기록">
-        {recentTransactions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">날짜</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">유형</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">자산</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">수량</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">거래금액</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTransactions.map(tx => (
-                  <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 text-sm text-gray-700">{tx.date}</td>
-                    <td className="py-3 px-4 text-sm font-medium">
-                      <TypeBadge type={tx.type} />
-                    </td>
-                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{tx.asset}</td>
-                    <td className="py-3 px-4 text-sm text-gray-700">{tx.quantity}</td>
-                    <td className="py-3 px-4 text-sm text-gray-700">{tx.amount}</td>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="최근 거래내역" subtitle="최신 5건의 투자 기록">
+          {recentTransactions.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">날짜</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">유형</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">자산</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">수량</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">거래금액</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState message="최근 거래 내역이 없습니다. 투자일지에서 거래를 기록하면 이곳에 표시됩니다." />
-        )}
-      </ChartCard>
+                </thead>
+                <tbody>
+                  {recentTransactions.map(tx => (
+                    <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 text-sm text-gray-700">{tx.date}</td>
+                      <td className="py-3 px-4 text-sm font-medium">
+                        <TypeBadge type={tx.type} />
+                      </td>
+                      <td className="py-3 px-4 text-sm font-medium text-gray-900">{tx.asset}</td>
+                      <td className="py-3 px-4 text-sm text-gray-700">{tx.quantity}</td>
+                      <td className="py-3 px-4 text-sm text-gray-700">{tx.amount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState message="최근 거래 내역이 없습니다. 투자일지에서 거래를 기록하면 이곳에 표시됩니다." />
+          )}
+        </ChartCard>
+
+        <ChartCard
+          title="종목별 손익 요약"
+          subtitle="평가손익 (원화 기준)"
+        >
+          {assetPerformance.length > 0 ? (
+            <AssetPerformanceTable data={assetPerformance} />
+          ) : (
+            <EmptyState message="포트폴리오 자산이 없어 손익 요약을 표시할 수 없습니다." />
+          )}
+        </ChartCard>
+      </div>
     </div>
   )
 }
@@ -449,6 +467,55 @@ const SummaryKPI = ({ label, value, sub, positive, icon: Icon }) => (
   </div>
 )
 
+const AssetPerformanceTable = ({ data }) => {
+  const displayData = data.slice(0, 12)
+
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">종목</th>
+            <th className="text-right px-4 py-2 text-xs font-semibold text-gray-600">평가손익</th>
+          </tr>
+        </thead>
+        <tbody>
+          {displayData.map(row => {
+            const positive = row.profitKRW >= 0
+            const Icon = positive ? ArrowUp : ArrowDown
+            return (
+              <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-2">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-900">{row.name}</span>
+                    <span className="text-xs text-gray-500">{row.symbol} · {row.type}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <div className={`inline-flex items-center gap-1 text-sm font-semibold ${
+                    positive ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{formatCurrency(row.profitKRW, 'KRW')}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {row.profitPercent >= 0 ? '+' : ''}{row.profitPercent.toFixed(2)}% · 평가액 {formatCurrency(row.totalValueKRW, 'KRW')}
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {data.length > displayData.length && (
+        <p className="text-xs text-gray-500 px-4 py-2 bg-gray-50 text-right">
+          외 {data.length - displayData.length}개 종목
+        </p>
+      )}
+    </div>
+  )
+}
+
 const TypeBadge = ({ type }) => {
   const isBuy = type === 'buy' || type === '매수'
   return (
@@ -495,6 +562,8 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
   const allocationMap = {}
   const assetsMap = {}
 
+  const performance = []
+
   assets.forEach(asset => {
     const quantity = Number(asset.quantity || 0)
     const currentPrice = Number(asset.currentPrice || asset.avgPrice || 0)
@@ -508,6 +577,7 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     const valueKRW = currency === 'USD' ? totalValue * usdToKrw : totalValue
     const profitKRW = currency === 'USD' ? totalProfit * usdToKrw : totalProfit
     const valueUSD = currency === 'KRW' ? (usdToKrw ? totalValue / usdToKrw : totalValue) : totalValue
+    const profitPercent = avgPrice > 0 ? ((currentPrice - avgPrice) / avgPrice) * 100 : 0
 
     totalValueKRW += valueKRW
     totalProfitKRW += profitKRW
@@ -521,8 +591,21 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     assetsMap[asset.symbol] = {
       ...asset,
       valueKRW,
-      currency
+      currency,
+      profitKRW,
+      profitPercent
     }
+
+    performance.push({
+      id: asset.id || asset.symbol,
+      symbol: asset.symbol,
+      name: asset.name || asset.symbol,
+      type,
+      currency,
+      profitKRW,
+      profitPercent: Number(profitPercent.toFixed(2)),
+      totalValueKRW: valueKRW
+    })
   })
 
   const profitPercent = totalValueKRW - totalProfitKRW !== 0
@@ -545,7 +628,9 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
       profitPercent
     },
     allocation,
-    assetsMap
+    assetsMap,
+    performance: performance
+      .sort((a, b) => b.profitKRW - a.profitKRW)
   }
 }
 
@@ -660,7 +745,8 @@ const buildRecentTransactions = (logs, assetsMap, usdToKrw) => {
     .map(log => {
       const asset = assetsMap[log.asset]
       const currency = asset?.currency || log.currency || 'USD'
-      const amountKRW = currency === 'USD' ? log.total * usdToKrw : log.total
+      const total = Number(log.total || 0)
+      const amountKRW = currency === 'USD' ? total * usdToKrw : total
       return {
         id: log.id || `${log.asset}-${log.date}`,
         date: log.date ? format(new Date(log.date), 'yyyy-MM-dd') : '-',
