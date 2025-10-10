@@ -18,7 +18,8 @@
       "Read(//c/Users/Mr Kim/Desktop/**)",
       "Bash(npm install:*)",
       "Bash(iconv:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

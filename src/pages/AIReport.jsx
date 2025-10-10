@@ -4,6 +4,13 @@ import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
 import AIStrategyBadge from '../components/AIStrategyBadge'
 
+const formatNumber = (value, digits = 2) => {
+  if (value === null || value === undefined) return 'N/A'
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return 'N/A'
+  return numeric.toFixed(digits)
+}
+
 const AIReport = () => {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('market')
@@ -32,37 +39,146 @@ const AIReport = () => {
       const savedAssets = localStorage.getItem('portfolio_assets')
       if (savedAssets) {
         const assets = JSON.parse(savedAssets)
-        const totalValue = assets.reduce((sum, a) => sum + a.totalValue, 0)
-        const totalProfit = assets.reduce((sum, a) => sum + a.profit, 0)
+        const usdKrwRate = market?.currency?.usdKrw?.rate
+        const usdToKrw = Number.isFinite(Number(usdKrwRate)) ? Number(usdKrwRate) : null
+        const krwToUsd = usdToKrw ? 1 / usdToKrw : null
 
-        // Calculate allocation
-        const typeGroups = assets.reduce((groups, asset) => {
+        const totalsByCurrency = {}
+        const assetDetails = assets.map(asset => {
+          const currency = asset.currency || 'USD'
+          const totalValue = Number(asset.totalValue || 0)
+          const totalProfit = Number(asset.profit || 0)
+
+          if (!totalsByCurrency[currency]) {
+            totalsByCurrency[currency] = {
+              totalValue: 0,
+              totalProfit: 0
+            }
+          }
+          totalsByCurrency[currency].totalValue += totalValue
+          totalsByCurrency[currency].totalProfit += totalProfit
+
+          const valueKRW = currency === 'USD' && usdToKrw
+            ? totalValue * usdToKrw
+            : totalValue
+          const profitKRW = currency === 'USD' && usdToKrw
+            ? totalProfit * usdToKrw
+            : totalProfit
+          const valueUSD = currency === 'KRW' && krwToUsd
+            ? totalValue * krwToUsd
+            : totalValue
+          const profitUSD = currency === 'KRW' && krwToUsd
+            ? totalProfit * krwToUsd
+            : totalProfit
+
+          return {
+            symbol: asset.symbol,
+            name: asset.name,
+            type: asset.type,
+            currency,
+            quantity: asset.quantity,
+            avgPrice: asset.avgPrice,
+            currentPrice: asset.currentPrice,
+            profitPercent: asset.profitPercent,
+            account: asset.account,
+            category: asset.category,
+            valueOriginal: totalValue,
+            profitOriginal: totalProfit,
+            valueKRW,
+            profitKRW,
+            valueUSD,
+            profitUSD
+          }
+        })
+
+        let totalValueKRW = 0
+        let totalProfitKRW = 0
+        let totalValueUSD = 0
+        let totalProfitUSD = 0
+
+        Object.entries(totalsByCurrency).forEach(([currency, totals]) => {
+          if (currency === 'USD') {
+            totalValueUSD += totals.totalValue
+            totalProfitUSD += totals.totalProfit
+            const convertedValue = usdToKrw ? totals.totalValue * usdToKrw : totals.totalValue
+            const convertedProfit = usdToKrw ? totals.totalProfit * usdToKrw : totals.totalProfit
+            totalValueKRW += convertedValue
+            totalProfitKRW += convertedProfit
+          } else if (currency === 'KRW') {
+            totalValueKRW += totals.totalValue
+            totalProfitKRW += totals.totalProfit
+            const convertedValue = krwToUsd ? totals.totalValue * krwToUsd : totals.totalValue
+            const convertedProfit = krwToUsd ? totals.totalProfit * krwToUsd : totals.totalProfit
+            totalValueUSD += convertedValue
+            totalProfitUSD += convertedProfit
+          } else {
+            // 다른 통화는 일단 원화/달러 동일 금액으로 취급 (추가 환율 연동 필요)
+            totalValueKRW += totals.totalValue
+            totalProfitKRW += totals.totalProfit
+            totalValueUSD += totals.totalValue
+            totalProfitUSD += totals.totalProfit
+          }
+        })
+
+        const costBasisKRW = totalValueKRW - totalProfitKRW
+        const profitPercent = costBasisKRW > 0 ? (totalProfitKRW / costBasisKRW) * 100 : 0
+
+        const currencyBreakdown = Object.entries(totalsByCurrency).map(([currency, totals]) => {
+          const toKRW = currency === 'USD' && usdToKrw
+            ? totals.totalValue * usdToKrw
+            : totals.totalValue
+          const profitToKRW = currency === 'USD' && usdToKrw
+            ? totals.totalProfit * usdToKrw
+            : totals.totalProfit
+          const toUSD = currency === 'KRW' && krwToUsd
+            ? totals.totalValue * krwToUsd
+            : totals.totalValue
+          const profitToUSD = currency === 'KRW' && krwToUsd
+            ? totals.totalProfit * krwToUsd
+            : totals.totalProfit
+          const costBasis = totals.totalValue - totals.totalProfit
+
+          return {
+            currency,
+            totalValue: totals.totalValue,
+            totalProfit: totals.totalProfit,
+            totalValueKRW: toKRW,
+            totalProfitKRW: profitToKRW,
+            totalValueUSD: toUSD,
+            totalProfitUSD: profitToUSD,
+            profitPercent: costBasis > 0 ? (totals.totalProfit / costBasis) * 100 : 0
+          }
+        })
+
+        // Calculate allocation using 원화 기준
+        const totalValueForAllocation = assetDetails.reduce((sum, asset) => sum + (asset.valueKRW || 0), 0)
+        const allocation = assetDetails.reduce((groups, asset) => {
           const type = asset.type
           if (!groups[type]) groups[type] = 0
-          groups[type] += asset.totalValue
+          groups[type] += totalValueForAllocation > 0 ? (asset.valueKRW || 0) / totalValueForAllocation * 100 : 0
           return groups
         }, {})
 
-        const allocation = {}
-        Object.keys(typeGroups).forEach(type => {
-          allocation[type] = ((typeGroups[type] / totalValue) * 100).toFixed(1)
-        })
-
         setPortfolioData({
-          totalValue,
-          totalProfit,
-          profitPercent: totalValue > 0 ? ((totalProfit / (totalValue - totalProfit)) * 100) : 0,
-          assets: assets.map(a => ({
-            symbol: a.symbol,
-            name: a.name,
-            type: a.type,
-            value: a.totalValue,
-            quantity: a.quantity,
-            avgPrice: a.avgPrice,
-            currentPrice: a.currentPrice,
-            profit: a.profit,
-            profitPercent: a.profitPercent
-          })),
+          baseCurrency: 'KRW',
+          exchangeRate: {
+            usdKrw: usdToKrw,
+            krwUsd: krwToUsd,
+            lastUpdated: market?.lastUpdated || new Date().toISOString()
+          },
+          totals: {
+            byCurrency: currencyBreakdown,
+            totalValueKRW,
+            totalProfitKRW,
+            totalValueUSD,
+            totalProfitUSD
+          },
+          totalValue: totalValueKRW,
+          totalProfit: totalProfitKRW,
+          totalValueUSD,
+          totalProfitUSD,
+          profitPercent,
+          assets: assetDetails,
           allocation
         })
       }
@@ -115,19 +231,39 @@ ${JSON.stringify(marketData, null, 2)}
 
     setLoading(true)
     try {
-      const prompt = `다음 포트폴리오를 전문적으로 분석하고 상세한 개선 제안을 해주세요:
+      const currencySummary = (portfolioData.totals.byCurrency || [])
+        .map(item => `- ${item.currency}: 평가액 ${formatNumber(item.totalValue, 2)} (${formatNumber(item.totalValueKRW, 0)} KRW), 수익 ${formatNumber(item.totalProfit, 2)} (${formatNumber(item.totalProfitKRW, 0)} KRW), 수익률 ${formatNumber(item.profitPercent, 2)}%`)
+        .join('\n')
 
-${JSON.stringify(portfolioData, null, 2)}
+      const assetSummary = portfolioData.assets
+        .map(asset => `- ${asset.symbol} (${asset.type}, ${asset.currency}) | 수량 ${asset.quantity} | 평가액 ${formatNumber(asset.valueOriginal, 2)} ${asset.currency} / ${formatNumber(asset.valueKRW, 0)} KRW | 수익률 ${formatNumber(asset.profitPercent, 2)}%`)
+        .join('\n')
 
-다음 항목을 포함해주세요:
+      const prompt = `다음 포트폴리오를 ${portfolioData.baseCurrency} 기준으로 깊이 있게 분석하고 개선안을 제시해주세요.
+
+총 평가액: ${formatNumber(portfolioData.totals.totalValueKRW, 0)} KRW (${formatNumber(portfolioData.totals.totalValueUSD, 2)} USD)
+총 수익금: ${formatNumber(portfolioData.totals.totalProfitKRW, 0)} KRW (${formatNumber(portfolioData.totals.totalProfitUSD, 2)} USD)
+평균 수익률: ${formatNumber(portfolioData.profitPercent, 2)}%
+
+환율 정보:
+- USD/KRW: ${portfolioData.exchangeRate.usdKrw ? formatNumber(portfolioData.exchangeRate.usdKrw, 4) : 'N/A'}
+- 기준 통화: ${portfolioData.baseCurrency}
+
+통화별 요약:
+${currencySummary || '- 데이터 없음'}
+
+자산 목록:
+${assetSummary || '- 데이터 없음'}
+
+분석 항목:
 1. 자산 배분 분석 (Diversification)
-2. 리스크 평가 (Risk Assessment)
+2. 통화별 리스크 및 환율 영향 평가
 3. 수익성 분석 (Performance Analysis)
-4. 세부 개선 제안사항 (Actionable Recommendations)
+4. 세부 개선 제안 (Actionable Recommendations)
 5. 리밸런싱 전략
 6. 목표 달성 가능성 평가
 
-구체적이고 실행 가능한 조언을 제공하세요.`
+통화 단위를 명확히 구분해 설명하고, 필요 시 USD와 KRW 기준을 모두 제시해주세요.`
 
       const analysis = await aiService.routeAIRequest(
         prompt,
@@ -152,22 +288,30 @@ ${JSON.stringify(portfolioData, null, 2)}
     setLoading(true)
     try {
       // Calculate risk metrics
-      const profitPercentages = portfolioData.assets.map(a => a.profitPercent)
-      const avgReturn = profitPercentages.reduce((sum, p) => sum + p, 0) / profitPercentages.length
+      const profitPercentages = portfolioData.assets
+        .map(a => a.profitPercent)
+        .filter(p => Number.isFinite(p))
+      const avgReturn = profitPercentages.length > 0
+        ? profitPercentages.reduce((sum, p) => sum + p, 0) / profitPercentages.length
+        : 0
 
       // Standard deviation (volatility)
-      const variance = profitPercentages.reduce((sum, p) => sum + Math.pow(p - avgReturn, 2), 0) / profitPercentages.length
+      const variance = profitPercentages.length > 0
+        ? profitPercentages.reduce((sum, p) => sum + Math.pow(p - avgReturn, 2), 0) / profitPercentages.length
+        : 0
       const volatility = Math.sqrt(variance)
 
       // Sharpe ratio (simplified, assuming 0% risk-free rate)
-      const sharpeRatio = avgReturn / volatility
+      const sharpeRatio = volatility > 0 ? avgReturn / volatility : 0
 
       // Concentration risk (Herfindahl index)
       const totalValue = portfolioData.totalValue
-      const concentrationIndex = portfolioData.assets.reduce((sum, a) => {
-        const weight = a.value / totalValue
-        return sum + (weight * weight)
-      }, 0)
+      const concentrationIndex = totalValue > 0
+        ? portfolioData.assets.reduce((sum, a) => {
+            const weight = (a.valueKRW || 0) / totalValue
+            return sum + (weight * weight)
+          }, 0)
+        : 0
 
       setRiskAnalysis({
         avgReturn: avgReturn.toFixed(2),
@@ -192,22 +336,35 @@ ${JSON.stringify(portfolioData, null, 2)}
 
     setLoading(true)
     try {
-      const prompt = `다음 포트폴리오의 리밸런싱 전략을 제안해주세요:
+      const allocationSummary = Object.entries(portfolioData.allocation || {})
+        .map(([type, percent]) => `- ${type}: ${formatNumber(percent, 2)}%`)
+        .join('\n') || '- 데이터 없음'
+
+      const assetLines = portfolioData.assets
+        .map(a => `- ${a.symbol} (${a.type}, ${a.currency}) | 평가액 ${formatNumber(a.valueKRW, 0)} KRW (${formatNumber(a.valueUSD, 2)} USD) | 수익률 ${formatNumber(a.profitPercent, 2)}%`)
+        .join('\n') || '- 데이터 없음'
+
+      const prompt = `다음 포트폴리오의 리밸런싱 전략을 제안해주세요.
+
+총 평가액: ${formatNumber(portfolioData.totals.totalValueKRW, 0)} KRW (${formatNumber(portfolioData.totals.totalValueUSD, 2)} USD)
+총 수익금: ${formatNumber(portfolioData.totals.totalProfitKRW, 0)} KRW (${formatNumber(portfolioData.totals.totalProfitUSD, 2)} USD)
+평균 수익률: ${formatNumber(portfolioData.profitPercent, 2)}%
+
+현재 환율: USD/KRW = ${portfolioData.exchangeRate.usdKrw ? formatNumber(portfolioData.exchangeRate.usdKrw, 4) : 'N/A'}
 
 현재 자산 배분:
-${JSON.stringify(portfolioData.allocation, null, 2)}
+${allocationSummary}
 
-자산 목록:
-${portfolioData.assets.map(a => `- ${a.symbol} (${a.type}): $${a.value.toFixed(2)} (${a.profitPercent.toFixed(2)}%)`).join('\n')}
+자산 목록(원화/달러 기준 병기):
+${assetLines}
 
-총 평가액: $${portfolioData.totalValue.toFixed(2)}
-총 수익률: ${portfolioData.profitPercent.toFixed(2)}%
+분석 지침:
+1. 현재 배분과 통화별 비중을 평가하고, 리스크 요인을 짚어주세요.
+2. 목표 위험 수준과 환율 변동 가능성을 고려한 최적 배분 비율을 제안해주세요.
+3. 매수/매도 또는 환헤지 등 실행 가능한 리밸런싱 조치를 구체적으로 제안해주세요.
+4. 리밸런싱 주기, 모니터링 포인트, 체크리스트를 알려주세요.
 
-다음 항목을 포함해주세요:
-1. 현재 포트폴리오 배분 평가
-2. 최적 배분 비율 제안 (위험도 고려)
-3. 구체적인 매수/매도 제안
-4. 리밸런싱 시기 및 방법`
+원화와 달러 금액을 명확히 구분하여 설명해주세요.`
 
       const suggestion = await aiService.routeAIRequest(
         prompt,
