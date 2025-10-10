@@ -730,11 +730,27 @@ const Portfolio = () => {
                 // Get principal/remaining data for this account
                 const principalData = accountPrincipals[account.account] || { principal: 0, remaining: 0, note: '' }
 
-                // Calculate investment amount: 원금 - 잔여금
-                const investmentAmount = principalData.principal - principalData.remaining
+                // Calculate investment amount: 보유량 * 평균단가 (actual invested amount)
+                const investmentAmount = account.assets.reduce((sum, asset) => {
+                  const investedValue = asset.quantity * asset.avgPrice
+                  if (asset.currency === 'KRW') {
+                    return sum + investedValue
+                  } else if (asset.currency === 'USD') {
+                    return sum + (investedValue * exchangeRate)
+                  }
+                  return sum
+                }, 0)
 
-                // Calculate evaluation amount in KRW (from portfolio assets)
-                const evaluationKRW = account.krwTotalValue + (account.usdTotalValue * exchangeRate)
+                // Calculate evaluation amount: 보유량 * 현재가 (current market value)
+                const evaluationKRW = account.assets.reduce((sum, asset) => {
+                  const currentValue = asset.quantity * asset.currentPrice
+                  if (asset.currency === 'KRW') {
+                    return sum + currentValue
+                  } else if (asset.currency === 'USD') {
+                    return sum + (currentValue * exchangeRate)
+                  }
+                  return sum
+                }, 0)
 
                 // Calculate profit: 평가금액 - 투자금
                 const profit = evaluationKRW - investmentAmount
@@ -804,10 +820,18 @@ const Portfolio = () => {
                   </td>
                   <td className="text-right py-3 px-4 text-blue-900">
                     {new Intl.NumberFormat('ko-KR').format(
-                      accountSummary.reduce((sum, acc) => {
-                        const data = accountPrincipals[acc.account] || { principal: 0, remaining: 0 }
-                        return sum + (data.principal - data.remaining)
-                      }, 0)
+                      Math.round(accountSummary.reduce((sum, acc) => {
+                        // Calculate total investment: 보유량 * 평균단가
+                        return sum + acc.assets.reduce((assetSum, asset) => {
+                          const investedValue = asset.quantity * asset.avgPrice
+                          if (asset.currency === 'KRW') {
+                            return assetSum + investedValue
+                          } else if (asset.currency === 'USD') {
+                            return assetSum + (investedValue * exchangeRate)
+                          }
+                          return assetSum
+                        }, 0)
+                      }, 0))
                     )}
                   </td>
                   <td className="text-right py-3 px-4 text-blue-900">
@@ -815,9 +839,17 @@ const Portfolio = () => {
                   </td>
                   <td className="text-right py-3 px-4 text-blue-900">
                     {(() => {
+                      // Total investment from all assets (보유량 * 평균단가)
                       const totalInvestment = accountSummary.reduce((sum, acc) => {
-                        const data = accountPrincipals[acc.account] || { principal: 0, remaining: 0 }
-                        return sum + (data.principal - data.remaining)
+                        return sum + acc.assets.reduce((assetSum, asset) => {
+                          const investedValue = asset.quantity * asset.avgPrice
+                          if (asset.currency === 'KRW') {
+                            return assetSum + investedValue
+                          } else if (asset.currency === 'USD') {
+                            return assetSum + (investedValue * exchangeRate)
+                          }
+                          return assetSum
+                        }, 0)
                       }, 0)
                       const totalProfit = totalValueKRW - totalInvestment
                       return (
@@ -1628,15 +1660,12 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
             </div>
           </div>
 
-          {/* Auto-calculated Investment Amount Preview */}
+          {/* Info about manual input */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-blue-900">💰 투자금 (자동 계산)</span>
-              <span className="text-xl font-bold text-blue-900">
-                {new Intl.NumberFormat('ko-KR').format(investmentAmount)}원
-              </span>
-            </div>
-            <p className="text-xs text-blue-700 mt-1">= 원금 - 예수금</p>
+            <p className="text-sm font-medium text-blue-900 mb-1">📝 원금/예수금은 참고용 입력값입니다</p>
+            <p className="text-xs text-blue-700">
+              실제 투자금과 평가금액은 포트폴리오의 보유 자산 데이터에서 자동 계산됩니다
+            </p>
           </div>
 
           {/* Note */}
@@ -1658,9 +1687,10 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
             <p className="text-sm text-amber-900 font-medium mb-2">📊 자동 계산 항목 안내</p>
             <ul className="text-xs text-amber-800 space-y-1">
-              <li>• <strong>투자금</strong>: 원금 - 예수금 (잔여금)</li>
-              <li>• <strong>평가금액</strong>: 이 계좌의 모든 자산 평가액 합계 (USD는 원화 환산)</li>
-              <li>• <strong>손익</strong>: 평가금액 - 투자금</li>
+              <li>• <strong>투자금</strong>: 이 계좌 보유 자산의 총 매수금액 (보유량 × 평균단가)</li>
+              <li>• <strong>평가금액</strong>: 이 계좌 보유 자산의 현재 시가총액 (보유량 × 현재가)</li>
+              <li>• <strong>손익</strong>: 평가금액 - 투자금 (실제 수익/손실)</li>
+              <li className="pt-1 border-t border-amber-300 mt-2">💡 USD 자산은 실시간 환율로 원화 환산됩니다</li>
             </ul>
           </div>
 
