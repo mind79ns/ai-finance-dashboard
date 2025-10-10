@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingUp, TrendingDown, RefreshCw, AlertCircle } from 'lucide-react'
+import { TrendingUp, TrendingDown, RefreshCw, AlertCircle, Info } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
 import marketDataService from '../services/marketDataService'
 
@@ -65,17 +65,34 @@ const Market = () => {
     )
   }
 
+  const stockFallback = marketData?.stocks
+    ? Object.values(marketData.stocks).some(item => item?.error || !item?.price)
+    : false
+
+  const cryptoFallback = marketData?.crypto
+    ? Object.values(marketData.crypto).some(item => item?.error || !item?.price)
+    : false
+
+  const currencyFallback = marketData?.currency
+    ? Object.values(marketData.currency).some(item => item?.error)
+    : false
+
+  const lastUpdatedLabel = lastUpdate
+    ? `${lastUpdate.toLocaleDateString('ko-KR')} ${lastUpdate.toLocaleTimeString('ko-KR')}`
+    : '데이터 없음'
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">실시간 시장 데이터</h2>
-          {lastUpdate && (
-            <p className="text-sm text-gray-600 mt-1">
-              마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
-            </p>
-          )}
+          <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
+            <span>마지막 업데이트: {lastUpdatedLabel}</span>
+            <span className="text-xs text-gray-500">
+              Finnhub · CoinGecko · ExchangeRate API
+            </span>
+          </div>
         </div>
         <button
           onClick={handleRefresh}
@@ -146,7 +163,18 @@ const Market = () => {
       {/* Stock Indices */}
       {marketData?.stocks && (activeCategory === 'all' || activeCategory === 'stocks') && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">주요 지수 ETF (실시간)</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">주요 지수 ETF (실시간)</h3>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Info className="w-3 h-3" />
+              <span>데이터 출처: Finnhub (2분 자동 갱신)</span>
+            </div>
+          </div>
+          {stockFallback && (
+            <div className="mb-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-xs text-orange-700">
+              Finnhub API 키가 설정되지 않아 예시 데이터(0 값)를 표시합니다. 실데이터를 원하면 VITE_FINNHUB_API_KEY를 등록하세요.
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <IndexCard
               name="S&P 500"
@@ -175,7 +203,18 @@ const Market = () => {
       {/* Cryptocurrencies */}
       {marketData?.crypto && (activeCategory === 'all' || activeCategory === 'crypto') && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">암호화폐 (실시간)</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">암호화폐 (실시간)</h3>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Info className="w-3 h-3" />
+              <span>데이터 출처: CoinGecko (무료 API, 2분 갱신)</span>
+            </div>
+          </div>
+          {cryptoFallback && (
+            <div className="mb-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-xs text-orange-700">
+              CoinGecko 응답이 없거나 지연되어 임시 데이터를 사용 중입니다.
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <CryptoCard crypto={marketData.crypto.bitcoin} />
             <CryptoCard crypto={marketData.crypto.ethereum} />
@@ -188,27 +227,38 @@ const Market = () => {
       {/* Currency Rates */}
       {marketData?.currency && (activeCategory === 'all' || activeCategory === 'currency') && (
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">환율 (실시간)</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">환율 (실시간)</h3>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Info className="w-3 h-3" />
+              <span>데이터 출처: ExchangeRate API (USD 기준)</span>
+            </div>
+          </div>
+          {currencyFallback && (
+            <div className="mb-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-xs text-orange-700">
+              환율 API 응답이 없어 기본 환율을 표시합니다. 최신 환율 반영을 위해 API 키/네트워크 상태를 확인하세요.
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <CurrencyCard
               pair="USD/KRW"
               name="원화"
-              rate={marketData.currency.usdKrw.rate}
+              data={marketData.currency.usdKrw}
             />
             <CurrencyCard
               pair="USD/EUR"
               name="유로"
-              rate={marketData.currency.usdEur.rate}
+              data={marketData.currency.usdEur}
             />
             <CurrencyCard
               pair="USD/JPY"
               name="엔화"
-              rate={marketData.currency.usdJpy.rate}
+              data={marketData.currency.usdJpy}
             />
             <CurrencyCard
               pair="USD/GBP"
               name="파운드"
-              rate={marketData.currency.usdGbp.rate}
+              data={marketData.currency.usdGbp}
             />
           </div>
         </div>
@@ -242,6 +292,12 @@ const IndexCard = ({ name, subtitle, data }) => {
   const price = data.price || 0
   const change = data.change || 0
   const changePercent = data.changePercent || 0
+  const sparklinePoints = [
+    { label: '전일', value: data.previousClose ?? price - change },
+    { label: '저가', value: data.low ?? price - Math.abs(change) },
+    { label: '고가', value: data.high ?? price + Math.abs(change) },
+    { label: '현재', value: price }
+  ].filter(point => Number.isFinite(point.value))
 
   return (
     <div className="card hover:shadow-md transition-shadow">
@@ -260,6 +316,11 @@ const IndexCard = ({ name, subtitle, data }) => {
           {data.isPositive ? '+' : ''}{change.toFixed(2)} ({data.isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
         </span>
       </div>
+      {sparklinePoints.length >= 2 && (
+        <div className="mt-4">
+          <Sparkline data={sparklinePoints} isPositive={data.isPositive} />
+        </div>
+      )}
     </div>
   )
 }
@@ -270,7 +331,9 @@ const CryptoCard = ({ crypto }) => {
     return (
       <div className="card bg-gray-50">
         <p className="text-sm text-gray-600">{crypto?.name || 'Crypto'}</p>
-        <p className="text-xs text-gray-500">CoinGecko API 로딩 중...</p>
+        <p className="text-xs text-orange-600">
+          {crypto?.error || 'CoinGecko API 응답이 없어 기본 데이터를 표시합니다.'}
+        </p>
       </div>
     )
   }
@@ -284,6 +347,12 @@ const CryptoCard = ({ crypto }) => {
 
   const price = crypto.price || 0
   const change24h = crypto.change24h || 0
+  const trendBase = price / (1 + (change24h / 100 || 0))
+  const sparklinePoints = Array.from({ length: 6 }).map((_, index) => {
+    const ratio = index / 5
+    const value = trendBase * (1 + (change24h / 100 || 0) * ratio)
+    return { label: `t${index}`, value }
+  }).filter(point => Number.isFinite(point.value))
 
   return (
     <div className="card hover:shadow-md transition-shadow">
@@ -309,13 +378,30 @@ const CryptoCard = ({ crypto }) => {
           {crypto.isPositive ? '+' : ''}{change24h.toFixed(2)}% (24h)
         </span>
       </div>
+      {sparklinePoints.length >= 2 && (
+        <div className="mt-4">
+          <Sparkline data={sparklinePoints} isPositive={crypto.isPositive} />
+        </div>
+      )}
     </div>
   )
 }
 
 // Currency Card Component
-const CurrencyCard = ({ pair, name, rate }) => {
-  const displayRate = rate || 0
+const CurrencyCard = ({ pair, name, data }) => {
+  if (!data || data.error || data.rate === undefined || data.rate === null) {
+    return (
+      <div className="p-4 bg-gray-50 rounded-lg border border-orange-100">
+        <p className="text-xs text-gray-600 mb-1">{pair}</p>
+        <p className="text-sm font-medium text-gray-700 mb-2">{name}</p>
+        <p className="text-xs text-orange-600">
+          {data?.error || '환율 데이터를 불러오지 못했습니다.'}
+        </p>
+      </div>
+    )
+  }
+
+  const displayRate = data.rate || 0
 
   return (
     <div className="p-4 bg-gray-50 rounded-lg">
@@ -324,6 +410,44 @@ const CurrencyCard = ({ pair, name, rate }) => {
       <p className="text-xl font-bold text-gray-900">
         {displayRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
       </p>
+    </div>
+  )
+}
+
+const Sparkline = ({ data, isPositive }) => {
+  if (!data || data.length < 2) {
+    return null
+  }
+
+  const strokeColor = isPositive ? '#16a34a' : '#ef4444'
+  const fillColor = isPositive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'
+
+  return (
+    <div className="h-16">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <defs>
+            <linearGradient id={`sparkline-${isPositive ? 'up' : 'down'}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={strokeColor} stopOpacity={0.4} />
+              <stop offset="95%" stopColor={strokeColor} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="label" hide />
+          <YAxis domain={['auto', 'auto']} hide />
+          <Tooltip
+            formatter={value => value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            labelFormatter={() => ''}
+          />
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke={strokeColor}
+            strokeWidth={2}
+            dot={false}
+            fill={`url(#sparkline-${isPositive ? 'up' : 'down'})`}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   )
 }

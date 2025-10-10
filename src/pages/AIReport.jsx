@@ -74,6 +74,28 @@ const AIReport = () => {
     }
   }
 
+  const downloadHistory = () => {
+    if (!analysisHistory.length) {
+      window.alert('다운로드할 리포트 기록이 없습니다.')
+      return
+    }
+
+    try {
+      const filename = `ai_report_history_${new Date().toISOString().slice(0, 10)}.json`
+      const blob = new Blob([JSON.stringify(analysisHistory, null, 2)], { type: 'application/json;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Download history failed:', error)
+      window.alert('히스토리 다운로드에 실패했습니다.')
+    }
+  }
   const buildMarketHighlights = (data) => {
     if (!data) return null
     const lines = []
@@ -1070,9 +1092,18 @@ ${JSON.stringify(context, null, 2)}
         <Archive className="w-5 h-5 text-primary-600" />
         <h3 className="text-lg font-semibold text-gray-900">최근 생성된 AI 리포트</h3>
       </div>
-      <span className="text-xs text-gray-500">
-        최대 20개의 기록을 저장하며, 최신 5개만 표시합니다.
-      </span>
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-gray-500">
+          최대 20개의 기록을 저장하며, 최신 5개만 표시합니다.
+        </span>
+        <button
+          type="button"
+          className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+          onClick={downloadHistory}
+        >
+          전체 히스토리 다운로드
+        </button>
+      </div>
     </div>
     {renderHistory()}
   </div>
