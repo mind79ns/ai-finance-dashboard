@@ -18,6 +18,10 @@ const InvestmentLog = () => {
     type: 'buy',
     asset: '',
     customAsset: '',
+    customAssetName: '',
+    customAssetType: '주식',
+    customAssetCurrency: 'USD',
+    customAssetAccount: '기본계좌',
     quantity: '',
     price: '',
     note: ''
@@ -70,6 +74,10 @@ const InvestmentLog = () => {
       type: 'buy',
       asset: '',
       customAsset: '',
+      customAssetName: '',
+      customAssetType: '주식',
+      customAssetCurrency: 'USD',
+      customAssetAccount: '기본계좌',
       quantity: '',
       price: '',
       note: ''
@@ -78,14 +86,60 @@ const InvestmentLog = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+
     if (name === 'asset') {
+      if (value === '__custom__') {
+        setFormData(prev => ({
+          ...prev,
+          asset: value,
+          customAsset: '',
+          customAssetName: '',
+          customAssetType: prev.customAssetType || '주식',
+          customAssetCurrency: prev.customAssetCurrency || 'USD',
+          customAssetAccount: prev.customAssetAccount || '기본계좌'
+        }))
+      } else {
+        const symbol = value.toUpperCase()
+        if (portfolioAssets.length === 0) {
+          setFormData(prev => ({
+            ...prev,
+            asset: symbol,
+            customAsset: '',
+            customAssetName: prev.customAssetName || symbol
+          }))
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            asset: symbol,
+            customAsset: '',
+            customAssetName: '',
+            customAssetType: '주식',
+            customAssetCurrency: 'USD',
+            customAssetAccount: '기본계좌'
+          }))
+        }
+      }
+      return
+    }
+
+    if (name === 'customAsset') {
+      const symbol = value.toUpperCase()
       setFormData(prev => ({
         ...prev,
-        asset: value,
-        customAsset: value === '__custom__' ? '' : ''
+        customAsset: symbol,
+        customAssetName: prev.customAssetName || symbol
       }))
       return
     }
+
+    if (name === 'customAssetCurrency') {
+      setFormData(prev => ({
+        ...prev,
+        customAssetCurrency: value.toUpperCase()
+      }))
+      return
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -108,11 +162,22 @@ const InvestmentLog = () => {
     const price = parseFloat(formData.price)
     const total = quantity * price
 
+    const normalizedAssetSymbol = assetSymbol.toUpperCase()
+    const existingAsset = portfolioAssets.find(asset => asset.symbol === normalizedAssetSymbol)
+    const newAssetDetails = formData.type === 'buy' && !existingAsset
+      ? {
+          name: (formData.customAssetName || '').trim() || normalizedAssetSymbol,
+          type: (formData.customAssetType || '주식'),
+          currency: (formData.customAssetCurrency || 'USD').toUpperCase(),
+          account: (formData.customAssetAccount || '').trim() || '기본계좌'
+        }
+      : null
+
     const newLog = {
       id: Date.now(),
       date: formData.date,
       type: formData.type,
-      asset: assetSymbol.toUpperCase(),
+      asset: normalizedAssetSymbol,
       quantity,
       price,
       total,
@@ -124,64 +189,113 @@ const InvestmentLog = () => {
     localStorage.setItem('investment_logs', JSON.stringify(updatedLogs))
 
     // 포트폴리오 자동 업데이트
-    updatePortfolioFromTransaction(newLog)
+    updatePortfolioFromTransaction(newLog, { newAssetDetails })
 
     handleCloseModal()
   }
 
   // 거래 내역으로 포트폴리오 업데이트
-  const updatePortfolioFromTransaction = (transaction) => {
+  const updatePortfolioFromTransaction = (transaction, { newAssetDetails } = {}) => {
     const savedAssets = localStorage.getItem('portfolio_assets')
-    if (!savedAssets) return
+    let assets = []
 
-    try {
-      const assets = JSON.parse(savedAssets)
-      const assetIndex = assets.findIndex(a => a.symbol === transaction.asset)
+    if (savedAssets) {
+      try {
+        assets = JSON.parse(savedAssets)
+      } catch (error) {
+        console.error('Failed to parse portfolio assets:', error)
+        assets = []
+      }
+    }
 
-      if (transaction.type === 'buy') {
-        if (assetIndex >= 0) {
-          // 기존 자산에 추가 매수
-          const asset = assets[assetIndex]
-          const totalQuantity = asset.quantity + transaction.quantity
-          const totalCost = (asset.quantity * asset.avgPrice) + (transaction.quantity * transaction.price)
-          const newAvgPrice = totalCost / totalQuantity
+    let assetsChanged = false
+    const transactionSymbol = (transaction.asset || '').toUpperCase()
+    const assetIndex = assets.findIndex(a => a.symbol === transactionSymbol)
+    const quantityValue = Number(transaction.quantity)
+    const priceValue = Number(transaction.price)
 
-          assets[assetIndex] = {
-            ...asset,
-            quantity: totalQuantity,
-            avgPrice: newAvgPrice,
-            totalValue: totalQuantity * asset.currentPrice,
-            profit: (totalQuantity * asset.currentPrice) - (totalQuantity * newAvgPrice),
-            profitPercent: ((asset.currentPrice - newAvgPrice) / newAvgPrice) * 100
-          }
-        }
-        // 새 자산은 포트폴리오에서 직접 추가해야 함
-      } else if (transaction.type === 'sell') {
-        if (assetIndex >= 0) {
-          // 보유 자산 매도
-          const asset = assets[assetIndex]
-          const newQuantity = asset.quantity - transaction.quantity
+    if (!Number.isFinite(quantityValue)) {
+      console.warn('Invalid transaction quantity:', transaction)
+      return
+    }
 
-          if (newQuantity <= 0) {
-            // 전량 매도 시 자산 제거
-            assets.splice(assetIndex, 1)
-          } else {
-            // 일부 매도
-            assets[assetIndex] = {
-              ...asset,
-              quantity: newQuantity,
-              totalValue: newQuantity * asset.currentPrice,
-              profit: (newQuantity * asset.currentPrice) - (newQuantity * asset.avgPrice),
-              profitPercent: ((asset.currentPrice - asset.avgPrice) / asset.avgPrice) * 100
-            }
-          }
-        }
+    if (transaction.type === 'buy') {
+      if (!Number.isFinite(priceValue)) {
+        console.warn('Invalid transaction price for buy transaction:', transaction)
+        return
       }
 
-      localStorage.setItem('portfolio_assets', JSON.stringify(assets))
-      setPortfolioAssets(assets)
-    } catch (error) {
-      console.error('Failed to update portfolio:', error)
+      if (assetIndex >= 0) {
+        const asset = assets[assetIndex]
+        const totalQuantity = asset.quantity + quantityValue
+        const totalCost = (asset.quantity * asset.avgPrice) + (quantityValue * priceValue)
+        const newAvgPrice = totalCost / totalQuantity
+        const currentPrice = asset.currentPrice || priceValue
+
+        assets[assetIndex] = {
+          ...asset,
+          quantity: totalQuantity,
+          avgPrice: newAvgPrice,
+          totalValue: totalQuantity * currentPrice,
+          profit: (totalQuantity * currentPrice) - (totalQuantity * newAvgPrice),
+          profitPercent: ((currentPrice - newAvgPrice) / newAvgPrice) * 100
+        }
+        assetsChanged = true
+      } else {
+        const details = newAssetDetails || {}
+        const currency = (details.currency || 'USD').toUpperCase()
+        const account = details.account || '기본계좌'
+        const type = details.type || '주식'
+        const name = details.name || transactionSymbol
+        const totalValue = quantityValue * priceValue
+
+        assets.push({
+          id: Date.now(),
+          symbol: transactionSymbol,
+          name,
+          type,
+          quantity: quantityValue,
+          avgPrice: priceValue,
+          currentPrice: priceValue,
+          totalValue,
+          profit: 0,
+          profitPercent: 0,
+          currency,
+          account,
+          category: currency === 'KRW' ? '국내주식' : '해외주식'
+        })
+        assetsChanged = true
+      }
+    } else if (transaction.type === 'sell') {
+      if (assetIndex >= 0) {
+        const asset = assets[assetIndex]
+        const newQuantity = asset.quantity - quantityValue
+
+        if (newQuantity <= 0) {
+          assets.splice(assetIndex, 1)
+        } else {
+          const currentPrice = Number.isFinite(asset.currentPrice)
+            ? asset.currentPrice
+            : (Number.isFinite(priceValue) ? priceValue : asset.avgPrice)
+          assets[assetIndex] = {
+            ...asset,
+            quantity: newQuantity,
+            totalValue: newQuantity * currentPrice,
+            profit: (newQuantity * currentPrice) - (newQuantity * asset.avgPrice),
+            profitPercent: ((currentPrice - asset.avgPrice) / asset.avgPrice) * 100
+          }
+        }
+        assetsChanged = true
+      }
+    }
+
+    if (assetsChanged) {
+      try {
+        localStorage.setItem('portfolio_assets', JSON.stringify(assets))
+      } catch (error) {
+        console.error('Failed to persist portfolio assets:', error)
+      }
+      setPortfolioAssets([...assets])
     }
   }
 
@@ -593,7 +707,7 @@ const InvestmentLog = () => {
                   자산 선택
                 </label>
                 {portfolioAssets.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <select
                       name="asset"
                       value={formData.asset}
@@ -609,31 +723,156 @@ const InvestmentLog = () => {
                       ))}
                       <option value="__custom__">직접 입력</option>
                     </select>
+
                     {formData.asset === '__custom__' && (
-                      <input
-                        type="text"
-                        name="customAsset"
-                        placeholder="종목 심볼 직접 입력 (예: AAPL)"
-                        value={formData.customAsset}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          customAsset: e.target.value.toUpperCase()
-                        }))}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      />
+                      <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">심볼</label>
+                          <input
+                            type="text"
+                            name="customAsset"
+                            placeholder="예: AAPL"
+                            value={formData.customAsset}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">자산명</label>
+                          <input
+                            type="text"
+                            name="customAssetName"
+                            placeholder="예: Apple Inc."
+                            value={formData.customAssetName}
+                            onChange={handleInputChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">유형</label>
+                            <select
+                              name="customAssetType"
+                              value={formData.customAssetType}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            >
+                              <option value="주식">주식</option>
+                              <option value="ETF">ETF</option>
+                              <option value="채권">채권</option>
+                              <option value="코인">코인</option>
+                              <option value="현금">현금</option>
+                              <option value="기타">기타</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">통화</label>
+                            <select
+                              name="customAssetCurrency"
+                              value={formData.customAssetCurrency}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            >
+                              <option value="USD">USD</option>
+                              <option value="KRW">KRW</option>
+                              <option value="EUR">EUR</option>
+                              <option value="JPY">JPY</option>
+                              <option value="CNY">CNY</option>
+                              <option value="BTC">BTC</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
+                            <input
+                              type="text"
+                              name="customAssetAccount"
+                              placeholder="예: 기본계좌"
+                              value={formData.customAssetAccount}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ) : (
-                  <input
-                    type="text"
-                    name="asset"
-                    value={formData.asset}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="종목 심볼 입력 (예: AAPL)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      name="asset"
+                      value={formData.asset}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="종목 심볼 입력 (예: AAPL)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">자산명</label>
+                        <input
+                          type="text"
+                          name="customAssetName"
+                          placeholder="예: Apple Inc."
+                          value={formData.customAssetName}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
+                        <input
+                          type="text"
+                          name="customAssetAccount"
+                          placeholder="예: 기본계좌"
+                          value={formData.customAssetAccount}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">유형</label>
+                        <select
+                          name="customAssetType"
+                          value={formData.customAssetType}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="주식">주식</option>
+                          <option value="ETF">ETF</option>
+                          <option value="채권">채권</option>
+                          <option value="코인">코인</option>
+                          <option value="현금">현금</option>
+                          <option value="기타">기타</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">통화</label>
+                        <select
+                          name="customAssetCurrency"
+                          value={formData.customAssetCurrency}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="USD">USD</option>
+                          <option value="KRW">KRW</option>
+                          <option value="EUR">EUR</option>
+                          <option value="JPY">JPY</option>
+                          <option value="CNY">CNY</option>
+                          <option value="BTC">BTC</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">분류</label>
+                        <div className="px-3 py-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500">
+                          통화에 따라 포트폴리오 카테고리가 자동 지정됩니다
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
                 <p className="text-xs text-gray-500 mt-1">
                   💡 포트폴리오에 등록된 자산을 선택하거나 직접 입력하세요

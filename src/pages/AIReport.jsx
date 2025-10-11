@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Sparkles, FileText, Download, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
+import { Sparkles, FileText, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
 import AIStrategyBadge from '../components/AIStrategyBadge'

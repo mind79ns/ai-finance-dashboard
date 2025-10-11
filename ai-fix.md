@@ -1,69 +1,66 @@
-## 문제 분석 및 수정 제안서
+# CI/CD Build Error Diagnosis and Fix Suggestion
 
-오류 로그에 따르면 `npm error Missing script: "test"`라는 메시지가 나타나고 있습니다. 이는 `package.json` 파일에 `test` 스크립트가 정의되어 있지 않음을 의미합니다. 이로 인해 CI/CD 파이프라인의 `test` 단계에서 빌드가 실패하고 있습니다.
+## Error Overview
+The error log indicates that the npm command failed due to a missing "test" script in your `package.json` file. Here’s a breakdown of the error message:
 
-### 1. root cause (근본 원인)
-- `package.json` 파일 내에 `scripts` 섹션에 `test` 스크립트가 정의되어 있지 않습니다.
+```
+npm error Missing script: "test"
+```
 
-### 2. 해결 방안
-`package.json` 파일에 적절한 `test` 스크립트를 추가하여 문제를 해결할 수 있습니다. 아래는 이를 위한 단계입니다.
+This error occurs when you attempt to run `npm test`, but no `"test"` script is defined in your project's `package.json`.
 
-#### 수정 방법
-1. 프로젝트 루트에 있는 `package.json` 파일을 엽니다.
-2. `scripts` 섹션을 찾아 다음과 같은 내용을 추가합니다.
+## Steps to Resolve the Issue
+
+### Step 1: Verify the `package.json` File
+1. Open your project's `package.json` file, located in the root directory of your project.
+2. Look for the `scripts` section. It should look something like this:
 
 ```json
-{
-  "scripts": {
-    "test": "your-test-command-here"
-  }
+"scripts": {
+    "start": "node server.js",
+    "build": "npm run build",
+    "test": "your-test-command-here"    // This line is required
 }
 ```
 
-`your-test-command-here` 부분에는 실제 사용하고 있는 테스트 실행 명령어를 입력해야 합니다. 일반적으로는 `mocha`, `jest`, `tape`, 또는 `karma`와 같은 테스팅 프레임워크를 사용할 수 있습니다. 아래는 몇 가지 예시입니다.
+### Step 2: Add the Missing "test" Script
+If the `"test"` script is missing, you will need to add it. Depending on your testing framework (e.g., Jest, Mocha, etc.), modify your `package.json` as follows:
 
-#### 예시 1: Jest를 사용하는 경우
+1. **For Jest**:
+   ```json
+   "scripts": {
+       "test": "jest",
+       ...
+   }
+   ```
 
-```json
-{
-  "scripts": {
-    "test": "jest"
-  }
-}
-```
+2. **For Mocha**:
+   ```json
+   "scripts": {
+       "test": "mocha",
+       ...
+   }
+   ```
 
-#### 예시 2: Mocha를 사용하는 경우
+3. **For a Custom Test Command**:
+   If you have a custom command to run tests, you can specify it directly. For example:
+   ```json
+   "scripts": {
+       "test": "node tests/test.js",
+       ...
+   }
+   ```
 
-```json
-{
-  "scripts": {
-    "test": "mocha"
-  }
-}
-```
+### Step 3: Save Changes
+After making the necessary changes:
+- Save the `package.json` file.
 
-#### 예시 3: Tape를 사용하는 경우
+### Step 4: Re-run the CI/CD Process
+Go back to your CI/CD system and trigger the build or deployment process again. You should no longer encounter the "missing script" error.
 
-```json
-{
-  "scripts": {
-    "test": "tape test/*.js"
-  }
-}
-```
+## Additional Considerations
+- **Check Existing Scripts**: If you already have tests but they're defined under a different name, consider renaming that script to `"test"` for consistency or update the command you run (i.e., using the current script's name).
+- **Run `npm run` Locally**: You can execute `npm run` locally in your terminal to see all available scripts, ensuring you know what scripts are defined.
 
-### 3. 변경 후 테스트
-스크립트를 추가한 후, 다음 명령어를 실행하여 올바르게 작동하는지 확인합니다.
-
-```bash
-npm run test
-```
-
-이 명령어가 정상적으로 실행되면, CI/CD 파이프라인에서도 `test` 단계가 성공적으로 완료될 것입니다.
-
-### 4. 요약
-- 현재 `test` 스크립트가 정의되어 있지 않아 발생한 오류입니다.
-- `package.json` 파일의 `scripts` 섹션에 테스트 명령어를 추가하여 해결합니다.
-- 변경 사항을 적용한 후에는 `npm run test` 명령어로 테스트가 정상적으로 수행되는지 확인합니다.
-
-이 변경 사항이 CI/CD 파이프라인에서의 빌드 오류를 해결하는 데 도움이 되기를 바랍니다. 추가적인 질문이나 도움이 필요하다면 언제든지 문의해 주세요!
+## Conclusion
+By adding the `"test"` script to your `package.json`, you should ensure that your CI/CD pipeline can execute the tests as part of the build process. If you continue to encounter issues after this fix, please check the specific test command and its syntax or dependencies needed for testing.

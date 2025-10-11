@@ -109,9 +109,6 @@ async function main() {
       "Git Auto Commit & Push"
     );
 
-    // Netlify 배포 (프로젝트에 netlify CLI 설치 필요)
-    const deployLog = await runCommand("netlify deploy --prod", "Netlify Auto Deploy");
-    if (deployLog) await askCodexForFix(deployLog, "deploy");
   }
 
   console.log(chalk.bold.green("\n✅ Codex Agent Pro 모든 단계 완료!"));
