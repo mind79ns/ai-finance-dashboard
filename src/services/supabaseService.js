@@ -4,11 +4,18 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Supabase credentials not found. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env file')
+// Supabase 설정 여부 확인
+const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey)
+
+if (!isSupabaseConfigured) {
+  console.warn('⚠️ Supabase not configured. App will use localStorage only.')
+  console.info('ℹ️ To enable cloud sync, set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env file')
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
+// Supabase 클라이언트 생성 (설정되지 않았으면 null)
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
 
 // 기본 사용자 ID (향후 인증 기능 추가 시 변경)
 const DEFAULT_USER_ID = 'default_user'
@@ -21,6 +28,10 @@ const DEFAULT_USER_ID = 'default_user'
 
 // 모든 포트폴리오 자산 가져오기
 export const getPortfolios = async (userId = DEFAULT_USER_ID) => {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
+
   try {
     const { data, error } = await supabase
       .from('portfolios')
@@ -516,6 +527,13 @@ export const migrateFromLocalStorage = async (userId = DEFAULT_USER_ID) => {
 
 // Supabase 연결 상태 확인
 export const checkSupabaseConnection = async () => {
+  if (!supabase) {
+    return {
+      connected: false,
+      error: 'Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env file'
+    }
+  }
+
   try {
     const { data, error } = await supabase
       .from('portfolios')
@@ -528,6 +546,11 @@ export const checkSupabaseConnection = async () => {
     console.error('Supabase connection failed:', error)
     return { connected: false, error: error.message }
   }
+}
+
+// Supabase 설정 여부 확인
+export const isSupabaseConfigured = () => {
+  return !!supabase
 }
 
 export default {
