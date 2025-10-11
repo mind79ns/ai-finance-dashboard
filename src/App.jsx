@@ -7,6 +7,7 @@ import AIReport from './pages/AIReport'
 import InvestmentLog from './pages/InvestmentLog'
 import Goals from './pages/Goals'
 import AssetStatus from './pages/AssetStatus'
+import Settings from './pages/Settings'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/log" element={<InvestmentLog />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/asset-status" element={<AssetStatus />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>
     </Router>

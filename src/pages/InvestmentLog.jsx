@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Download, Trash2 } from 'lucide-react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
@@ -7,6 +7,18 @@ import ChartCard from '../components/ChartCard'
 const InvestmentLog = () => {
   const [logs, setLogs] = useState([])
   const [portfolioAssets, setPortfolioAssets] = useState([])
+
+  const accountOptions = useMemo(() => {
+    const accounts = new Set(['기본계좌'])
+    portfolioAssets.forEach(asset => {
+      if (asset.account) {
+        accounts.add(asset.account)
+      }
+    })
+    return Array.from(accounts)
+  }, [portfolioAssets])
+
+  const defaultAccountOption = accountOptions[0] || '기본계좌'
 
   const [filterType, setFilterType] = useState('all')
   const [filterMonth, setFilterMonth] = useState('all')
@@ -21,11 +33,34 @@ const InvestmentLog = () => {
     customAssetName: '',
     customAssetType: '주식',
     customAssetCurrency: 'USD',
-    customAssetAccount: '기본계좌',
+    selectedAccount: defaultAccountOption,
+    customAccountName: '',
     quantity: '',
     price: '',
     note: ''
   })
+
+  const selectedPortfolioAsset = useMemo(() => {
+    if (!formData.asset || formData.asset === '__custom__') {
+      return null
+    }
+    return portfolioAssets.find(asset => asset.symbol === formData.asset) || null
+  }, [formData.asset, portfolioAssets])
+
+  useEffect(() => {
+    setFormData(prev => {
+      if (prev.selectedAccount === '__custom__') {
+        return prev
+      }
+      if (accountOptions.includes(prev.selectedAccount)) {
+        return prev
+      }
+      return {
+        ...prev,
+        selectedAccount: defaultAccountOption
+      }
+    })
+  }, [accountOptions, defaultAccountOption])
 
   // Load logs and portfolio assets from localStorage on mount
   useEffect(() => {
@@ -77,7 +112,8 @@ const InvestmentLog = () => {
       customAssetName: '',
       customAssetType: '주식',
       customAssetCurrency: 'USD',
-      customAssetAccount: '기본계좌',
+      selectedAccount: defaultAccountOption,
+      customAccountName: '',
       quantity: '',
       price: '',
       note: ''
@@ -96,28 +132,22 @@ const InvestmentLog = () => {
           customAssetName: '',
           customAssetType: prev.customAssetType || '주식',
           customAssetCurrency: prev.customAssetCurrency || 'USD',
-          customAssetAccount: prev.customAssetAccount || '기본계좌'
+          selectedAccount: prev.selectedAccount || defaultAccountOption,
+          customAccountName: ''
         }))
       } else {
         const symbol = value.toUpperCase()
-        if (portfolioAssets.length === 0) {
-          setFormData(prev => ({
-            ...prev,
-            asset: symbol,
-            customAsset: '',
-            customAssetName: prev.customAssetName || symbol
-          }))
-        } else {
-          setFormData(prev => ({
-            ...prev,
-            asset: symbol,
-            customAsset: '',
-            customAssetName: '',
-            customAssetType: '주식',
-            customAssetCurrency: 'USD',
-            customAssetAccount: '기본계좌'
-          }))
-        }
+        const matchedAsset = portfolioAssets.find(a => a.symbol === symbol)
+        setFormData(prev => ({
+          ...prev,
+          asset: symbol,
+          customAsset: '',
+          customAssetName: matchedAsset ? (matchedAsset.name || symbol) : (portfolioAssets.length === 0 ? (prev.customAssetName || symbol) : ''),
+          customAssetType: matchedAsset ? (matchedAsset.type || '주식') : '주식',
+          customAssetCurrency: matchedAsset ? (matchedAsset.currency || 'USD').toUpperCase() : 'USD',
+          selectedAccount: matchedAsset?.account || defaultAccountOption,
+          customAccountName: ''
+        }))
       }
       return
     }
@@ -140,6 +170,23 @@ const InvestmentLog = () => {
       return
     }
 
+    if (name === 'selectedAccount') {
+      setFormData(prev => ({
+        ...prev,
+        selectedAccount: value,
+        customAccountName: value === '__custom__' ? '' : ''
+      }))
+      return
+    }
+
+    if (name === 'customAccountName') {
+      setFormData(prev => ({
+        ...prev,
+        customAccountName: value
+      }))
+      return
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -158,20 +205,29 @@ const InvestmentLog = () => {
       return
     }
 
+    if (formData.selectedAccount === '__custom__' && !(formData.customAccountName || '').trim()) {
+      alert('새 계좌 이름을 입력해주세요.')
+      return
+    }
+
     const quantity = parseFloat(formData.quantity)
     const price = parseFloat(formData.price)
     const total = quantity * price
 
     const normalizedAssetSymbol = assetSymbol.toUpperCase()
-    const existingAsset = portfolioAssets.find(asset => asset.symbol === normalizedAssetSymbol)
-    const newAssetDetails = formData.type === 'buy' && !existingAsset
-      ? {
-          name: (formData.customAssetName || '').trim() || normalizedAssetSymbol,
-          type: (formData.customAssetType || '주식'),
-          currency: (formData.customAssetCurrency || 'USD').toUpperCase(),
-          account: (formData.customAssetAccount || '').trim() || '기본계좌'
-        }
-      : null
+  const existingAsset = portfolioAssets.find(asset => asset.symbol === normalizedAssetSymbol)
+  const resolvedAccount = formData.selectedAccount === '__custom__'
+    ? (formData.customAccountName || '').trim()
+    : (formData.selectedAccount || '').trim()
+  const accountForNewAsset = resolvedAccount || defaultAccountOption
+  const newAssetDetails = formData.type === 'buy' && !existingAsset
+    ? {
+        name: (formData.customAssetName || '').trim() || normalizedAssetSymbol,
+        type: (formData.customAssetType || '주식'),
+        currency: (formData.customAssetCurrency || 'USD').toUpperCase(),
+        account: accountForNewAsset
+      }
+    : null
 
     const newLog = {
       id: Date.now(),
@@ -724,6 +780,17 @@ const InvestmentLog = () => {
                       <option value="__custom__">직접 입력</option>
                     </select>
 
+                    {selectedPortfolioAsset && (
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-gray-700">
+                          계좌: <span className="font-semibold text-gray-800">{selectedPortfolioAsset.account || '기본계좌'}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-gray-700">
+                          통화: <span className="font-semibold text-gray-800">{selectedPortfolioAsset.currency || 'USD'}</span>
+                        </span>
+                      </div>
+                    )}
+
                     {formData.asset === '__custom__' && (
                       <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
                         <div>
@@ -784,14 +851,30 @@ const InvestmentLog = () => {
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
-                            <input
-                              type="text"
-                              name="customAssetAccount"
-                              placeholder="예: 기본계좌"
-                              value={formData.customAssetAccount}
+                            <select
+                              name="selectedAccount"
+                              value={formData.selectedAccount}
                               onChange={handleInputChange}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            />
+                            >
+                              {accountOptions.map(account => (
+                                <option key={account} value={account}>
+                                  {account}
+                                </option>
+                              ))}
+                              <option value="__custom__">새 계좌 직접 입력</option>
+                            </select>
+                            {formData.selectedAccount === '__custom__' && (
+                              <input
+                                type="text"
+                                name="customAccountName"
+                                placeholder="새 계좌 이름 입력"
+                                value={formData.customAccountName}
+                                onChange={handleInputChange}
+                                required
+                                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              />
+                            )}
                           </div>
                         </div>
                       </div>
@@ -818,21 +901,37 @@ const InvestmentLog = () => {
                           value={formData.customAssetName}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
+                      <select
+                        name="selectedAccount"
+                        value={formData.selectedAccount}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        {accountOptions.map(account => (
+                          <option key={account} value={account}>
+                            {account}
+                          </option>
+                        ))}
+                        <option value="__custom__">새 계좌 직접 입력</option>
+                      </select>
+                      {formData.selectedAccount === '__custom__' && (
                         <input
                           type="text"
-                          name="customAssetAccount"
-                          placeholder="예: 기본계좌"
-                          value={formData.customAssetAccount}
+                          name="customAccountName"
+                          placeholder="새 계좌 이름 입력"
+                          value={formData.customAccountName}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          required
+                          className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
-                      </div>
+                      )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">유형</label>
                         <select

@@ -56,9 +56,9 @@ AI를 활용하여 개인 투자자의 **자산현황·시장분석·리포트 �
 | **Frontend** | React + TailwindCSS |
 | **Visualization** | Recharts / Chart.js |
 | **AI Engine** | OpenAI API (GPT 기반) |
-| **API Source** | Yahoo Finance, CoinGecko, FRED |
+| **API Source** | Yahoo Finance, CoinGecko, FRED, 한국투자증권 API |
 | **Deploy** | Netlify (GitHub 자동 연동) |
-| **Data Storage** | Local JSON or Google Sheet |
+| **Data Storage** | **Supabase (PostgreSQL)** + LocalStorage Backup |
 | **Security** | .env + Netlify Secret Variable |
 
 ---
@@ -86,11 +86,23 @@ AI를 활용하여 개인 투자자의 **자산현황·시장분석·리포트 �
 npm install
 ```
 
-### 2. 환경 변수 설정
-`.env.example`을 `.env`로 복사하고 API 키를 입력하세요:
-```bash
-cp .env.example .env
-```
+### 2. Supabase 설정 (클라우드 데이터 저장)
+**중요:** 모든 기기에서 데이터를 동기화하려면 Supabase 설정이 필요합니다.
+
+1. **프로젝트 루트의 `supabase-setup.md` 파일을 참조하여 Supabase 프로젝트를 생성하세요**
+2. `.env.example`을 `.env`로 복사하고 Supabase 인증 정보를 입력하세요:
+   ```bash
+   cp .env.example .env
+   ```
+3. `.env` 파일에 Supabase URL과 API 키 입력:
+   ```env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key-here
+   ```
+4. 앱에서 **설정(Settings)** 페이지로 이동하여 "연결 테스트" 클릭
+5. 로컬 데이터가 있으면 "로컬 데이터 업로드" 버튼으로 마이그레이션
+
+**💡 Supabase 설정을 건너뛰면 로컬 브라우저에만 데이터가 저장됩니다.**
 
 ### 3. 개발 서버 실행
 ```bash
