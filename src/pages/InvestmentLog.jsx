@@ -17,6 +17,7 @@ const InvestmentLog = () => {
     date: new Date().toISOString().split('T')[0],
     type: 'buy',
     asset: '',
+    customAsset: '',
     quantity: '',
     price: '',
     note: ''
@@ -68,6 +69,7 @@ const InvestmentLog = () => {
       date: new Date().toISOString().split('T')[0],
       type: 'buy',
       asset: '',
+      customAsset: '',
       quantity: '',
       price: '',
       note: ''
@@ -76,6 +78,14 @@ const InvestmentLog = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    if (name === 'asset') {
+      setFormData(prev => ({
+        ...prev,
+        asset: value,
+        customAsset: value === '__custom__' ? '' : ''
+      }))
+      return
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -85,6 +95,15 @@ const InvestmentLog = () => {
   const handleSubmit = (e) => {
     e.preventDefault()
 
+    const assetSymbol = formData.asset === '__custom__'
+      ? formData.customAsset.trim()
+      : formData.asset.trim()
+
+    if (!assetSymbol) {
+      alert('자산 심볼을 입력해주세요.')
+      return
+    }
+
     const quantity = parseFloat(formData.quantity)
     const price = parseFloat(formData.price)
     const total = quantity * price
@@ -93,7 +112,7 @@ const InvestmentLog = () => {
       id: Date.now(),
       date: formData.date,
       type: formData.type,
-      asset: formData.asset.toUpperCase(),
+      asset: assetSymbol.toUpperCase(),
       quantity,
       price,
       total,
@@ -595,7 +614,11 @@ const InvestmentLog = () => {
                         type="text"
                         name="customAsset"
                         placeholder="종목 심볼 직접 입력 (예: AAPL)"
-                        onChange={(e) => setFormData(prev => ({ ...prev, asset: e.target.value.toUpperCase() }))}
+                        value={formData.customAsset}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          customAsset: e.target.value.toUpperCase()
+                        }))}
                         required
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       />
