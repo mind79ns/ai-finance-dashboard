@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Sparkles, FileText, Download, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
 import aiService from '../services/aiService'
@@ -71,6 +71,28 @@ const AIReport = () => {
     } catch (error) {
       console.error('Clipboard copy failed:', error)
       window.alert(errorMessage)
+    }
+  }
+
+  const downloadReport = (baseName, content) => {
+    if (!content) {
+      window.alert('다운로드할 내용이 없습니다.')
+      return
+    }
+    try {
+      const filename = `${baseName}_${new Date().toISOString().slice(0, 10)}.md`
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Download report failed:', error)
+      window.alert('다운로드 생성에 실패했습니다.')
     }
   }
 
@@ -858,10 +880,22 @@ ${JSON.stringify(context, null, 2)}
               )}
             </button>
             {marketReport && (
-              <button className="btn-secondary flex items-center gap-2">
-                <Download className="w-5 h-5" />
-                다운로드
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(marketReport)}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  복사
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadReport('market_report', marketReport)}
+                  className="px-3 py-1.5 text-xs font-medium text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+                >
+                  다운로드
+                </button>
+              </div>
             )}
           </div>
 
@@ -869,12 +903,12 @@ ${JSON.stringify(context, null, 2)}
             <div className="card">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="w-5 h-5 text-primary-600" />
-                <h3 className="text-lg font-semibold">시장 분석 리포트</h3>
+                <h3 className="text-lg font-semibold text-gray-900">시장 분석 리포트</h3>
               </div>
-              <div className="prose max-w-none">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
+                <ReactMarkdown className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500">
                   {marketReport}
-                </pre>
+                </ReactMarkdown>
               </div>
             </div>
           )}
@@ -915,10 +949,22 @@ ${JSON.stringify(context, null, 2)}
               )}
             </button>
             {portfolioAnalysis && (
-              <button className="btn-secondary flex items-center gap-2">
-                <Download className="w-5 h-5" />
-                다운로드
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(portfolioAnalysis)}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  복사
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadReport('portfolio_analysis', portfolioAnalysis)}
+                  className="px-3 py-1.5 text-xs font-medium text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+                >
+                  다운로드
+                </button>
+              </div>
             )}
           </div>
 
@@ -926,12 +972,12 @@ ${JSON.stringify(context, null, 2)}
             <div className="card">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="w-5 h-5 text-primary-600" />
-                <h3 className="text-lg font-semibold">포트폴리오 진단 결과</h3>
+                <h3 className="text-lg font-semibold text-gray-900">포트폴리오 진단 결과</h3>
               </div>
-              <div className="prose max-w-none">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
+                <ReactMarkdown className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500">
                   {portfolioAnalysis}
-                </pre>
+                </ReactMarkdown>
               </div>
             </div>
           )}
@@ -1061,17 +1107,35 @@ ${JSON.stringify(context, null, 2)}
               </>
             )}
           </button>
+          {rebalancingSuggestion && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => copyToClipboard(rebalancingSuggestion)}
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                복사
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadReport('rebalancing_plan', rebalancingSuggestion)}
+                className="px-3 py-1.5 text-xs font-medium text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+              >
+                다운로드
+              </button>
+            </div>
+          )}
 
           {rebalancingSuggestion && (
             <div className="card">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-5 h-5 text-primary-600" />
-                <h3 className="text-lg font-semibold">리밸런싱 전략 제안</h3>
+                <h3 className="text-lg font-semibold text-gray-900">리밸런싱 전략 제안</h3>
               </div>
-              <div className="prose max-w-none">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
+                <ReactMarkdown className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500">
                   {rebalancingSuggestion}
-                </pre>
+                </ReactMarkdown>
               </div>
             </div>
           )}
@@ -1190,7 +1254,7 @@ ${JSON.stringify(context, null, 2)}
                   <div className="text-center py-12">
                     <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">AI에게 투자 관련 질문을 해보세요</p>
-                    <p className="text-sm text-gray-500 mt-2">예: "지금 S&P 500에 투자하는 것이 좋을까요?"</p>
+                    <p className="text-sm text-gray-500 mt-2">예: &quot;지금 S&amp;P 500에 투자하는 것이 좋을까요?&quot;</p>
                   </div>
               ) : (
                 chatMessages.map((msg, idx) => (

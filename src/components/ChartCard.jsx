@@ -1,5 +1,3 @@
-import React from 'react'
-
 const ChartCard = ({ title, subtitle, children, action }) => {
   return (
     <div className="card">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   TrendingUp,
   TrendingDown,
@@ -12,7 +12,6 @@ import {
   X
 } from 'lucide-react'
 import {
-  LineChart,
   Line,
   AreaChart,
   Area,

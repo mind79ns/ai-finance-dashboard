@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Sparkles, Zap, AlertCircle } from 'lucide-react'
 import aiService from '../services/aiService'
 

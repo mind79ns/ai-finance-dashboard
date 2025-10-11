@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Target, Plus, TrendingUp, Calendar, X, Link as LinkIcon, Trash2, Sparkles, RefreshCw } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import ChartCard from '../components/ChartCard'
@@ -163,7 +163,7 @@ const Goals = () => {
   }
 
   // Dynamic projection data based on first active goal
-  const generateProjectionData = () => {
+  const generateProjectionData = useCallback(() => {
     // Use the first goal with the furthest target date for projection
     const activeGoals = goals.filter(g => g.status === 'active' && g.targetDate)
 
@@ -214,15 +214,13 @@ const Goals = () => {
     }
 
     return data
-  }
-
-  // Memoize projection data to prevent TDZ errors on re-render
-  const projectionData = useMemo(() => {
-    return generateProjectionData()
   }, [goals])
 
+  // Memoize projection data to prevent TDZ errors on re-render
+  const projectionData = useMemo(() => generateProjectionData(), [generateProjectionData])
+
   // Calculate required annual return based on first goal
-  const calculateRequiredReturn = () => {
+  const calculateRequiredReturn = useCallback(() => {
     const activeGoals = goals.filter(g => g.status === 'active' && g.targetDate)
     if (activeGoals.length === 0) return 0
 
@@ -238,42 +236,36 @@ const Goals = () => {
     // Calculate CAGR needed: (Target/Current)^(1/years) - 1
     const requiredReturn = (Math.pow(targetAmount / currentAmount, 1 / years) - 1) * 100
     return requiredReturn
-  }
-
-  // Memoize required return to prevent TDZ errors on re-render
-  const requiredAnnualReturn = useMemo(() => {
-    return calculateRequiredReturn()
   }, [goals])
 
+  // Memoize required return to prevent TDZ errors on re-render
+  const requiredAnnualReturn = useMemo(() => calculateRequiredReturn(), [calculateRequiredReturn])
+
   // Calculate total expected profit
-  const calculateExpectedProfit = () => {
+  const calculateExpectedProfit = useCallback(() => {
     const activeGoals = goals.filter(g => g.status === 'active')
     if (activeGoals.length === 0) return 0
 
     const totalCurrent = activeGoals.reduce((sum, g) => sum + (g.currentAmount || 0), 0)
     const totalTarget = activeGoals.reduce((sum, g) => sum + (g.targetAmount || 0), 0)
     return totalTarget - totalCurrent
-  }
-
-  // Memoize expected profit to prevent TDZ errors on re-render
-  const expectedProfit = useMemo(() => {
-    return calculateExpectedProfit()
   }, [goals])
 
+  // Memoize expected profit to prevent TDZ errors on re-render
+  const expectedProfit = useMemo(() => calculateExpectedProfit(), [calculateExpectedProfit])
+
   // Risk level assessment
-  const assessRiskLevel = () => {
+  const assessRiskLevel = useCallback(() => {
     const returnRate = requiredAnnualReturn
     if (returnRate < 5) return { level: '안전', color: 'text-green-600' }
     if (returnRate < 10) return { level: '낮은위험', color: 'text-blue-600' }
     if (returnRate < 15) return { level: '중위험', color: 'text-yellow-600' }
     if (returnRate < 25) return { level: '높은위험', color: 'text-orange-600' }
     return { level: '초고위험', color: 'text-red-600' }
-  }
+  }, [requiredAnnualReturn])
 
   // Memoize risk assessment to prevent TDZ errors on re-render
-  const riskAssessment = useMemo(() => {
-    return assessRiskLevel()
-  }, [requiredAnnualReturn])
+  const riskAssessment = useMemo(() => assessRiskLevel(), [assessRiskLevel])
 
   const handleAddGoal = () => {
     setShowModal(true)

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Upload, Download, Trash2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Download, Trash2 } from 'lucide-react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import ChartCard from '../components/ChartCard'
@@ -196,14 +196,6 @@ const InvestmentLog = () => {
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = `investment_log_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-  }
-
-  const handleExportJSON = () => {
-    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `investment_log_${new Date().toISOString().split('T')[0]}.json`
     link.click()
   }
 

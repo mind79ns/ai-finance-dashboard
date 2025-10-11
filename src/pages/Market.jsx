@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useState, useEffect } from 'react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingUp, TrendingDown, RefreshCw, AlertCircle, Info } from 'lucide-react'
-import ChartCard from '../components/ChartCard'
 import marketDataService from '../services/marketDataService'
 
 const Market = () => {
@@ -420,7 +419,6 @@ const Sparkline = ({ data, isPositive }) => {
   }
 
   const strokeColor = isPositive ? '#16a34a' : '#ef4444'
-  const fillColor = isPositive ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'
 
   return (
     <div className="h-16">

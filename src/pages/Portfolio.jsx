@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye, Search, Filter, SortAsc, Upload, Download, FileText } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
@@ -36,6 +36,7 @@ const Portfolio = () => {
   const [accountPrincipals, setAccountPrincipals] = useState({}) // { accountName: { principal, remaining, note } }
   const [showPrincipalModal, setShowPrincipalModal] = useState(false)
   const [editingAccount, setEditingAccount] = useState(null)
+  const skipPriceUpdateRef = useRef(false)
 
   // Load assets from localStorage on mount
   useEffect(() => {
@@ -66,6 +67,18 @@ const Portfolio = () => {
 
   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
   useEffect(() => {
+    if (assets.length === 0) {
+      skipPriceUpdateRef.current = false
+      return
+    }
+
+    if (skipPriceUpdateRef.current) {
+      skipPriceUpdateRef.current = false
+      return
+    }
+
+    let cancelled = false
+
     const updatePrices = async () => {
       // Skip if no assets loaded yet
       if (assets.length === 0) {
@@ -156,9 +169,12 @@ const Portfolio = () => {
           }
         })
 
-        setAssets(updatedAssets)
-        localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
-        setLastUpdate(new Date())
+        if (!cancelled) {
+          skipPriceUpdateRef.current = true
+          setAssets(updatedAssets)
+          localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
+          setLastUpdate(new Date())
+        }
       } catch (error) {
         console.error('Price update error:', error)
       } finally {
@@ -169,8 +185,11 @@ const Portfolio = () => {
     updatePrices()
     // Auto-refresh every 2 minutes
     const interval = setInterval(updatePrices, 120000)
-    return () => clearInterval(interval)
-  }, [assets.length]) // Re-run when assets are added/removed
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [assets])
 
   const performanceData = assets.map(asset => ({
     name: asset.symbol,
@@ -412,15 +431,15 @@ const Portfolio = () => {
               col.replace(/^"|"$/g, '').trim()
             ) || []
 
-            let accountNumber, accountType, symbol, name, type, quantity, avgPrice, currency
+            let accountType, symbol, name, type, quantity, avgPrice, currency
 
             // Brokerage format: Account Number,Account Type,Symbol,Name,Type,Quantity,AvgPrice,Type
             if (header.includes('account number')) {
-              [accountNumber, accountType, symbol, name, type, quantity, avgPrice, currency] = columns
+              [, accountType, symbol, name, type, quantity, avgPrice, currency] = columns
             }
             // Simple format: Symbol,Name,Type,Quantity,AvgPrice,Currency,Account,Category
             else {
-              const [sym, nm, tp, qty, price, curr, acc, cat] = columns
+              const [sym, nm, tp, qty, price, curr, acc] = columns
               symbol = sym
               name = nm
               type = tp
@@ -1599,9 +1618,6 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
       note: formData.note
     })
   }
-
-  // Calculate auto values for preview
-  const investmentAmount = (parseFloat(formData.principal) || 0) - (parseFloat(formData.remaining) || 0)
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import axios from 'axios'
 
 /**
@@ -10,8 +10,13 @@ export const useMarketData = (symbols = []) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const fetchMarketData = async () => {
-    if (symbols.length === 0) return
+  const symbolList = useMemo(
+    () => (Array.isArray(symbols) ? symbols.filter(Boolean) : []),
+    [symbols]
+  )
+
+  const fetchMarketData = useCallback(async () => {
+    if (symbolList.length === 0) return
 
     setLoading(true)
     setError(null)
@@ -21,7 +26,7 @@ export const useMarketData = (symbols = []) => {
       // For demo purposes, we'll use mock data
       const mockData = {}
 
-      symbols.forEach(symbol => {
+      symbolList.forEach(symbol => {
         mockData[symbol] = {
           symbol,
           price: (Math.random() * 1000 + 100).toFixed(2),
@@ -39,7 +44,7 @@ export const useMarketData = (symbols = []) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [symbolList])
 
   useEffect(() => {
     fetchMarketData()
@@ -48,7 +53,7 @@ export const useMarketData = (symbols = []) => {
     const interval = setInterval(fetchMarketData, 60000)
 
     return () => clearInterval(interval)
-  }, [symbols.join(',')])
+  }, [fetchMarketData])
 
   return { data, loading, error, refetch: fetchMarketData }
 }
@@ -61,7 +66,12 @@ export const useCryptoData = (coinIds = ['bitcoin', 'ethereum']) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const fetchCryptoData = async () => {
+  const coinList = useMemo(
+    () => (Array.isArray(coinIds) ? coinIds.filter(Boolean) : []),
+    [coinIds]
+  )
+
+  const fetchCryptoData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -71,7 +81,7 @@ export const useCryptoData = (coinIds = ['bitcoin', 'ethereum']) => {
         `https://api.coingecko.com/api/v3/simple/price`,
         {
           params: {
-            ids: coinIds.join(','),
+            ids: coinList.join(','),
             vs_currencies: 'usd',
             include_24hr_change: true,
             include_market_cap: true
@@ -92,7 +102,7 @@ export const useCryptoData = (coinIds = ['bitcoin', 'ethereum']) => {
       console.error('Crypto data fetch error:', err)
 
       // Fallback to mock data
-      const mockData = coinIds.map(id => ({
+      const mockData = coinList.map(id => ({
         id,
         price: Math.random() * 50000 + 1000,
         change24h: (Math.random() * 10 - 5).toFixed(2),
@@ -102,7 +112,7 @@ export const useCryptoData = (coinIds = ['bitcoin', 'ethereum']) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [coinList])
 
   useEffect(() => {
     fetchCryptoData()
@@ -111,7 +121,7 @@ export const useCryptoData = (coinIds = ['bitcoin', 'ethereum']) => {
     const interval = setInterval(fetchCryptoData, 120000)
 
     return () => clearInterval(interval)
-  }, [coinIds.join(',')])
+  }, [fetchCryptoData])
 
   return { data, loading, error, refetch: fetchCryptoData }
 }
@@ -124,7 +134,7 @@ export const useEconomicData = (seriesId) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const fetchEconomicData = async () => {
+  const fetchEconomicData = useCallback(async () => {
     const apiKey = import.meta.env.VITE_FRED_API_KEY
 
     if (!apiKey) {
@@ -156,13 +166,13 @@ export const useEconomicData = (seriesId) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [seriesId])
 
   useEffect(() => {
     if (seriesId) {
       fetchEconomicData()
     }
-  }, [seriesId])
+  }, [seriesId, fetchEconomicData])
 
   return { data, loading, error, refetch: fetchEconomicData }
 }

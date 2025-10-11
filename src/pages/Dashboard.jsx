@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Area,
   AreaChart,
@@ -56,12 +56,7 @@ const Dashboard = () => {
   const [recentTransactions, setRecentTransactions] = useState([])
   const [assetPerformance, setAssetPerformance] = useState([])
 
-  useEffect(() => {
-    loadDashboardData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -115,7 +110,11 @@ const Dashboard = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadDashboardData()
+  }, [loadDashboardData])
 
   const allocationChartData = useMemo(() => allocationData.map(item => ({
     ...item,
@@ -249,7 +248,7 @@ const Dashboard = () => {
                       outerRadius={95}
                       paddingAngle={4}
                     >
-                      {allocationChartData.map((entry, index) => (
+                      {allocationChartData.map(entry => (
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
                     </Pie>

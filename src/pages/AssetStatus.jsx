@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Plus,
   Edit,
@@ -15,9 +15,7 @@ import {
   Trash2
 } from 'lucide-react'
 import {
-  LineChart,
   Line,
-  BarChart,
   Bar,
   XAxis,
   YAxis,
@@ -28,7 +26,51 @@ import {
   ComposedChart
 } from 'recharts'
 
-// Icon mapper helper
+const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+
+const DEFAULT_INCOME_CATEGORIES = [
+  { id: 'accumulated', name: '누적금액', color: '#6366f1', isAccumulated: true },
+  { id: 'salary', name: '아르바이트', color: '#10b981' },
+  { id: 'freelance', name: '월 급여', color: '#3b82f6' },
+  { id: 'sideIncome', name: '주제외 급여', color: '#8b5cf6' },
+  { id: 'dividend', name: '배당/상여금', color: '#ec4899' },
+  { id: 'other', name: '재테크 수입', color: '#f59e0b' }
+]
+
+const DEFAULT_EXPENSE_CATEGORIES = [
+  { id: 'savings', name: '주택 담보대출', color: '#ef4444' },
+  { id: 'insurance', name: '보험료 지출', color: '#f97316' },
+  { id: 'living', name: '생활비용 대금', color: '#eab308' },
+  { id: 'investment', name: '우리경영여금', color: '#06b6d4' },
+  { id: 'loan', name: '월화 지출', color: '#8b5cf6' },
+  { id: 'card', name: '카드 지출', color: '#ec4899' },
+  { id: 'vnd', name: 'VND 지출', color: '#6366f1' }
+]
+
+const DEFAULT_ACCOUNT_TYPES = [
+  { id: 'hana', name: '하나은행', icon: 'Building' },
+  { id: 'shinhan', name: '신한은행', icon: 'Building' },
+  { id: 'woori', name: '우리은행', icon: 'Building' },
+  { id: 'kakao', name: '카카오뱅크', icon: 'Wallet' },
+  { id: 'shinhanDebit', name: '신한 토스', icon: 'CreditCard' },
+  { id: 'toss', name: '토스 투자', icon: 'TrendingUp' },
+  { id: 'samsung', name: '삼성증권', icon: 'TrendingUp' },
+  { id: 'korea', name: '한국투자증권', icon: 'TrendingUp' },
+  { id: 'mirae', name: '미래에셋증권', icon: 'TrendingUp' },
+  { id: 'samsung2', name: '삼성생명보험', icon: 'PiggyBank' },
+  { id: 'union', name: '오리경영보험', icon: 'PiggyBank' },
+  { id: 'gold', name: '골드', icon: 'DollarSign' }
+]
+
+const ASSET_CATEGORIES = [
+  { id: 'bank', name: '은행계좌' },
+  { id: 'usd', name: 'USD계좌' },
+  { id: 'pension', name: '연금저축' },
+  { id: 'investment', name: '투자전환' },
+  { id: 'installment', name: '적금' },
+  { id: 'deposit', name: '예금' }
+]
+
 const getIconComponent = (iconName) => {
   const iconMap = {
     Building,
@@ -54,59 +96,12 @@ const AssetStatus = () => {
   const [selectedMonthView, setSelectedMonthView] = useState(new Date().getMonth()) // 0-11 for Jan-Dec
 
   // Default categories
-  const defaultIncomeCategories = [
-    { id: 'accumulated', name: '누적금액', color: '#6366f1', isAccumulated: true }, // Special: auto-calculated
-    { id: 'salary', name: '아르바이트', color: '#10b981' },
-    { id: 'freelance', name: '월 급여', color: '#3b82f6' },
-    { id: 'sideIncome', name: '주제외 급여', color: '#8b5cf6' },
-    { id: 'dividend', name: '배당/상여금', color: '#ec4899' },
-    { id: 'other', name: '재테크 수입', color: '#f59e0b' }
-  ]
-
-  const defaultExpenseCategories = [
-    { id: 'savings', name: '주택 담보대출', color: '#ef4444' },
-    { id: 'insurance', name: '보험료 지출', color: '#f97316' },
-    { id: 'living', name: '생활비용 대금', color: '#eab308' },
-    { id: 'investment', name: '우리경영여금', color: '#06b6d4' },
-    { id: 'loan', name: '월화 지출', color: '#8b5cf6' },
-    { id: 'card', name: '카드 지출', color: '#ec4899' },
-    { id: 'vnd', name: 'VND 지출', color: '#6366f1' }
-  ]
-
-  // Categories from localStorage or defaults
-  const [incomeCategories, setIncomeCategories] = useState(defaultIncomeCategories)
-  const [expenseCategories, setExpenseCategories] = useState(defaultExpenseCategories)
+  const [incomeCategories, setIncomeCategories] = useState(() => DEFAULT_INCOME_CATEGORIES.map(cat => ({ ...cat })))
+  const [expenseCategories, setExpenseCategories] = useState(() => DEFAULT_EXPENSE_CATEGORIES.map(cat => ({ ...cat })))
 
   // Default account types for breakdown
-  const defaultAccountTypes = [
-    { id: 'hana', name: '하나은행', icon: 'Building' },
-    { id: 'shinhan', name: '신한은행', icon: 'Building' },
-    { id: 'woori', name: '우리은행', icon: 'Building' },
-    { id: 'kakao', name: '카카오뱅크', icon: 'Wallet' },
-    { id: 'shinhanDebit', name: '신한 토스', icon: 'CreditCard' },
-    { id: 'toss', name: '토스 투자', icon: 'TrendingUp' },
-    { id: 'samsung', name: '삼성증권', icon: 'TrendingUp' },
-    { id: 'korea', name: '한국투자증권', icon: 'TrendingUp' },
-    { id: 'mirae', name: '미래에셋증권', icon: 'TrendingUp' },
-    { id: 'samsung2', name: '삼성생명보험', icon: 'PiggyBank' },
-    { id: 'union', name: '오리경영보험', icon: 'PiggyBank' },
-    { id: 'gold', name: '골드', icon: 'DollarSign' }
-  ]
-
-  // Asset category types (columns in the table)
-  const assetCategories = [
-    { id: 'bank', name: '은행계좌' },
-    { id: 'usd', name: 'USD계좌' },
-    { id: 'pension', name: '연금저축' },
-    { id: 'investment', name: '투자전환' },
-    { id: 'installment', name: '적금' },
-    { id: 'deposit', name: '예금' }
-  ]
-
   // Account types from localStorage or defaults
-  const [accountTypes, setAccountTypes] = useState(defaultAccountTypes)
-
-  const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+  const [accountTypes, setAccountTypes] = useState(() => DEFAULT_ACCOUNT_TYPES.map(acc => ({ ...acc })))
 
   // Load data from localStorage
   useEffect(() => {
@@ -224,7 +219,7 @@ const AssetStatus = () => {
       }
 
       monthlyData.push({
-        month: months[i],
+        month: MONTH_LABELS[i],
         monthIndex: i,
         income: incomeTotal, // This excludes accumulated amount
         expense: expenseTotal,
@@ -294,7 +289,7 @@ const AssetStatus = () => {
       const accountCategories = yearAccounts[acc.id] || {}
 
       // Calculate total for this account across all categories
-      const total = assetCategories.reduce((sum, cat) => {
+      const total = ASSET_CATEGORIES.reduce((sum, cat) => {
         return sum + (accountCategories[cat.id] || 0)
       }, 0)
 
@@ -304,14 +299,14 @@ const AssetStatus = () => {
         total: total
       }
     })
-  }, [accountData, selectedYear, accountTypes, assetCategories])
+  }, [accountData, selectedYear, accountTypes])
 
   // Calculate category totals and grand total
   const categoryTotals = useMemo(() => {
     const totals = {}
     let grandTotal = 0
 
-    assetCategories.forEach(cat => {
+    ASSET_CATEGORIES.forEach(cat => {
       const categoryTotal = accountBreakdown.reduce((sum, acc) => {
         return sum + (acc.categories[cat.id] || 0)
       }, 0)
@@ -320,7 +315,7 @@ const AssetStatus = () => {
     })
 
     return { ...totals, grandTotal }
-  }, [accountBreakdown, assetCategories])
+  }, [accountBreakdown])
 
   const totalAccountValue = useMemo(() => {
     return categoryTotals.grandTotal
@@ -556,7 +551,7 @@ const AssetStatus = () => {
             onChange={(e) => setSelectedMonthView(Number(e.target.value))}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-gray-900 font-medium"
           >
-            {months.map((month, idx) => (
+            {MONTH_LABELS.map((month, idx) => (
               <option key={idx} value={idx}>{month}</option>
             ))}
           </select>
@@ -740,7 +735,7 @@ const AssetStatus = () => {
             <thead>
               <tr className="bg-blue-100 border-b border-blue-200">
                 <th className="text-left py-3 px-4 font-bold text-blue-900 sticky left-0 bg-blue-100 z-10">항목</th>
-                {months.map((month, idx) => (
+                {MONTH_LABELS.map((month, idx) => (
                   <th key={idx} className="text-center py-3 px-4 font-bold text-blue-900 min-w-[120px]">
                     {month}
                   </th>
@@ -1146,7 +1141,7 @@ const AssetStatus = () => {
             <thead>
               <tr className="bg-blue-100 border-b border-blue-200">
                 <th className="text-left py-3 px-4 font-bold text-blue-900">항목</th>
-                {assetCategories.map(cat => (
+                {ASSET_CATEGORIES.map(cat => (
                   <th key={cat.id} className="text-right py-3 px-4 font-bold text-blue-900 min-w-[100px]">
                     {cat.name}
                   </th>
@@ -1214,7 +1209,7 @@ const AssetStatus = () => {
                         </div>
                       )}
                     </td>
-                    {assetCategories.map(cat => (
+                    {ASSET_CATEGORIES.map(cat => (
                       <td key={cat.id} className="text-right py-3 px-4 text-gray-700">
                         {formatCurrency(account.categories[cat.id] || 0)}
                       </td>
@@ -1232,7 +1227,7 @@ const AssetStatus = () => {
               {/* Total Row */}
               <tr className="bg-blue-100 border-t-2 border-blue-300 font-bold">
                 <td className="py-3 px-4 text-blue-900">TOTAL</td>
-                {assetCategories.map(cat => (
+                {ASSET_CATEGORIES.map(cat => (
                   <td key={cat.id} className="text-right py-3 px-4 text-blue-900">
                     {formatCurrency(categoryTotals[cat.id] || 0)}
                   </td>
@@ -1246,7 +1241,7 @@ const AssetStatus = () => {
               {/* Percentage Row */}
               <tr className="bg-blue-50 font-bold">
                 <td className="py-3 px-4 text-blue-900">점유율</td>
-                {assetCategories.map(cat => {
+                {ASSET_CATEGORIES.map(cat => {
                   const catPercentage = totalAccountValue > 0 ? ((categoryTotals[cat.id] || 0) / totalAccountValue * 100) : 0
                   return (
                     <td key={cat.id} className="text-center py-3 px-4 text-blue-900">
@@ -1266,7 +1261,7 @@ const AssetStatus = () => {
         <EditMonthModal
           year={editingYear}
           month={editingMonth}
-          monthName={months[editingMonth]}
+          monthName={MONTH_LABELS[editingMonth]}
           monthData={calculateMonthlyData[editingMonth]}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}
@@ -1302,7 +1297,7 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
       initial[cat.id] = monthData[cat.id] || 0
     })
     setFormData(initial)
-  }, [month, monthData])
+  }, [month, monthData, incomeCategories, expenseCategories])
 
   const handleChange = (categoryId, value) => {
     setFormData(prev => ({
@@ -1394,22 +1389,12 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
 const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) => {
   const [formData, setFormData] = useState({})
 
-  // Asset category types (same as parent component)
-  const assetCategories = [
-    { id: 'bank', name: '은행계좌' },
-    { id: 'usd', name: 'USD계좌' },
-    { id: 'pension', name: '연금저축' },
-    { id: 'investment', name: '투자전환' },
-    { id: 'installment', name: '적금' },
-    { id: 'deposit', name: '예금' }
-  ]
-
   useEffect(() => {
     const initial = {}
     accountTypes.forEach(acc => {
       const existing = accountData.find(a => a.id === acc.id)
       initial[acc.id] = {}
-      assetCategories.forEach(cat => {
+      ASSET_CATEGORIES.forEach(cat => {
         initial[acc.id][cat.id] = existing?.categories?.[cat.id] || 0
       })
     })
@@ -1452,7 +1437,7 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) 
               <thead>
                 <tr className="bg-blue-100 border-b border-blue-200">
                   <th className="text-left py-3 px-4 font-bold text-blue-900 sticky left-0 bg-blue-100 z-10">계좌명</th>
-                  {assetCategories.map(cat => (
+                  {ASSET_CATEGORIES.map(cat => (
                     <th key={cat.id} className="text-center py-3 px-4 font-bold text-blue-900 min-w-[120px]">
                       {cat.name}
                     </th>
@@ -1470,7 +1455,7 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) 
                           <span>{acc.name}</span>
                         </div>
                       </td>
-                      {assetCategories.map(cat => (
+                      {ASSET_CATEGORIES.map(cat => (
                         <td key={cat.id} className="py-2 px-2">
                           <input
                             type="number"
