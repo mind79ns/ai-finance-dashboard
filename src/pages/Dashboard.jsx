@@ -152,13 +152,13 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <HeaderSummary
         totals={portfolioSummary}
         assetsCount={allocationData.length}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <StatCard
           title="총 평가액"
           value={formatCurrency(portfolioSummary.totalValueKRW, 'KRW')}
@@ -192,18 +192,18 @@ const Dashboard = () => {
         <MarketStrip data={marketHighlights} />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <ChartCard
           title="포트폴리오 밸류曲선"
           subtitle="최근 6개월 누적 평가액 (₩ 기준)"
           action={
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 hidden sm:inline">
               기준 환율: USD/KRW {(marketData?.currency?.usdKrw?.rate || DEFAULT_USD_KRW).toLocaleString()}
             </span>
           }
         >
           {portfolioHistory.length > 0 ? (
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={portfolioHistory}>
                 <defs>
                   <linearGradient id="portfolioValueGradient" x1="0" y1="0" x2="0" y2="1">
@@ -235,14 +235,14 @@ const Dashboard = () => {
           )}
         </ChartCard>
 
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-4 sm:space-y-6">
           <ChartCard
             title="자산 배분 현황"
             subtitle="평가액 기준"
           >
             {allocationChartData.length > 0 ? (
               <>
-                <ResponsiveContainer width="100%" height={260}>
+                <ResponsiveContainer width="100%" height={240}>
                   <PieChart>
                     <Pie
                       data={allocationChartData}
@@ -291,30 +291,30 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <ChartCard title="최근 거래내역" subtitle="최신 5건의 투자 기록">
           {recentTransactions.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-2 sm:mx-0">
+              <table className="w-full min-w-[500px]">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">날짜</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">유형</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">자산</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">수량</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">거래금액</th>
+                    <th className="text-left py-2 px-2 sm:py-3 sm:px-4 text-xs font-semibold text-gray-500">날짜</th>
+                    <th className="text-left py-2 px-2 sm:py-3 sm:px-4 text-xs font-semibold text-gray-500">유형</th>
+                    <th className="text-left py-2 px-2 sm:py-3 sm:px-4 text-xs font-semibold text-gray-500">자산</th>
+                    <th className="text-left py-2 px-2 sm:py-3 sm:px-4 text-xs font-semibold text-gray-500">수량</th>
+                    <th className="text-left py-2 px-2 sm:py-3 sm:px-4 text-xs font-semibold text-gray-500">거래금액</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentTransactions.map(tx => (
                     <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="py-3 px-4 text-sm text-gray-700">{tx.date}</td>
-                      <td className="py-3 px-4 text-sm font-medium">
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-xs sm:text-sm text-gray-700">{tx.date}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-xs sm:text-sm font-medium">
                         <TypeBadge type={tx.type} />
                       </td>
-                      <td className="py-3 px-4 text-sm font-medium text-gray-900">{tx.asset}</td>
-                      <td className="py-3 px-4 text-sm text-gray-700">{tx.quantity}</td>
-                      <td className="py-3 px-4 text-sm text-gray-700">{tx.amount}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-xs sm:text-sm font-medium text-gray-900">{tx.asset}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-xs sm:text-sm text-gray-700">{tx.quantity}</td>
+                      <td className="py-2 px-2 sm:py-3 sm:px-4 text-xs sm:text-sm text-gray-700">{tx.amount}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -342,19 +342,19 @@ const Dashboard = () => {
 
 const HeaderSummary = ({ totals, assetsCount }) => {
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:gap-4">
       <div className="card bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+          <div className="flex-1 min-w-0">
             <p className="text-xs uppercase tracking-wide text-slate-300">포트폴리오 스냅샷</p>
-            <h1 className="text-2xl font-bold mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold mt-1 truncate">
               {formatCurrency(totals.totalValueKRW, 'KRW')}
             </h1>
-            <p className="text-sm text-slate-300 mt-2">
-              현재 총 평가액 (USD 환산 {formatCurrency(totals.totalValueUSD, 'USD')})
+            <p className="text-xs sm:text-sm text-slate-300 mt-2">
+              현재 총 평가액 <span className="hidden sm:inline">(USD 환산 {formatCurrency(totals.totalValueUSD, 'USD')})</span>
             </p>
           </div>
-          <div className="flex flex-wrap gap-6">
+          <div className="flex flex-wrap gap-3 sm:gap-6">
             <SummaryKPI
               label="총 수익금"
               value={formatCurrency(totals.totalProfitKRW, 'KRW')}
@@ -379,23 +379,23 @@ const HeaderSummary = ({ totals, assetsCount }) => {
 const MarketStrip = ({ data }) => {
   return (
     <div className="card border-primary-100 bg-primary-50/60">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 sm:mb-4">
         <div className="flex items-center gap-2">
-          <Info className="w-4 h-4 text-primary-600" />
-          <span className="text-sm font-semibold text-primary-700">오늘의 시장 하이라이트</span>
+          <Info className="w-4 h-4 text-primary-600 flex-shrink-0" />
+          <span className="text-xs sm:text-sm font-semibold text-primary-700">오늘의 시장 하이라이트</span>
         </div>
-        <span className="text-xs text-primary-500">데이터 출처: Finnhub · CoinGecko · ExchangeRate API</span>
+        <span className="text-xs text-primary-500 hidden md:inline">데이터 출처: Finnhub · CoinGecko · ExchangeRate API</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {data.map(item => (
-          <div key={item.label} className="bg-white/80 border border-white rounded-lg p-4 shadow-sm">
+          <div key={item.label} className="bg-white/80 border border-white rounded-lg p-3 sm:p-4 shadow-sm">
             <p className="text-xs font-medium text-gray-500">{item.label}</p>
             <p className="text-sm font-semibold text-gray-900 mt-1">{item.value}</p>
             <div className="flex items-center gap-1 text-xs mt-1">
               <span className={item.change >= 0 ? 'text-success' : 'text-danger'}>
                 {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change).toFixed(2)}%
               </span>
-              {item.note && <span className="text-gray-400">· {item.note}</span>}
+              {item.note && <span className="text-gray-400 hidden sm:inline">· {item.note}</span>}
             </div>
           </div>
         ))}
@@ -456,13 +456,13 @@ const GoalSummary = ({ goalSummary }) => {
 }
 
 const SummaryKPI = ({ label, value, sub, positive, icon: Icon }) => (
-  <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-lg px-4 py-3">
-    <div className="p-2 rounded-full bg-white/20">
-      <Icon className="w-5 h-5 text-white" />
+  <div className="flex items-center gap-2 sm:gap-3 bg-white/10 border border-white/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 min-w-0">
+    <div className="p-1.5 sm:p-2 rounded-full bg-white/20 flex-shrink-0">
+      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
     </div>
-    <div>
+    <div className="min-w-0">
       <p className="text-xs text-slate-200">{label}</p>
-      <p className="text-base font-semibold text-white">{value}</p>
+      <p className="text-sm sm:text-base font-semibold text-white truncate">{value}</p>
       <p className={`text-xs mt-1 ${positive ? 'text-emerald-300' : 'text-rose-300'}`}>
         {sub}
       </p>
@@ -478,8 +478,8 @@ const AssetPerformanceTable = ({ data }) => {
       <table className="w-full text-sm">
         <thead className="bg-gray-100">
           <tr>
-            <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">종목</th>
-            <th className="text-right px-4 py-2 text-xs font-semibold text-gray-600">평가손익</th>
+            <th className="text-left px-2 py-2 sm:px-4 text-xs font-semibold text-gray-600">종목</th>
+            <th className="text-right px-2 py-2 sm:px-4 text-xs font-semibold text-gray-600">평가손익</th>
           </tr>
         </thead>
         <tbody>
@@ -488,21 +488,22 @@ const AssetPerformanceTable = ({ data }) => {
             const Icon = positive ? ArrowUp : ArrowDown
             return (
               <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-2">
+                <td className="px-2 py-2 sm:px-4">
                   <div className="flex flex-col">
-                    <span className="font-medium text-gray-900">{row.name}</span>
+                    <span className="font-medium text-gray-900 text-xs sm:text-sm">{row.name}</span>
                     <span className="text-xs text-gray-500">{row.symbol} · {row.type}</span>
                   </div>
                 </td>
-                <td className="px-4 py-2 text-right">
-                  <div className={`inline-flex items-center gap-1 text-sm font-semibold ${
+                <td className="px-2 py-2 sm:px-4 text-right">
+                  <div className={`inline-flex items-center gap-1 text-xs sm:text-sm font-semibold ${
                     positive ? 'text-emerald-600' : 'text-rose-600'
                   }`}>
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{formatCurrency(row.profitKRW, 'KRW')}</span>
+                    <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <span className="truncate max-w-[120px] sm:max-w-none">{formatCurrency(row.profitKRW, 'KRW')}</span>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {row.profitPercent >= 0 ? '+' : ''}{row.profitPercent.toFixed(2)}% · 평가액 {formatCurrency(row.totalValueKRW, 'KRW')}
+                    {row.profitPercent >= 0 ? '+' : ''}{row.profitPercent.toFixed(2)}%
+                    <span className="hidden sm:inline"> · 평가액 {formatCurrency(row.totalValueKRW, 'KRW')}</span>
                   </div>
                 </td>
               </tr>
@@ -511,7 +512,7 @@ const AssetPerformanceTable = ({ data }) => {
         </tbody>
       </table>
       {data.length > displayData.length && (
-        <p className="text-xs text-gray-500 px-4 py-2 bg-gray-50 text-right">
+        <p className="text-xs text-gray-500 px-2 py-2 sm:px-4 bg-gray-50 text-right">
           외 {data.length - displayData.length}개 종목
         </p>
       )}

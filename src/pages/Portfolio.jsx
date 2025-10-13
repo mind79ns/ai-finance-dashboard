@@ -619,19 +619,19 @@ const Portfolio = () => {
   const assetTypes = ['전체', ...new Set(assets.map(a => a.type))]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">포트폴리오</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">포트폴리오</h2>
           {lastUpdate && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="text-right mr-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="text-right mr-2 sm:mr-3">
             <p className="text-xs text-gray-600">환율 (USD/KRW)</p>
             <p className="text-sm font-medium text-gray-900">₩{exchangeRate.toLocaleString()}</p>
           </div>
@@ -640,14 +640,14 @@ const Portfolio = () => {
       </div>
 
       {/* Portfolio Summary - Premium Design */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* 총 평가액 (원화 기준 통합) */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 p-6 shadow-xl">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 p-4 sm:p-6 shadow-xl">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
           <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
           <div className="relative">
-            <p className="text-sm font-medium text-blue-100 mb-2">총 평가액 (원화 통합)</p>
-            <p className="text-4xl font-bold text-white mb-4">
+            <p className="text-xs sm:text-sm font-medium text-blue-100 mb-2">총 평가액 (원화 통합)</p>
+            <p className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
               ₩{totalValueKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
             </p>
             <div className="space-y-2 pt-3 border-t border-blue-400/30">
@@ -668,7 +668,7 @@ const Portfolio = () => {
         </div>
 
         {/* 총 수익금 (원화 기준 통합) */}
-        <div className={`relative overflow-hidden rounded-2xl p-6 shadow-xl ${
+        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-xl ${
           totalProfitKRW >= 0
             ? 'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700'
             : 'bg-gradient-to-br from-red-500 via-rose-600 to-pink-700'
@@ -676,10 +676,10 @@ const Portfolio = () => {
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
           <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
           <div className="relative">
-            <p className={`text-sm font-medium mb-2 ${totalProfitKRW >= 0 ? 'text-emerald-100' : 'text-red-100'}`}>
+            <p className={`text-xs sm:text-sm font-medium mb-2 ${totalProfitKRW >= 0 ? 'text-emerald-100' : 'text-red-100'}`}>
               총 수익금 (원화 통합)
             </p>
-            <p className="text-4xl font-bold text-white mb-4">
+            <p className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
               {totalProfitKRW >= 0 ? '+' : ''}₩{totalProfitKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
             </p>
             <div className={`space-y-2 pt-3 border-t ${totalProfitKRW >= 0 ? 'border-emerald-400/30' : 'border-red-400/30'}`}>
@@ -704,7 +704,7 @@ const Portfolio = () => {
         </div>
 
         {/* 평균 수익률 */}
-        <div className={`relative overflow-hidden rounded-2xl p-6 shadow-xl ${
+        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-xl ${
           totalAvgProfitPercent >= 0
             ? 'bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-700'
             : 'bg-gradient-to-br from-orange-500 via-amber-600 to-yellow-700'
@@ -712,10 +712,10 @@ const Portfolio = () => {
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
           <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
           <div className="relative">
-            <p className={`text-sm font-medium mb-2 ${totalAvgProfitPercent >= 0 ? 'text-purple-100' : 'text-orange-100'}`}>
+            <p className={`text-xs sm:text-sm font-medium mb-2 ${totalAvgProfitPercent >= 0 ? 'text-purple-100' : 'text-orange-100'}`}>
               평균 수익률
             </p>
-            <p className="text-4xl font-bold text-white mb-4">
+            <p className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
               {totalAvgProfitPercent >= 0 ? '+' : ''}{(totalAvgProfitPercent || 0).toFixed(2)}%
             </p>
             <div className={`space-y-2 pt-3 border-t ${totalAvgProfitPercent >= 0 ? 'border-purple-400/30' : 'border-orange-400/30'}`}>
@@ -1054,17 +1054,17 @@ const Portfolio = () => {
           </div>
 
           {/* Filters and Sort */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             {/* Type Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">유형:</span>
-              <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-600 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700">유형:</span>
+              <div className="flex flex-wrap gap-2">
                 {assetTypes.map(type => (
                   <button
                     key={type}
                     onClick={() => setFilterType(type)}
-                    className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                    className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-lg transition-colors min-h-[32px] ${
                       filterType === type
                         ? 'bg-primary-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -1077,13 +1077,13 @@ const Portfolio = () => {
             </div>
 
             {/* Sort Options */}
-            <div className="flex items-center gap-2 ml-auto">
-              <SortAsc className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">정렬:</span>
+            <div className="flex items-center gap-2 sm:ml-auto">
+              <SortAsc className="w-4 h-4 text-gray-600 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700">정렬:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[32px]"
               >
                 <option value="default">기본</option>
                 <option value="value">평가액 높은순</option>
@@ -1118,60 +1118,62 @@ const Portfolio = () => {
 
       {/* Assets Table */}
       <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">보유 자산</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                전체 {assets.length}개 자산
-                {lastUpdate && (
-                  <span className="ml-2 text-xs text-gray-500">
-                    • 마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
-                  </span>
-                )}
-              </p>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">보유 자산</h3>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+              전체 {assets.length}개 자산
+              {lastUpdate && (
+                <span className="ml-2 text-xs text-gray-500 hidden sm:inline">
+                  • 마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
+                </span>
+              )}
+            </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowImportModal(true)}
-              className="btn-secondary flex items-center gap-2"
+              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
             >
               <Upload className="w-4 h-4" />
-              가져오기
+              <span className="hidden sm:inline">가져오기</span>
+              <span className="sm:hidden">가져오기</span>
             </button>
             <button
               onClick={handleCSVExport}
-              className="btn-secondary flex items-center gap-2"
+              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
               disabled={assets.length === 0}
             >
               <Download className="w-4 h-4" />
-              내보내기
+              <span className="hidden sm:inline">내보내기</span>
+              <span className="sm:hidden">내보내기</span>
             </button>
 
             {/* Selection mode toggle */}
             {!selectionMode ? (
               <button
                 onClick={handleToggleSelectionMode}
-                className="btn-secondary flex items-center gap-2"
+                className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
                 disabled={assets.length === 0}
               >
                 <Trash2 className="w-4 h-4" />
-                일괄 삭제
+                <span className="hidden sm:inline">일괄 삭제</span>
+                <span className="sm:hidden">삭제</span>
               </button>
             ) : (
               <>
                 <button
                   onClick={handleBulkDelete}
-                  className="btn-danger flex items-center gap-2"
+                  className="btn-danger flex items-center gap-2 text-xs sm:text-sm"
                   disabled={selectedAssets.length === 0}
                 >
                   <Trash2 className="w-4 h-4" />
-                  삭제 ({selectedAssets.length})
+                  <span className="hidden sm:inline">삭제 ({selectedAssets.length})</span>
+                  <span className="sm:hidden">삭제</span>
                 </button>
                 <button
                   onClick={handleToggleSelectionMode}
-                  className="btn-secondary flex items-center gap-2"
+                  className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
                 >
                   <X className="w-4 h-4" />
                   취소
@@ -1179,9 +1181,10 @@ const Portfolio = () => {
               </>
             )}
 
-            <button onClick={handleAddAsset} className="btn-primary flex items-center gap-2">
-              <PlusCircle className="w-5 h-5" />
-              자산 추가
+            <button onClick={handleAddAsset} className="btn-primary flex items-center gap-2 text-xs sm:text-sm">
+              <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">자산 추가</span>
+              <span className="sm:hidden">추가</span>
             </button>
           </div>
         </div>

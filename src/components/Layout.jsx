@@ -81,20 +81,21 @@ const Layout = ({ children }) => {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex items-center h-16 px-6 bg-white border-b border-gray-200">
+        <header className="sticky top-0 z-30 flex items-center h-14 sm:h-16 px-3 sm:px-6 bg-white border-b border-gray-200">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden mr-4"
+            className="lg:hidden mr-3 p-2 -ml-2 hover:bg-gray-100 rounded-lg touch-manipulation"
+            aria-label="메뉴 열기"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base sm:text-lg font-semibold truncate">
               {navigation.find(item => item.href === location.pathname)?.name || 'Dashboard'}
             </h2>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">
               {new Date().toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
@@ -105,7 +106,7 @@ const Layout = ({ children }) => {
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-3 sm:p-4 md:p-6">
           {children}
         </main>
       </div>
