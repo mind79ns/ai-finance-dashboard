@@ -1,60 +1,67 @@
-### 오류 진단 및 수정 제안서
+## 오류 분석 및 수정 제안서
 
-#### 오류 분석
-로그에서 발생한 오류는 다음과 같습니다:
+### 오류 설명
+
+로그에 나타난 오류는 다음과 같습니다:
 
 ```
 npm error Missing script: "test"
 ```
 
-이는 `package.json` 파일에 `test` 스크립트가 정의되어 있지 않음을 의미합니다. npm은 테스트를 실행하기 위해 `npm test` 또는 `npm run test` 명령어를 필요로 하는데, 이 스크립트가 없어 실행할 수 없는 상태입니다.
+이 오류는 `package.json` 파일에 `"test"` 스크립트가 정의되어 있지 않다는 것을 의미합니다. NPM은 `npm test` 명령어를 사용할 때 자동으로 `"test"` 스크립트를 찾지만, 해당 스크립트가 없어서 오류가 발생합니다.
 
-#### 수정 제안
+### 수정 제안
 
-1. **package.json 파일 수정하기**
-    - 먼저, 프로젝트의 루트 디렉토리에 있는 `package.json` 파일을 엽니다.
-    - 다음과 같은 `scripts` 섹션이 있는지 확인합니다. 만약 없다면 추가해야 합니다.
+1. **`package.json` 파일 열기**  
+   프로젝트의 루트 디렉토리에 위치한 `package.json` 파일을 엽니다.
 
-    ```json
-    {
-      "scripts": {
-        "test": "your-test-command-here"
-      }
-    }
-    ```
+2. **`scripts` 섹션 확인하기**  
+   `package.json` 파일 내의 `scripts` 섹션에 `"test"` 스크립트가 존재하지 않는지 확인합니다. 예를 들어:
 
-    이 경우 `your-test-command-here`를 실제 테스트를 실행하는 명령어로 바꿔야 합니다. 예를 들어 `jest`, `mocha` 등의 테스트 프레임워크를 사용할 경우 해당 명령어를 입력합니다.
+   ```json
+   "scripts": {
+       "start": "node index.js",
+       "build": "webpack --mode production"
+   }
+   ```
 
-    예시:
-    ```json
-    {
-      "scripts": {
-        "test": "jest"
-      }
-    }
-    ```
+3. **`"test"` 스크립트 추가하기**  
+   프로젝트에서 테스트를 실행할 수 있도록 `"test"` 스크립트를 추가합니다. 예를 들어, Jest를 사용하는 경우에는 다음과 같이 추가할 수 있습니다:
 
-2. **테스트 프레임워크 설치 확인하기**
-    - `test` 스크립트에 지정하는 테스트 프레임워크가 프로젝트에 설치되어 있는지 확인합니다. 필요한 경우 해당 프레임워크를 설치합니다.
-  
-    ```bash
-    npm install --save-dev jest
-    ```
+   ```json
+   "scripts": {
+       "start": "node index.js",
+       "build": "webpack --mode production",
+       "test": "jest"
+   }
+   ```
 
-3. **테스트 명령어 확인하기**
-    - 사용할 테스트 명령어가 올바른지, 그리고 옵션이나 환경 변수가 필요한지 확인합니다. 사용하는 프레임워크의 문서를 참고하여 올바른 명령어를 작성합니다.
+   만약 다른 테스트 프레임워크(예: Mocha, Jasmine 등)를 사용하고 있다면 해당 프레임워크에 맞는 명령어를 확인하여 `"test"` 스크립트를 정의해주십시오.
 
-4. **변경사항 커밋 및 푸시하기**
-    - `package.json` 파일을 수정한 후, 변경 사항을 커밋하고 원격 저장소에 푸시합니다.
+4. **정의 후 테스트**  
+   `"test"` 스크립트를 추가한 후, 다음 명령어를 통해 테스트가 정상적으로 실행되는지 확인합니다:
 
-    ```bash
-    git add package.json
-    git commit -m "Add test script to package.json"
-    git push
-    ```
+   ```bash
+   npm test
+   ```
 
-5. **CI/CD 파이프라인 재실행**
-    - 수정 후 CI/CD 파이프라인을 재실행하여 문제가 해결되었는지 확인합니다.
+### 예시
 
-#### 결론
-위의 단계를 따라 `test` 스크립트를 `package.json`에 추가한 후, 빌드 및 배포 파이프라인이 정상적으로 작동하는지 확인하세요. 이 작업이 완료되면, CI/CD의 오류가 해결될 것입니다.
+이제, 최종적으로 `package.json`의 `scripts` 섹션 예시는 아래와 같을 수 있습니다:
+
+```json
+{
+  "name": "your-project-name",
+  "version": "1.0.0",
+  "scripts": {
+      "start": "node index.js",
+      "build": "webpack --mode production",
+      "test": "jest"
+  },
+  "devDependencies": {
+      "jest": "^27.0.0"  // jest 버전은 필요에 따라 조정
+  }
+}
+```
+
+이런 방식으로 수정 후에는 더 이상 `Missing script: "test"` 오류가 발생하지 않을 것입니다.
