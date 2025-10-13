@@ -6,6 +6,7 @@ import SlidePanel from '../components/SlidePanel'
 import AssetDetailView from '../components/AssetDetailView'
 import marketDataService from '../services/marketDataService'
 import kisService from '../services/kisService'
+import dataSync from '../utils/dataSync'
 
 const Portfolio = () => {
   const [assets, setAssets] = useState([])
@@ -38,31 +39,37 @@ const Portfolio = () => {
   const [editingAccount, setEditingAccount] = useState(null)
   const skipPriceUpdateRef = useRef(false)
 
-  // Load assets from localStorage on mount
+  // Load portfolio assets and account principals on mount (with Supabase sync)
   useEffect(() => {
-    const savedAssets = localStorage.getItem('portfolio_assets')
-    if (savedAssets) {
+    const loadData = async () => {
       try {
-        setAssets(JSON.parse(savedAssets))
+        // Load portfolio assets (Supabase → localStorage fallback)
+        const loadedAssets = await dataSync.loadPortfolioAssets()
+        setAssets(loadedAssets)
+
+        // Load account principals (Supabase → localStorage fallback)
+        const loadedPrincipals = await dataSync.loadAccountPrincipals()
+        setAccountPrincipals(loadedPrincipals)
       } catch (error) {
-        console.error('Failed to load assets from localStorage:', error)
+        console.error('Failed to load data:', error)
+        // Fallback to empty state - app still works
+        setAssets([])
+        setAccountPrincipals({})
       }
     }
 
-    // Load account principals
-    const savedPrincipals = localStorage.getItem('account_principals')
-    if (savedPrincipals) {
-      try {
-        setAccountPrincipals(JSON.parse(savedPrincipals))
-      } catch (error) {
-        console.error('Failed to load account principals:', error)
-      }
-    }
+    loadData()
   }, [])
 
-  // Save account principals to localStorage
+  // Save account principals to localStorage + Supabase
   useEffect(() => {
-    localStorage.setItem('account_principals', JSON.stringify(accountPrincipals))
+    // Only sync if we have data (avoid syncing on initial empty state)
+    if (Object.keys(accountPrincipals).length === 0) return
+
+    // Sync each account principal to localStorage + Supabase
+    Object.entries(accountPrincipals).forEach(async ([accountName, principalData]) => {
+      await dataSync.saveAccountPrincipal(accountName, principalData)
+    })
   }, [accountPrincipals])
 
   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
@@ -172,7 +179,8 @@ const Portfolio = () => {
         if (!cancelled) {
           skipPriceUpdateRef.current = true
           setAssets(updatedAssets)
-          localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
+          // Sync price updates to localStorage + Supabase
+          await dataSync.savePortfolioAssets(updatedAssets)
           setLastUpdate(new Date())
         }
       } catch (error) {
@@ -281,7 +289,7 @@ const Portfolio = () => {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     const quantity = parseFloat(formData.quantity)
@@ -304,17 +312,23 @@ const Portfolio = () => {
       category: formData.category
     }
 
+    // Add asset using dataSync (localStorage + Supabase)
+    await dataSync.addPortfolioAsset(newAsset)
+
+    // Update local state
     const updatedAssets = [...assets, newAsset]
     setAssets(updatedAssets)
-    localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
     handleCloseModal()
   }
 
-  const handleDeleteAsset = (id) => {
+  const handleDeleteAsset = async (id) => {
     if (window.confirm('이 자산을 삭제하시겠습니까?')) {
+      // Delete using dataSync (localStorage + Supabase)
+      await dataSync.deletePortfolioAsset(id)
+
+      // Update local state
       const updatedAssets = assets.filter(asset => asset.id !== id)
       setAssets(updatedAssets)
-      localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
     }
   }
 
@@ -345,16 +359,19 @@ const Portfolio = () => {
   }
 
   // Bulk delete selected assets
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedAssets.length === 0) {
       alert('삭제할 자산을 선택해주세요.')
       return
     }
 
     if (window.confirm(`선택한 ${selectedAssets.length}개의 자산을 삭제하시겠습니까?`)) {
+      // Bulk delete using dataSync (localStorage + Supabase)
+      await dataSync.bulkDeletePortfolioAssets(selectedAssets)
+
+      // Update local state
       const updatedAssets = assets.filter(asset => !selectedAssets.includes(asset.id))
       setAssets(updatedAssets)
-      localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
       setSelectedAssets([])
       setSelectionMode(false)
       alert(`${selectedAssets.length}개의 자산이 삭제되었습니다.`)
@@ -390,7 +407,7 @@ const Portfolio = () => {
     const reader = new FileReader()
 
     // First, try reading as ArrayBuffer to detect encoding
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const arrayBuffer = e.target.result
         let text
@@ -498,8 +515,11 @@ const Portfolio = () => {
 
         if (importedAssets.length > 0) {
           const updatedAssets = [...assets, ...importedAssets]
+
+          // Save imported assets using dataSync (localStorage + Supabase)
+          await dataSync.savePortfolioAssets(updatedAssets)
+
           setAssets(updatedAssets)
-          localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
           alert(`✅ ${importedAssets.length}개 자산을 성공적으로 가져왔습니다!`)
           setShowImportModal(false)
         } else {
