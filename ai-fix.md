@@ -1,70 +1,50 @@
-## 오류 분석 및 수정 제안서
+## 수정 제안서: NPM "Missing script: 'test'" 오류
 
-### 오류 개요
-로그에서 발생한 오류는 다음과 같습니다:
-```
-npm error Missing script: "test"
-```
-이 오류는 `npm`이 `test`라는 이름의 스크립트를 `package.json` 파일에서 찾을 수 없음을 나타냅니다. CI/CD 파이프라인에서 `test` 단계가 필요한데, 해당 단계가 정의되어 있지 않아 테스트를 실행할 수 없습니다.
+### 오류 분석
+제공된 오류 로그에 따르면, NPM이 "test" 스크립트를 찾을 수 없다는 메시지를 보고합니다. 이는 기본적으로 `package.json` 파일 내에 "test" 스크립트가 정의되어 있지 않거나, 올바르게 설정되지 않았음을 의미합니다.
 
-### 문제 원인
-1. **`package.json` 파일의 누락**: `package.json` 파일이 프로젝트에서 존재하지 않거나 손상된 경우.
-2. **`scripts` 섹션의 미비**: `package.json`의 `scripts` 섹션에 `test` 스크립트가 정의되지 않은 경우.
+### 해결 방법
 
-### 수정 제안
-
-1. **`package.json` 파일 확인**
-   - 루트 디렉토리에 `package.json` 파일이 존재하는지 확인합니다.
-
-   ```bash
-   ls
-   ```
-
-   만약 없다면, 새로운 `package.json`을 생성할 수 있습니다:
-
-   ```bash
-   npm init -y
-   ```
-
-2. **`test` 스크립트 추가**
-   - `package.json` 파일을 열어 `scripts` 섹션에 `test` 스크립트를 추가해야 합니다. 
-   - 기본적인 테스트 스크립트는 보통 다음과 같이 설정됩니다:
+1. **package.json 확인**:
+   먼저, 프로젝트의 루트 디렉터리에서 `package.json` 파일을 열고 "scripts" 섹션을 확인하세요. 아래는 `package.json`의 예시입니다.
 
    ```json
    {
+     "name": "your-project-name",
+     "version": "1.0.0",
      "scripts": {
-       "test": "echo \"No tests specified\" && exit 0"
+       "start": "node index.js",
+       "test": "jest"  // or another testing framework command
+     },
+     "dependencies": {
+       // your dependencies
+     },
+     "devDependencies": {
+       // your dev dependencies
      }
    }
    ```
 
-   실질적으로 테스트를 수행하고자 하는 프레임워크에 따라 아래 예시와 같이 변경할 수 있습니다:
-   - **Jest 사용하는 경우**:
-     ```json
-     {
-       "scripts": {
-         "test": "jest"
-       }
-     }
-     ```
-   - **Mocha 사용하는 경우**:
-     ```json
-     {
-       "scripts": {
-         "test": "mocha"
-       }
-     }
-     ```
-3. **변경 사항 반영**
-   - 변경 후, `npm run test`를 실행하여 오류가 해결되었는지 확인합니다.
+2. **"test" 스크립트 추가**:
+   만약 "test" 스크립트가 없다면, 필요에 따라 적절한 테스트 프레임워크(예: Jest, Mocha 등)에 따라 "test" 스크립트를 추가하십시오. 예를 들어, Jest를 사용하는 경우 위 예제와 같이 `"test": "jest"`를 추가할 수 있습니다.
+
+3. **NPM 스크립트 실행**:
+   "test" 스크립트를 추가한 후, 터미널에서 다음 명령을 실행하여 스크립트를 실행할 수 있는지 확인하세요.
 
    ```bash
    npm run test
    ```
 
-### 추가 확인 사항
-- CI/CD 설정에서 `npm install` 명령어가 먼저 실행되는지 확인합니다. 의존성이 제대로 설치되어야 `test` 명령어가 제대로 작동합니다.
-- 다른 필수 테스트 도구나 라이브러리(예: Jest, Mocha 등)가 `devDependencies`에 설치되어 있는지 확인합니다.
+4. **개발 종속성 설치 확인**:
+   테스트에 필요한 모든 종속성이 설치되었는지 확인하세요. 만약 `devDependencies` 섹션에 테스트 프레임워크가 없거나 설치되지 않았다면, 아래와 같은 명령어로 설치하십시오.
+
+   ```bash
+   npm install --save-dev jest  // Jest의 경우
+   ```
+
+5. **최종 검토**:
+   - 변경 사항을 저장하고, 터미널을 다시 열어 `npm run test` 를 실행하여 문제 해결 여부를 확인하세요.
+   - 여전히 문제가 발생한다면, `package.json` 파일과 함께 추가 오류 메시지를 검토하여 다른 문제를 찾아야 할 수 있습니다.
 
 ### 결론
-주어진 오류의 원인은 `test` 스크립트의 부재로 발생했으며, 위의 수정 사항을 적용하여 이를 해결할 수 있습니다. `package.json` 파일을 적절하게 수정하고, 필요한 라이브러리를 설치한 다음, CI/CD 파이프라인의 `test` 단계를 정상적으로 실행할 수 있게 됩니다.
+NPM에서 "Missing script: 'test'" 오류를 해결하려면, `package.json`의 "scripts" 섹션에 "test" 항목을 추가하고 적절한 테스트 명령을 설정하는 것이 필요합니다. 이 변경 후, 해당 명령이 정상적으로 실행되는지 확인하면 됩니다.

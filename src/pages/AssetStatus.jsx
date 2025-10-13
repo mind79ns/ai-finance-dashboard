@@ -65,11 +65,31 @@ const DEFAULT_ACCOUNT_TYPES = [
   { id: 'toss', name: '토스 투자', icon: 'TrendingUp' },
   { id: 'samsung', name: '삼성증권', icon: 'TrendingUp' },
   { id: 'korea', name: '한국투자증권', icon: 'TrendingUp' },
-  { id: 'mirae', name: '미래에셋증권', icon: 'TrendingUp' },
+  { id: 'mirae', name: '미래에셋', icon: 'TrendingUp' },
   { id: 'samsung2', name: '삼성생명보험', icon: 'PiggyBank' },
   { id: 'union', name: '오리경영보험', icon: 'PiggyBank' },
   { id: 'gold', name: '골드', icon: 'DollarSign' }
 ]
+
+const PORTFOLIO_ACCOUNT_GROUPS = {
+  '미래에셋': [
+    '미래에셋_종합_해외',
+    '미래에셋_ISA(중개형)',
+    '미래에셋_종합국내',
+    '미래에셋_연금저축계좌(신)'
+  ]
+}
+
+const mapPortfolioAccountName = (name) => {
+  if (!name) return '기본계좌'
+  const normalized = normalizeAccountKey(name)
+  for (const [canonical, aliases] of Object.entries(PORTFOLIO_ACCOUNT_GROUPS)) {
+    if (aliases.some(alias => normalizeAccountKey(alias) === normalized)) {
+      return canonical
+    }
+  }
+  return name
+}
 
 const ASSET_CATEGORIES = [
   { id: 'bank', name: '은행계좌' },
@@ -202,7 +222,8 @@ const AssetStatus = () => {
         const metricsMap = {}
 
         const ensureEntry = (accountName) => {
-          const key = accountName || '기본계좌'
+          const canonicalName = mapPortfolioAccountName(accountName)
+          const key = canonicalName || '기본계좌'
           if (!metricsMap[key]) {
             metricsMap[key] = {
               accountName: key,
