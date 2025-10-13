@@ -19,18 +19,26 @@ const Goals = () => {
   const [portfolioAssets, setPortfolioAssets] = useState([])
 
   const updateGoalsState = useCallback((updater) => {
-    let nextGoals = []
-
     setGoals(prevGoals => {
-      nextGoals = typeof updater === 'function' ? updater(prevGoals) : updater
+      const nextGoals = typeof updater === 'function' ? updater(prevGoals) : updater
+
+      // 즉시 localStorage에 동기 저장 (페이지 이동 시 데이터 유실 방지)
+      if (Array.isArray(nextGoals)) {
+        try {
+          localStorage.setItem('investment_goals', JSON.stringify(nextGoals))
+          console.log('✅ Goals saved to localStorage (sync)')
+
+          // Supabase에 비동기 저장 (실패해도 괜찮음)
+          dataSync.saveGoals(nextGoals).catch(error => {
+            console.warn('⚠️ Supabase sync failed (localStorage saved):', error)
+          })
+        } catch (error) {
+          console.error('❌ Failed to save goals to localStorage:', error)
+        }
+      }
+
       return nextGoals
     })
-
-    if (Array.isArray(nextGoals)) {
-      dataSync.saveGoals(nextGoals).catch(error => {
-        console.warn('⚠️ Failed to sync goals:', error)
-      })
-    }
   }, [])
 
   // Load goals & portfolio assets with Supabase sync support
