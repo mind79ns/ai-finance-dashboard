@@ -373,16 +373,17 @@ export const syncPortfolios = async (assets = [], userId = DEFAULT_USER_ID) => {
 
     if (fetchError) throw fetchError
 
-    const incomingIds = new Set(payload.map(item => item.id))
+    const incomingIds = new Set(payload.map(item => String(item.id)))
     const staleIds = (existingRows || [])
-      .map(row => row.id)
+      .map(row => String(row.id))
       .filter(id => !incomingIds.has(id))
 
     if (staleIds.length > 0) {
+      const deleteIds = staleIds.map(id => Number(id))
       const { error: deleteError } = await supabase
         .from('portfolios')
         .delete()
-        .in('id', staleIds)
+        .in('id', deleteIds)
 
       if (deleteError) throw deleteError
     }
@@ -586,16 +587,17 @@ export const syncGoals = async (goals = [], userId = DEFAULT_USER_ID) => {
 
     if (fetchError) throw fetchError
 
-    const incomingIds = new Set(payload.map(item => item.id))
+    const incomingIds = new Set(payload.map(item => String(item.id)))
     const staleIds = (existingRows || [])
-      .map(row => row.id)
+      .map(row => String(row.id))
       .filter(id => !incomingIds.has(id))
 
     if (staleIds.length > 0) {
+      const deleteIds = staleIds.map(id => Number(id))
       const { error: deleteError } = await supabase
         .from('goals')
         .delete()
-        .in('id', staleIds)
+        .in('id', deleteIds)
 
       if (deleteError) throw deleteError
     }
@@ -736,16 +738,17 @@ export const syncInvestmentLogs = async (logs = [], userId = DEFAULT_USER_ID) =>
 
     if (fetchError) throw fetchError
 
-    const incomingIds = new Set(payload.map(item => item.id))
+    const incomingIds = new Set(payload.map(item => String(item.id)))
     const staleIds = (existingRows || [])
-      .map(row => row.id)
+      .map(row => String(row.id))
       .filter(id => !incomingIds.has(id))
 
     if (staleIds.length > 0) {
+      const deleteIds = staleIds.map(id => Number(id))
       const { error: deleteError } = await supabase
         .from('investment_logs')
         .delete()
-        .in('id', staleIds)
+        .in('id', deleteIds)
 
       if (deleteError) throw deleteError
     }
