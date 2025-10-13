@@ -2,26 +2,44 @@
 
 ## ⚠️ 중요: 기존 테이블 삭제 필요
 
-만약 이전에 SQL을 실행했다면, 먼저 **기존 테이블을 삭제**해야 합니다:
+만약 이전에 SQL을 실행했다면, 먼저 **완전히 삭제**해야 합니다:
 
-### Supabase Dashboard → SQL Editor → New Query
+### 방법 1: SQL 파일 사용 (권장) ✅
+
+1. 프로젝트 루트의 **`supabase-drop-all.sql`** 파일 열기
+2. 전체 복사 (Ctrl+A → Ctrl+C)
+3. Supabase Dashboard → **SQL Editor** → **New Query**
+4. 붙여넣기 (Ctrl+V) → **"Run" 버튼 클릭**
+5. ✅ "Success. No rows returned" 확인
+
+### 방법 2: 직접 복사
+
+Supabase Dashboard → SQL Editor → New Query에 다음 붙여넣기:
 
 ```sql
--- 기존 테이블 삭제 (순서 중요: 트리거/정책 먼저 삭제)
+-- 1. 트리거 삭제
 DROP TRIGGER IF EXISTS update_portfolios_updated_at ON public.portfolios;
 DROP TRIGGER IF EXISTS update_account_principals_updated_at ON public.account_principals;
 DROP TRIGGER IF EXISTS update_goals_updated_at ON public.goals;
 DROP TRIGGER IF EXISTS update_investment_logs_updated_at ON public.investment_logs;
 
+-- 2. 정책(Policy) 삭제
+DROP POLICY IF EXISTS "Enable all access for all users" ON public.portfolios;
+DROP POLICY IF EXISTS "Enable all access for all users" ON public.account_principals;
+DROP POLICY IF EXISTS "Enable all access for all users" ON public.goals;
+DROP POLICY IF EXISTS "Enable all access for all users" ON public.investment_logs;
+
+-- 3. 테이블 삭제
 DROP TABLE IF EXISTS public.portfolios CASCADE;
 DROP TABLE IF EXISTS public.account_principals CASCADE;
 DROP TABLE IF EXISTS public.goals CASCADE;
 DROP TABLE IF EXISTS public.investment_logs CASCADE;
 
+-- 4. 함수 삭제
 DROP FUNCTION IF EXISTS update_updated_at_column();
 ```
 
-**"Run" 버튼 클릭** → "Success" 확인 후 아래 단계 진행
+**"Run" 버튼 클릭** → ✅ "Success" 확인 후 아래 단계 진행
 
 ---
 
