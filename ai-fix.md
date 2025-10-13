@@ -1,48 +1,50 @@
-# 수정 제안서: CI/CD Build 및 Lint 오류
+## 오류 분석 및 수정 제안서
 
-## 오류 분석
-제공된 로그에 따르면 `npm test` 명령어를 실행하려고 했지만 "test" 스크립트가 `package.json` 파일에 정의되어 있지 않아 오류가 발생했습니다. 이로 인해 CI/CD 파이프라인의 test 단계가 실패했습니다.
-
+### 오류 요약
+발생한 오류는 다음과 같습니다:
 ```
-npm error Missing script: "test"
+ERROR: Expected ")" but found "{"
 ```
+이 오류는 `src/pages/AssetStatus.jsx` 파일의 1690번째 줄에서 발생했습니다. 문제의 코드 조각은 `activeMetricPicker`가 참일 경우 JSX 코드를 렌더링하는 부분입니다.
 
-## 문제의 원인
-- `package.json` 파일에 "test" 스크립트가 없거나 잘못 정의되어 있습니다. 
-- 일반적으로 Node.js 프로젝트에서 `npm test`는 테스트 스크립트를 실행하기 위한 명령어로 사용됩니다. 
-
-## 수정 제안
-1. **package.json 파일 확인 및 수정**
-   - `package.json` 파일을 열어 "scripts" 섹션에 "test" 스크립트를 추가합니다. 
-
-### `package.json` 예제 수정
-다음은 `package.json` 파일에서 "test" 스크립트를 추가하는 방법입니다. 이 예제에서는 테스트 도구로 `jest`를 사용한다고 가정합니다.
-
-```json
-{
-  "name": "your-project-name",
-  "version": "1.0.0",
-  "scripts": {
-    "test": "jest"
-  },
-  "devDependencies": {
-    "jest": "^27.0.0"
-  }
-}
+### 오류 위치
+오류는 다음과 같은 코드에서 발생합니다:
+```jsx
+1690|      {activeMetricPicker && ( 
 ```
 
-2. **테스트 도구 설치**
-   - 스크립트에서 사용하는 테스트 도구(`jest` 등)가 `devDependencies`에 포함되어 있지 않다면 설치해야 합니다. 아래 명령어를 실행하여 필요한 모듈을 설치합니다.
+### 문제 설명
+JavaScript에서 JSX를 사용할 때, 조건부 렌더링 구문이 올바르게 닫히지 않았거나 문법적인 실수로 인해 컴파일러가 `")"`를 기대하고 있습니다. 보통 이 오류는 괄호, 중괄호의 불일치, 또는 JSX 문법 문제 때문에 발생합니다.
 
-   ```bash
-   npm install --save-dev jest
-   ```
+### 수정 제안
+1. **괄호와 중괄호 점검**: JSX 표현식이 올바르게 열리고 닫히는지 확인합니다. 아래와 같은 수정된 코드를 제안합니다.
 
-3. **테스트 실행 및 확인**
-   - 수정 후 `npm test` 명령어를 통해 테스트가 제대로 실행되는지 확인합니다.
+2. **올바른 JSX 구조**:
+   - 현재 코드에서 `activeMetricPicker`와 조건부 렌더링이 있는 부분을 확인하고, JSX가 올바르게 닫히고 있는지 조사합니다.
 
-4. **CI/CD 설정 파일 검토**
-   - 만약 CI/CD 환경에서 특정 테스트 명령어가 필요하다면 해당 설정 파일(예: `.travis.yml`, `circleci/config.yml`, `GitHub Actions`)을 확인하고 필요한 경우 조정합니다.
+다음은 제안하는 수정 사항입니다:
 
-## 결론
-위의 수정 사항을 적용하면 "Missing script: 'test'" 오류를 해결하고 CI/CD 파이프라인의 test 단계가 정상적으로 실행될 것입니다. 모든 변경 사항을 Git에 커밋하고 CI/CD 파이프라인을 다시 실행하여 결과를 확인해 보십시오.
+```jsx
+// 기존 코드
+{activeMetricPicker && (
+  <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 p-6 space-y-4">
+      {/* 추가 코드 내용 */}
+    </div>
+  </div>
+)}
+```
+
+### 검토해야 할 내용
+- **중괄호와 괄호**: JSX에서 `{}` 안에 JSX 요소가 올바르게 포함되어 있는지, 모든 여는 괄호와 닫는 괄호의 쌍이 맞는지 확인합니다.
+  
+- **JSX 내부에서 조건부 표현**: 만약 추가적인 조건부 표현(connection)이 필요하면 그 부분을 검토하여 올바르게 수정하십시오.
+
+### 테스트
+수정한 후, 다음 명령어로 프로젝트를 다시 빌드하여 오류가 해결되었는지 확인합니다:
+```bash
+npm run build
+```
+
+### 결론
+위의 수정 사항을 반영하면 예상되는 빌드 오류를 해결할 수 있을 것입니다. 문제가 지속되면 더 많은 정보나 코드 주위를 확인하여 추가 조사를 수행하는 것이 좋습니다. 이때 발생하는 새로운 오류에 대한 로그를 검토하여 추가적인 수정이 필요할 수 있습니다.

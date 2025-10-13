@@ -1503,6 +1503,9 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
 // Edit Account Modal Component
 const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, portfolioMetrics }) => {
   const [formData, setFormData] = useState({})
+  const [activeMetricPicker, setActiveMetricPicker] = useState(null)
+  const [selectedPortfolioAccount, setSelectedPortfolioAccount] = useState('')
+  const [selectedPortfolioMetric, setSelectedPortfolioMetric] = useState('evaluationAmount')
 
   useEffect(() => {
     const initial = {}
@@ -1516,6 +1519,29 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
     setFormData(initial)
   }, [accountData, accountTypes])
 
+  const portfolioAccountOptions = useMemo(() => {
+    if (!portfolioMetrics || typeof portfolioMetrics !== 'object') return []
+    return Object.values(portfolioMetrics)
+      .filter(entry => entry && entry.accountName)
+      .map(entry => ({
+        accountName: entry.accountName,
+        label: entry.accountName,
+        metrics: entry
+      }))
+  }, [portfolioMetrics])
+
+  useEffect(() => {
+    if (portfolioAccountOptions.length === 0) return
+    if (!selectedPortfolioAccount) {
+      setSelectedPortfolioAccount(portfolioAccountOptions[0].accountName)
+      return
+    }
+    const exists = portfolioAccountOptions.some(opt => opt.accountName === selectedPortfolioAccount)
+    if (!exists) {
+      setSelectedPortfolioAccount(portfolioAccountOptions[0].accountName)
+    }
+  }, [portfolioAccountOptions, selectedPortfolioAccount])
+
   const handleChange = (accountId, categoryId, value) => {
     setFormData(prev => ({
       ...prev,
@@ -1526,10 +1552,37 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
     }))
   }
 
-  const handleApplyMetric = (accountId, categoryId, metricValue) => {
+  const formatMetricValue = (value) => {
+    if (!Number.isFinite(value)) return '-'
+    return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value))
+  }
+
+  const metricOptions = [
+    { key: 'evaluationAmount', label: '평가금액(원)' },
+    { key: 'investmentAmount', label: '투자금' },
+    { key: 'principal', label: '원금' },
+    { key: 'remaining', label: '예수금(잔여)' }
+  ]
+
+  const getMetricValue = (accountName, metricKey) => {
+    if (!portfolioMetrics) return null
+    const entry = portfolioMetrics[accountName]
+      || Object.values(portfolioMetrics).find(opt => normalizeAccountKey(opt?.accountName) === normalizeAccountKey(accountName))
+    if (!entry) return null
+    return entry[metricKey]
+  }
+
+  const handleApplySelectedMetric = () => {
+    if (!activeMetricPicker) return
+    if (!selectedPortfolioAccount || !selectedPortfolioMetric) return
+    const metricValue = getMetricValue(selectedPortfolioAccount, selectedPortfolioMetric)
     const numericValue = Number(metricValue)
-    if (!Number.isFinite(numericValue)) return
+    if (!Number.isFinite(numericValue)) {
+      setActiveMetricPicker(null)
+      return
+    }
     const roundedValue = Math.round(numericValue)
+    const { accountId, categoryId } = activeMetricPicker
     setFormData(prev => ({
       ...prev,
       [accountId]: {
@@ -1537,23 +1590,16 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
         [categoryId]: String(roundedValue)
       }
     }))
+    setActiveMetricPicker(null)
   }
 
-  const formatMetricValue = (value) => {
-    if (!Number.isFinite(value)) return '-'
-    return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value))
+  const handleOpenMetricPicker = (accountId, categoryId) => {
+    if (portfolioAccountOptions.length === 0) return
+    setActiveMetricPicker({ accountId, categoryId })
   }
 
-  const getMetricsForAccount = (accountName) => {
-    if (!portfolioMetrics) return null
-    if (portfolioMetrics[accountName]) return portfolioMetrics[accountName]
-    const normalized = normalizeAccountKey(accountName)
-    if (!normalized) return null
-    const matchedEntry = Object.values(portfolioMetrics).find(entry =>
-      normalizeAccountKey(entry?.accountName) === normalized ||
-      entry?.normalizedName === normalized
-    )
-    return matchedEntry || null
+  const handleCloseMetricPicker = () => {
+    setActiveMetricPicker(null)
   }
 
   const handleSubmit = (e) => {
@@ -1592,15 +1638,6 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
               <tbody>
                 {accountTypes.map((acc, idx) => {
                   const Icon = getIconComponent(acc.icon)
-                  const metrics = getMetricsForAccount(acc.name)
-                  const metricButtons = metrics
-                    ? [
-                        { key: 'evaluationAmount', label: '평가금액', value: metrics.evaluationAmount },
-                        { key: 'investmentAmount', label: '투자금', value: metrics.investmentAmount },
-                        { key: 'principal', label: '원금', value: metrics.principal },
-                        { key: 'remaining', label: '예수금', value: metrics.remaining }
-                      ].filter(item => Number.isFinite(item.value) && Math.abs(item.value) > 0)
-                    : []
                   return (
                     <tr key={acc.id} className={`border-b border-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                       <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 z-10" style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f9fafb' }}>
@@ -1611,7 +1648,7 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                       </td>
                       {ASSET_CATEGORIES.map(cat => (
                         <td key={cat.id} className="py-2 px-2">
-                          <div className="flex flex-col gap-1">
+                          <div className="flex flex-col gap-2">
                             <input
                               type="number"
                               value={formData[acc.id]?.[cat.id] || ''}
@@ -1619,23 +1656,14 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                               className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right text-sm"
                               placeholder="0"
                             />
-                            {metricButtons.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {metricButtons.map(option => (
-                                  <button
-                                    key={option.key}
-                                    type="button"
-                                    onClick={() => handleApplyMetric(acc.id, cat.id, option.value)}
-                                    className="px-2 py-1 text-[11px] border border-primary-200 text-primary-600 rounded bg-primary-50 hover:bg-primary-100 transition-colors"
-                                    title={`${option.label}: ${formatMetricValue(option.value)}원`}
-                                  >
-                                    {option.label}
-                                    <span className="ml-1 text-primary-500">
-                                      {formatMetricValue(option.value)}
-                                    </span>
-                                  </button>
-                                ))}
-                              </div>
+                            {portfolioAccountOptions.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenMetricPicker(acc.id, cat.id)}
+                                className="px-2 py-1 text-[11px] border border-primary-200 text-primary-600 rounded bg-primary-50 hover:bg-primary-100 transition-colors self-end"
+                              >
+                                포트폴리오 값 선택
+                              </button>
                             )}
                           </div>
                         </td>
@@ -1658,6 +1686,72 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
         </form>
       </div>
     </div>
+
+    {activeMetricPicker && (
+      <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-semibold text-gray-900">포트폴리오 금액 적용</h4>
+            <button onClick={handleCloseMetricPicker} className="text-gray-500 hover:text-gray-700">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {portfolioAccountOptions.length === 0 ? (
+            <p className="text-sm text-gray-600">포트폴리오 데이터가 없습니다. 먼저 포트폴리오에 계좌별 자산을 추가해주세요.</p>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">계좌 선택</label>
+                <select
+                  value={selectedPortfolioAccount}
+                  onChange={(e) => setSelectedPortfolioAccount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                >
+                  {portfolioAccountOptions.map(option => (
+                    <option key={option.accountName} value={option.accountName}>
+                      {option.accountName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">항목 선택</label>
+                <select
+                  value={selectedPortfolioMetric}
+                  onChange={(e) => setSelectedPortfolioMetric(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                >
+                  {metricOptions.map(option => (
+                    <option key={option.key} value={option.key}>
+                      {option.label} ({formatMetricValue(getMetricValue(selectedPortfolioAccount, option.key))}원)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleApplySelectedMetric}
+                  className="btn-primary flex-1"
+                >
+                  적용
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseMetricPicker}
+                  className="btn-secondary flex-1"
+                >
+                  취소
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )}
   )
 }
 
