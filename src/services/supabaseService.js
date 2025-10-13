@@ -549,7 +549,7 @@ export const checkSupabaseConnection = async () => {
 }
 
 // Supabase 설정 여부 확인
-export const isSupabaseConfigured = () => {
+export const getSupabaseStatus = () => {
   return !!supabase
 }
 
