@@ -146,6 +146,57 @@ const mapLogFromSupabase = (item) => {
 
 /**
  * ==========================================
+ * Generic User Settings 헬퍼
+ * ==========================================
+ */
+
+export const getUserSetting = async (key, userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('value')
+      .eq('user_id', userId)
+      .eq('key', key)
+      .maybeSingle()
+
+    if (error) {
+      throw error
+    }
+
+    return data ? data.value : null
+  } catch (error) {
+    console.error(`Error fetching user setting (${key}):`, error)
+    throw error
+  }
+}
+
+export const setUserSetting = async (key, value, userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
+  try {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .upsert({
+        user_id: userId,
+        key,
+        value,
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error(`Error saving user setting (${key}):`, error)
+    throw error
+  }
+}
+
+/**
+ * ==========================================
  * Portfolio 관련 함수
  * ==========================================
  */
@@ -766,6 +817,25 @@ export const migrateFromLocalStorage = async (userId = DEFAULT_USER_ID) => {
       }
     }
 
+    // 5. Asset status / account settings 마이그레이션
+    const migrateSetting = async (storageKey) => {
+      const raw = localStorage.getItem(storageKey)
+      if (!raw) return
+      try {
+        const parsed = JSON.parse(raw)
+        await setUserSetting(storageKey, parsed, userId)
+        console.log(`✅ Setting "${storageKey}" migrated successfully`)
+      } catch (error) {
+        console.warn(`⚠️ Failed to migrate setting "${storageKey}":`, error)
+      }
+    }
+
+    await migrateSetting('asset_status_data')
+    await migrateSetting('asset_account_data')
+    await migrateSetting('asset_income_categories')
+    await migrateSetting('asset_expense_categories')
+    await migrateSetting('asset_account_types')
+
     console.log('🎉 Migration completed successfully!')
     return { success: true, message: 'Data migration completed' }
   } catch (error) {
@@ -833,5 +903,7 @@ export default {
   // Utilities
   migrateFromLocalStorage,
   checkSupabaseConnection,
-  getSupabaseStatus
+  getSupabaseStatus,
+  getUserSetting,
+  setUserSetting
 }

@@ -76,29 +76,34 @@ const Goals = () => {
 
   // Load portfolio data and calculate totals
   useEffect(() => {
-    const loadPortfolioData = () => {
-      const savedAssets = localStorage.getItem('portfolio_assets')
-      if (savedAssets) {
-        try {
-          const assets = JSON.parse(savedAssets)
-          setPortfolioAssets(assets)
+    let cancelled = false
 
-          // Calculate totals and profits
-          const usdAssets = assets.filter(a => a.currency === 'USD')
-          const usdTotal = usdAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
-          const usdProfit = usdAssets.reduce((sum, asset) => sum + (asset.profit || 0), 0)
+    const calculateTotals = (assets) => {
+      setPortfolioAssets(assets)
 
-          const krwAssets = assets.filter(a => a.currency === 'KRW')
-          const krwTotal = krwAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
-          const krwProfit = krwAssets.reduce((sum, asset) => sum + (asset.profit || 0), 0)
+      const usdAssets = assets.filter(a => a.currency === 'USD')
+      const usdTotal = usdAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
+      const usdProfit = usdAssets.reduce((sum, asset) => sum + (asset.profit || 0), 0)
 
-          setPortfolioTotalUSD(usdTotal)
-          setPortfolioTotalKRW(krwTotal)
-          setPortfolioProfitUSD(usdProfit)
-          setPortfolioProfitKRW(krwProfit)
+      const krwAssets = assets.filter(a => a.currency === 'KRW')
+      const krwTotal = krwAssets.reduce((sum, asset) => sum + asset.totalValue, 0)
+      const krwProfit = krwAssets.reduce((sum, asset) => sum + (asset.profit || 0), 0)
 
-          console.log(`📊 Portfolio - USD: $${usdTotal.toFixed(0)} (Profit: $${usdProfit.toFixed(0)}), KRW: ₩${krwTotal.toFixed(0)} (Profit: ₩${krwProfit.toFixed(0)})`)
-        } catch (error) {
+      setPortfolioTotalUSD(usdTotal)
+      setPortfolioTotalKRW(krwTotal)
+      setPortfolioProfitUSD(usdProfit)
+      setPortfolioProfitKRW(krwProfit)
+
+      console.log(`📊 Portfolio - USD: $${usdTotal.toFixed(0)} (Profit: $${usdProfit.toFixed(0)}), KRW: ₩${krwTotal.toFixed(0)} (Profit: ₩${krwProfit.toFixed(0)})`)
+    }
+
+    const loadPortfolioData = async () => {
+      try {
+        const assets = await dataSync.loadPortfolioAssets()
+        if (cancelled) return
+        calculateTotals(Array.isArray(assets) ? assets : [])
+      } catch (error) {
+        if (!cancelled) {
           console.error('Failed to load portfolio:', error)
         }
       }
@@ -121,6 +126,7 @@ const Goals = () => {
     const pollInterval = setInterval(loadPortfolioData, 3000)
 
     return () => {
+      cancelled = true
       window.removeEventListener('storage', handleStorageChange)
       clearInterval(pollInterval)
     }

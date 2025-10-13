@@ -40,6 +40,18 @@ const writeLocalJSON = (key, value) => {
   }
 }
 
+const cloneDeep = (value) => {
+  if (value === null || value === undefined) {
+    return value
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value))
+  } catch {
+    return value
+  }
+}
+
 // Supabase 사용 가능 여부 확인
 const isSupabaseAvailable = () => {
   try {
@@ -379,6 +391,48 @@ export const saveInvestmentLogs = async (logs) => {
 
 /**
  * ==========================================
+ * Generic User Setting 동기화
+ * ==========================================
+ */
+
+export const loadUserSetting = async (storageKey, fallback) => {
+  const localValue = readLocalJSON(storageKey, cloneDeep(fallback))
+
+  if (!isSupabaseAvailable()) {
+    return cloneDeep(localValue)
+  }
+
+  try {
+    const remoteValue = await supabaseService.getUserSetting(storageKey)
+    if (remoteValue !== null && remoteValue !== undefined) {
+      writeLocalJSON(storageKey, remoteValue)
+      return cloneDeep(remoteValue)
+    }
+    return cloneDeep(localValue)
+  } catch (error) {
+    console.warn(`⚠️ Supabase setting load failed (${storageKey}), using local data:`, error.message)
+    return cloneDeep(localValue)
+  }
+}
+
+export const saveUserSetting = async (storageKey, value) => {
+  writeLocalJSON(storageKey, value)
+
+  if (!isSupabaseAvailable()) {
+    return { success: true, source: 'localStorage' }
+  }
+
+  try {
+    await supabaseService.setUserSetting(storageKey, value)
+    return { success: true, source: 'localStorage+Supabase' }
+  } catch (error) {
+    console.warn(`⚠️ Supabase setting save failed (${storageKey}) (local copy saved):`, error.message)
+    return { success: true, source: 'localStorage', supabaseError: error.message }
+  }
+}
+
+/**
+ * ==========================================
  * 동기화 상태 확인
  * ==========================================
  */
@@ -415,6 +469,10 @@ export default {
   // Investment Logs
   loadInvestmentLogs,
   saveInvestmentLogs,
+
+  // Generic Settings
+  loadUserSetting,
+  saveUserSetting,
 
   // Status
   getSyncStatus,

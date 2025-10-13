@@ -75,6 +75,16 @@ CREATE TABLE IF NOT EXISTS public.investment_logs (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 5. user_settings 테이블: 대시보드/설정 등 사용자 정의 데이터
+CREATE TABLE IF NOT EXISTS public.user_settings (
+  user_id TEXT NOT NULL DEFAULT 'default_user',
+  key TEXT NOT NULL,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, key)
+);
+
 -- ====================================
 -- 인덱스 생성 (쿼리 성능 향상)
 -- ====================================
@@ -91,6 +101,8 @@ CREATE INDEX IF NOT EXISTS idx_goals_deadline ON public.goals(deadline);
 
 CREATE INDEX IF NOT EXISTS idx_investment_logs_user_id ON public.investment_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_investment_logs_date ON public.investment_logs(date);
+CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON public.user_settings(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_settings_key ON public.user_settings(key);
 
 -- ====================================
 -- Row Level Security (RLS) 설정
@@ -101,20 +113,78 @@ ALTER TABLE public.portfolios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.account_principals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.investment_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 
 -- 모든 사용자가 읽기/쓰기 가능하도록 설정 (인증 없이 사용)
 -- 나중에 인증 기능 추가 시 user_id 기반으로 변경 가능
-CREATE POLICY "Enable all access for all users" ON public.portfolios
-  FOR ALL USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'portfolios'
+      AND policyname = 'Enable all access for all users'
+  ) THEN
+    CREATE POLICY "Enable all access for all users" ON public.portfolios
+      FOR ALL USING (true);
+  END IF;
+END;
+$$;
 
-CREATE POLICY "Enable all access for all users" ON public.account_principals
-  FOR ALL USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'account_principals'
+      AND policyname = 'Enable all access for all users'
+  ) THEN
+    CREATE POLICY "Enable all access for all users" ON public.account_principals
+      FOR ALL USING (true);
+  END IF;
+END;
+$$;
 
-CREATE POLICY "Enable all access for all users" ON public.goals
-  FOR ALL USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'goals'
+      AND policyname = 'Enable all access for all users'
+  ) THEN
+    CREATE POLICY "Enable all access for all users" ON public.goals
+      FOR ALL USING (true);
+  END IF;
+END;
+$$;
 
-CREATE POLICY "Enable all access for all users" ON public.investment_logs
-  FOR ALL USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'investment_logs'
+      AND policyname = 'Enable all access for all users'
+  ) THEN
+    CREATE POLICY "Enable all access for all users" ON public.investment_logs
+      FOR ALL USING (true);
+  END IF;
+END;
+$$;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'user_settings'
+      AND policyname = 'Enable all access for all users'
+  ) THEN
+    CREATE POLICY "Enable all access for all users" ON public.user_settings
+      FOR ALL USING (true);
+  END IF;
+END;
+$$;
 
 -- ====================================
 -- 자동 업데이트 트리거 (updated_at)
@@ -128,20 +198,29 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_portfolios_updated_at ON public.portfolios;
 CREATE TRIGGER update_portfolios_updated_at
   BEFORE UPDATE ON public.portfolios
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_account_principals_updated_at ON public.account_principals;
 CREATE TRIGGER update_account_principals_updated_at
   BEFORE UPDATE ON public.account_principals
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_goals_updated_at ON public.goals;
 CREATE TRIGGER update_goals_updated_at
   BEFORE UPDATE ON public.goals
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_investment_logs_updated_at ON public.investment_logs;
 CREATE TRIGGER update_investment_logs_updated_at
   BEFORE UPDATE ON public.investment_logs
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_user_settings_updated_at ON public.user_settings;
+CREATE TRIGGER update_user_settings_updated_at
+  BEFORE UPDATE ON public.user_settings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ====================================

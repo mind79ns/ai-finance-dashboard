@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Plus,
   Edit,
@@ -25,6 +25,7 @@ import {
   ResponsiveContainer,
   ComposedChart
 } from 'recharts'
+import dataSync from '../utils/dataSync'
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
@@ -103,75 +104,102 @@ const AssetStatus = () => {
   // Account types from localStorage or defaults
   const [accountTypes, setAccountTypes] = useState(() => DEFAULT_ACCOUNT_TYPES.map(acc => ({ ...acc })))
 
-  // Load data from localStorage
+  const cloneDefaults = (defaults) => defaults.map(item => ({ ...item }))
+  const ensureArrayWithFallback = (value, defaults) => {
+    if (!Array.isArray(value) || value.length === 0) {
+      return cloneDefaults(defaults)
+    }
+    return value.map(item => ({ ...item }))
+  }
+  const ensureIncomeCategoryStructure = (value) => {
+    const categories = ensureArrayWithFallback(value, DEFAULT_INCOME_CATEGORIES)
+    const hasAccumulated = categories.some(cat => cat.id === 'accumulated')
+    if (!hasAccumulated) {
+      const accumulated = DEFAULT_INCOME_CATEGORIES.find(cat => cat.id === 'accumulated')
+      if (accumulated) {
+        categories.unshift({ ...accumulated })
+      }
+    }
+    return categories
+  }
+
+  const statusReadyRef = useRef(false)
+  const accountReadyRef = useRef(false)
+  const incomeReadyRef = useRef(false)
+  const expenseReadyRef = useRef(false)
+  const accountTypesReadyRef = useRef(false)
+
+  // Load data from storage/Supabase
   useEffect(() => {
-    const savedStatus = localStorage.getItem('asset_status_data')
-    if (savedStatus) {
-      setStatusData(JSON.parse(savedStatus))
-    }
+    let cancelled = false
 
-    const savedAccountData = localStorage.getItem('asset_account_data')
-    if (savedAccountData) {
-      setAccountData(JSON.parse(savedAccountData))
-    }
-
-    const savedIncome = localStorage.getItem('asset_income_categories')
-    if (savedIncome) {
-      const loaded = JSON.parse(savedIncome)
-      // Ensure accumulated category exists at the beginning
-      const hasAccumulated = loaded.some(cat => cat.id === 'accumulated')
-      if (!hasAccumulated) {
-        setIncomeCategories([
-          { id: 'accumulated', name: '누적금액', color: '#6366f1', isAccumulated: true },
-          ...loaded
+    const loadData = async () => {
+      try {
+        const [
+          loadedStatus,
+          loadedAccount,
+          loadedIncome,
+          loadedExpense,
+          loadedAccountTypes
+        ] = await Promise.all([
+          dataSync.loadUserSetting('asset_status_data', {}),
+          dataSync.loadUserSetting('asset_account_data', {}),
+          dataSync.loadUserSetting('asset_income_categories', DEFAULT_INCOME_CATEGORIES),
+          dataSync.loadUserSetting('asset_expense_categories', DEFAULT_EXPENSE_CATEGORIES),
+          dataSync.loadUserSetting('asset_account_types', DEFAULT_ACCOUNT_TYPES)
         ])
-      } else {
-        setIncomeCategories(loaded)
+
+        if (cancelled) return
+
+        setStatusData(loadedStatus && typeof loadedStatus === 'object' ? loadedStatus : {})
+        setAccountData(loadedAccount && typeof loadedAccount === 'object' ? loadedAccount : {})
+        setIncomeCategories(ensureIncomeCategoryStructure(loadedIncome))
+        setExpenseCategories(ensureArrayWithFallback(loadedExpense, DEFAULT_EXPENSE_CATEGORIES))
+        setAccountTypes(ensureArrayWithFallback(loadedAccountTypes, DEFAULT_ACCOUNT_TYPES))
+
+        statusReadyRef.current = true
+        accountReadyRef.current = true
+        incomeReadyRef.current = true
+        expenseReadyRef.current = true
+        accountTypesReadyRef.current = true
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load asset status data:', error)
+        }
       }
     }
 
-    const savedExpense = localStorage.getItem('asset_expense_categories')
-    if (savedExpense) {
-      setExpenseCategories(JSON.parse(savedExpense))
-    }
+    loadData()
 
-    const savedAccountTypes = localStorage.getItem('asset_account_types')
-    if (savedAccountTypes) {
-      setAccountTypes(JSON.parse(savedAccountTypes))
+    return () => {
+      cancelled = true
     }
   }, [])
 
-  // Save status data to localStorage
+  // Persist changes to Supabase/localStorage
   useEffect(() => {
-    if (Object.keys(statusData).length > 0) {
-      localStorage.setItem('asset_status_data', JSON.stringify(statusData))
-    }
+    if (!statusReadyRef.current) return
+    dataSync.saveUserSetting('asset_status_data', statusData)
   }, [statusData])
 
-  // Save account data to localStorage
   useEffect(() => {
-    if (Object.keys(accountData).length > 0) {
-      localStorage.setItem('asset_account_data', JSON.stringify(accountData))
-    }
+    if (!accountReadyRef.current) return
+    dataSync.saveUserSetting('asset_account_data', accountData)
   }, [accountData])
 
-  // Save categories to localStorage
   useEffect(() => {
-    if (incomeCategories.length > 0) {
-      localStorage.setItem('asset_income_categories', JSON.stringify(incomeCategories))
-    }
+    if (!incomeReadyRef.current) return
+    dataSync.saveUserSetting('asset_income_categories', incomeCategories)
   }, [incomeCategories])
 
   useEffect(() => {
-    if (expenseCategories.length > 0) {
-      localStorage.setItem('asset_expense_categories', JSON.stringify(expenseCategories))
-    }
+    if (!expenseReadyRef.current) return
+    dataSync.saveUserSetting('asset_expense_categories', expenseCategories)
   }, [expenseCategories])
 
   useEffect(() => {
-    if (accountTypes.length > 0) {
-      localStorage.setItem('asset_account_types', JSON.stringify(accountTypes))
-    }
+    if (!accountTypesReadyRef.current) return
+    dataSync.saveUserSetting('asset_account_types', accountTypes)
   }, [accountTypes])
 
   // Get available years
