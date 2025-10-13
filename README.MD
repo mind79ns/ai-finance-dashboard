@@ -130,9 +130,9 @@ npm run build
 
 ## 🔑 API 키 설정
 
-### OpenAI (권장: GPT-4 Turbo)
+### OpenAI (권장: GPT-4.1)
 - API 키: https://platform.openai.com/api-keys
-- 모델: `gpt-4-turbo-preview`
+- 모델: `gpt-4.1`
 - 비용: 입력 $10/1M, 출력 $30/1M tokens
 
 ### Google Gemini (비용 절감)
@@ -172,7 +172,7 @@ npm run build
 
 ### 비용 최적화
 - 일반 작업: Gemini (무료)
-- 중요 분석: GPT-5 (약 $2-3/월)
-- **총 절감: 약 70%** (GPT-5 단독 대비)
+- 중요 분석: GPT-4.1
+- **총 절감: 약 70%** (GPT-4.1 단독 대비)
 
 📖 **자세한 가이드**: [AI_STRATEGY.md](./AI_STRATEGY.md) 참조

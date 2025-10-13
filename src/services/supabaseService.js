@@ -584,5 +584,6 @@ export default {
 
   // Utilities
   migrateFromLocalStorage,
-  checkSupabaseConnection
+  checkSupabaseConnection,
+  getSupabaseStatus
 }
