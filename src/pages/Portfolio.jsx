@@ -742,14 +742,200 @@ const Portfolio = () => {
 
       {/* Investment Management Table - Account Based */}
       <div className="card">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">투자 관리표</h3>
-            <p className="text-sm text-gray-600 mt-1">계좌별 투자 원금 및 손익 현황</p>
+            <h3 className="text-base sm:text-xl font-bold text-gray-900">투자 관리표</h3>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">계좌별 투자 원금 및 손익 현황</p>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="block sm:hidden space-y-3">
+          {accountSummary.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="flex flex-col items-center justify-center text-gray-500">
+                <FileText className="w-12 h-12 mb-3 text-gray-300" />
+                <p className="text-base font-medium">보유 자산이 없습니다</p>
+                <p className="text-sm mt-1">먼저 포트폴리오에 자산을 추가하세요</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {accountSummary.map((account, index) => {
+                const principalData = accountPrincipals[account.account] || { principal: 0, remaining: 0, note: '' }
+                const investmentAmount = account.assets.reduce((sum, asset) => {
+                  const investedValue = asset.quantity * asset.avgPrice
+                  if (asset.currency === 'KRW') {
+                    return sum + investedValue
+                  } else if (asset.currency === 'USD') {
+                    return sum + (investedValue * exchangeRate)
+                  }
+                  return sum
+                }, 0)
+                const evaluationKRW = account.assets.reduce((sum, asset) => {
+                  const currentValue = asset.quantity * asset.currentPrice
+                  if (asset.currency === 'KRW') {
+                    return sum + currentValue
+                  } else if (asset.currency === 'USD') {
+                    return sum + (currentValue * exchangeRate)
+                  }
+                  return sum
+                }, 0)
+                const profit = evaluationKRW - investmentAmount
+
+                return (
+                  <div key={account.account} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900">{account.account}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{account.assets.length}개 자산 보유</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setEditingAccount(account.account)
+                          setShowPrincipalModal(true)
+                        }}
+                        className="p-1.5 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
+                        title="원금/예수금 입력"
+                      >
+                        <Edit2 className="w-4 h-4 text-primary-600" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">원금</span>
+                        <span className="font-medium text-gray-900">
+                          {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(principalData.principal)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">예수금(잔여)</span>
+                        <span className="font-medium text-gray-900">
+                          {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(principalData.remaining)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-gray-200">
+                        <span className="text-gray-700 font-medium">투자금</span>
+                        <span className="font-bold text-gray-900">
+                          {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(investmentAmount))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-700 font-medium">평가금액</span>
+                        <span className="font-bold text-gray-900">
+                          {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(evaluationKRW))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pb-2 border-b border-gray-200">
+                        <span className="text-gray-700 font-medium">손익</span>
+                        <span className={`font-bold text-sm ${profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                          {profit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(profit))}
+                        </span>
+                      </div>
+                      {principalData.note && (
+                        <div className="pt-2">
+                          <span className="text-gray-600">비고: </span>
+                          <span className="text-gray-700">{principalData.note}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* TOTAL Card */}
+              <div className="border-2 border-blue-300 rounded-lg p-3 bg-blue-50">
+                <p className="text-sm font-bold text-blue-900 mb-3 text-center">TOTAL</p>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-blue-700 font-medium">원금 합계</span>
+                    <span className="font-bold text-blue-900">
+                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
+                        accountSummary.reduce((sum, acc) => {
+                          const data = accountPrincipals[acc.account] || { principal: 0 }
+                          return sum + data.principal
+                        }, 0)
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-700 font-medium">예수금 합계</span>
+                    <span className="font-bold text-blue-900">
+                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
+                        accountSummary.reduce((sum, acc) => {
+                          const data = accountPrincipals[acc.account] || { remaining: 0 }
+                          return sum + data.remaining
+                        }, 0)
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-blue-300">
+                    <span className="text-blue-800 font-bold">총 투자금</span>
+                    <span className="font-bold text-blue-900">
+                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
+                        Math.round(accountSummary.reduce((sum, acc) => {
+                          return sum + acc.assets.reduce((assetSum, asset) => {
+                            const investedValue = asset.quantity * asset.avgPrice
+                            if (asset.currency === 'KRW') {
+                              return assetSum + investedValue
+                            } else if (asset.currency === 'USD') {
+                              return assetSum + (investedValue * exchangeRate)
+                            }
+                            return assetSum
+                          }, 0)
+                        }, 0))
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-800 font-bold">총 평가금액</span>
+                    <span className="font-bold text-blue-900">
+                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(totalValueKRW))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-800 font-bold">총 손익</span>
+                    <span className={`font-bold text-sm ${(() => {
+                      const totalInvestment = accountSummary.reduce((sum, acc) => {
+                        return sum + acc.assets.reduce((assetSum, asset) => {
+                          const investedValue = asset.quantity * asset.avgPrice
+                          if (asset.currency === 'KRW') {
+                            return assetSum + investedValue
+                          } else if (asset.currency === 'USD') {
+                            return assetSum + (investedValue * exchangeRate)
+                          }
+                          return assetSum
+                        }, 0)
+                      }, 0)
+                      const totalProfit = totalValueKRW - totalInvestment
+                      return totalProfit >= 0 ? 'text-success' : 'text-danger'
+                    })()}`}>
+                      {(() => {
+                        const totalInvestment = accountSummary.reduce((sum, acc) => {
+                          return sum + acc.assets.reduce((assetSum, asset) => {
+                            const investedValue = asset.quantity * asset.avgPrice
+                            if (asset.currency === 'KRW') {
+                              return assetSum + investedValue
+                            } else if (asset.currency === 'USD') {
+                              return assetSum + (investedValue * exchangeRate)
+                            }
+                            return assetSum
+                          }, 0)
+                        }, 0)
+                        const totalProfit = totalValueKRW - totalInvestment
+                        return `${totalProfit >= 0 ? '+' : ''}${new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(totalProfit))}`
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-blue-100 border-b border-blue-200">
@@ -1118,7 +1304,7 @@ const Portfolio = () => {
 
       {/* Assets Table */}
       <div className="card">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+        <div className="flex flex-col gap-3 mb-4 sm:mb-6">
           <div className="min-w-0">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900">보유 자산</h3>
             <p className="text-xs sm:text-sm text-gray-600 mt-1">
@@ -1189,7 +1375,111 @@ const Portfolio = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="block sm:hidden space-y-3">
+          {filteredAssets.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="flex flex-col items-center justify-center text-gray-500">
+                <Search className="w-12 h-12 mb-3 text-gray-300" />
+                <p className="text-base font-medium">검색 결과가 없습니다</p>
+                <p className="text-sm mt-1">다른 검색어를 입력하거나 필터를 변경해보세요</p>
+              </div>
+            </div>
+          ) : (
+            filteredAssets.map((asset) => {
+              const positive = (asset.profitPercent || 0) >= 0
+              return (
+                <div key={asset.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
+                  {/* Header with symbol, name, and selection checkbox */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      {selectionMode && (
+                        <input
+                          type="checkbox"
+                          checked={selectedAssets.includes(asset.id)}
+                          onChange={() => handleToggleAssetSelection(asset.id)}
+                          className="mt-0.5 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">{asset.symbol}</p>
+                        <p className="text-xs text-gray-600 truncate mt-0.5">{asset.name}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-primary-50 text-primary-700">
+                            {asset.type}
+                          </span>
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700">
+                            {asset.account || '기본계좌'}
+                          </span>
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                            {asset.currency}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Profit percentage badge */}
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${
+                      positive ? 'bg-emerald-50' : 'bg-rose-50'
+                    }`}>
+                      <span className={`text-base font-bold ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Key metrics */}
+                  <div className="grid grid-cols-2 gap-2 py-2 border-t border-gray-200 text-xs">
+                    <div>
+                      <span className="text-gray-600">보유량</span>
+                      <p className="font-medium text-gray-900 mt-0.5">{asset.quantity}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-gray-600">평가액</span>
+                      <p className="font-bold text-gray-900 mt-0.5">{formatCurrency(asset.totalValue, asset.currency)}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">평균단가</span>
+                      <p className="font-medium text-gray-900 mt-0.5">{formatCurrency(asset.avgPrice, asset.currency)}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-gray-600">현재가</span>
+                      <p className="font-medium text-gray-900 mt-0.5">{formatCurrency(asset.currentPrice, asset.currency)}</p>
+                    </div>
+                  </div>
+
+                  {/* Profit display */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <span className="text-xs text-gray-600">수익금</span>
+                    <span className={`text-sm font-bold ${asset.profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
+                    </span>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-gray-200 mt-3">
+                    <button
+                      onClick={() => handleViewDetail(asset)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      상세
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAsset(asset.id)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
