@@ -54,7 +54,7 @@ const DataMigrationPanel = () => {
   const getLocalDataSummary = () => {
     const portfolioAssets = localStorage.getItem('portfolio_assets')
     const accountPrincipals = localStorage.getItem('account_principals')
-    const goals = localStorage.getItem('goals')
+    const goals = localStorage.getItem('investment_goals') || localStorage.getItem('goals')
     const logs = localStorage.getItem('investment_logs')
 
     const portfolioCount = portfolioAssets ? JSON.parse(portfolioAssets).length : 0

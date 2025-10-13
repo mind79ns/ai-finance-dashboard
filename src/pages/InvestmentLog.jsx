@@ -1,12 +1,28 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Download, Trash2 } from 'lucide-react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import ChartCard from '../components/ChartCard'
+import dataSync from '../utils/dataSync'
 
 const InvestmentLog = () => {
   const [logs, setLogs] = useState([])
   const [portfolioAssets, setPortfolioAssets] = useState([])
+
+  const updateLogsState = useCallback((updater) => {
+    let nextLogs = []
+
+    setLogs(prevLogs => {
+      nextLogs = typeof updater === 'function' ? updater(prevLogs) : updater
+      return nextLogs
+    })
+
+    if (Array.isArray(nextLogs)) {
+      dataSync.saveInvestmentLogs(nextLogs).catch(error => {
+        console.warn('⚠️ Failed to sync investment logs:', error)
+      })
+    }
+  }, [])
 
   const accountOptions = useMemo(() => {
     const accounts = new Set(['기본계좌'])
@@ -62,25 +78,25 @@ const InvestmentLog = () => {
     })
   }, [accountOptions, defaultAccountOption])
 
-  // Load logs and portfolio assets from localStorage on mount
+  // Load logs and portfolio assets (Supabase-aware)
   useEffect(() => {
-    const savedLogs = localStorage.getItem('investment_logs')
-    if (savedLogs) {
+    const loadInitialData = async () => {
       try {
-        setLogs(JSON.parse(savedLogs))
+        const [loadedLogs, loadedAssets] = await Promise.all([
+          dataSync.loadInvestmentLogs(),
+          dataSync.loadPortfolioAssets()
+        ])
+
+        setLogs(Array.isArray(loadedLogs) ? loadedLogs : [])
+        setPortfolioAssets(Array.isArray(loadedAssets) ? loadedAssets : [])
       } catch (error) {
-        console.error('Failed to load logs:', error)
+        console.error('Failed to load investment logs:', error)
+        setLogs([])
+        setPortfolioAssets([])
       }
     }
 
-    const savedAssets = localStorage.getItem('portfolio_assets')
-    if (savedAssets) {
-      try {
-        setPortfolioAssets(JSON.parse(savedAssets))
-      } catch (error) {
-        console.error('Failed to load logs:', error)
-      }
-    }
+    loadInitialData()
   }, [])
 
   const filteredLogs = logs.filter(log => {
@@ -193,7 +209,7 @@ const InvestmentLog = () => {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     const assetSymbol = formData.asset === '__custom__'
@@ -215,19 +231,19 @@ const InvestmentLog = () => {
     const total = quantity * price
 
     const normalizedAssetSymbol = assetSymbol.toUpperCase()
-  const existingAsset = portfolioAssets.find(asset => asset.symbol === normalizedAssetSymbol)
-  const resolvedAccount = formData.selectedAccount === '__custom__'
-    ? (formData.customAccountName || '').trim()
-    : (formData.selectedAccount || '').trim()
-  const accountForNewAsset = resolvedAccount || defaultAccountOption
-  const newAssetDetails = formData.type === 'buy' && !existingAsset
-    ? {
-        name: (formData.customAssetName || '').trim() || normalizedAssetSymbol,
-        type: (formData.customAssetType || '주식'),
-        currency: (formData.customAssetCurrency || 'USD').toUpperCase(),
-        account: accountForNewAsset
-      }
-    : null
+    const existingAsset = portfolioAssets.find(asset => asset.symbol === normalizedAssetSymbol)
+    const resolvedAccount = formData.selectedAccount === '__custom__'
+      ? (formData.customAccountName || '').trim()
+      : (formData.selectedAccount || '').trim()
+    const accountForNewAsset = resolvedAccount || defaultAccountOption
+    const newAssetDetails = formData.type === 'buy' && !existingAsset
+      ? {
+          name: (formData.customAssetName || '').trim() || normalizedAssetSymbol,
+          type: (formData.customAssetType || '주식'),
+          currency: (formData.customAssetCurrency || 'USD').toUpperCase(),
+          account: accountForNewAsset
+        }
+      : null
 
     const newLog = {
       id: Date.now(),
@@ -240,126 +256,131 @@ const InvestmentLog = () => {
       note: formData.note
     }
 
-    const updatedLogs = [newLog, ...logs]
-    setLogs(updatedLogs)
-    localStorage.setItem('investment_logs', JSON.stringify(updatedLogs))
+    updateLogsState(prev => [newLog, ...prev])
 
     // 포트폴리오 자동 업데이트
-    updatePortfolioFromTransaction(newLog, { newAssetDetails })
+    await updatePortfolioFromTransaction(newLog, { newAssetDetails })
 
     handleCloseModal()
   }
 
   // 거래 내역으로 포트폴리오 업데이트
-  const updatePortfolioFromTransaction = (transaction, { newAssetDetails } = {}) => {
-    const savedAssets = localStorage.getItem('portfolio_assets')
-    let assets = []
-
-    if (savedAssets) {
-      try {
-        assets = JSON.parse(savedAssets)
-      } catch (error) {
-        console.error('Failed to parse portfolio assets:', error)
-        assets = []
-      }
-    }
-
+  const updatePortfolioFromTransaction = useCallback(async (transaction, { newAssetDetails } = {}) => {
+    let nextAssets = []
     let assetsChanged = false
-    const transactionSymbol = (transaction.asset || '').toUpperCase()
-    const assetIndex = assets.findIndex(a => a.symbol === transactionSymbol)
-    const quantityValue = Number(transaction.quantity)
-    const priceValue = Number(transaction.price)
 
-    if (!Number.isFinite(quantityValue)) {
-      console.warn('Invalid transaction quantity:', transaction)
-      return
-    }
+    setPortfolioAssets(prevAssets => {
+      const assets = prevAssets.map(asset => ({ ...asset }))
 
-    if (transaction.type === 'buy') {
-      if (!Number.isFinite(priceValue)) {
-        console.warn('Invalid transaction price for buy transaction:', transaction)
-        return
+      const transactionSymbol = (transaction.asset || '').toUpperCase()
+      const assetIndex = assets.findIndex(a => a.symbol === transactionSymbol)
+      const quantityValue = Number(transaction.quantity)
+      const priceValue = Number(transaction.price)
+
+      if (!Number.isFinite(quantityValue)) {
+        console.warn('Invalid transaction quantity:', transaction)
+        nextAssets = prevAssets
+        return prevAssets
       }
 
-      if (assetIndex >= 0) {
-        const asset = assets[assetIndex]
-        const totalQuantity = asset.quantity + quantityValue
-        const totalCost = (asset.quantity * asset.avgPrice) + (quantityValue * priceValue)
-        const newAvgPrice = totalCost / totalQuantity
-        const currentPrice = asset.currentPrice || priceValue
-
-        assets[assetIndex] = {
-          ...asset,
-          quantity: totalQuantity,
-          avgPrice: newAvgPrice,
-          totalValue: totalQuantity * currentPrice,
-          profit: (totalQuantity * currentPrice) - (totalQuantity * newAvgPrice),
-          profitPercent: ((currentPrice - newAvgPrice) / newAvgPrice) * 100
+      if (transaction.type === 'buy') {
+        if (!Number.isFinite(priceValue)) {
+          console.warn('Invalid transaction price for buy transaction:', transaction)
+          nextAssets = prevAssets
+          return prevAssets
         }
-        assetsChanged = true
-      } else {
-        const details = newAssetDetails || {}
-        const currency = (details.currency || 'USD').toUpperCase()
-        const account = details.account || '기본계좌'
-        const type = details.type || '주식'
-        const name = details.name || transactionSymbol
-        const totalValue = quantityValue * priceValue
 
-        assets.push({
-          id: Date.now(),
-          symbol: transactionSymbol,
-          name,
-          type,
-          quantity: quantityValue,
-          avgPrice: priceValue,
-          currentPrice: priceValue,
-          totalValue,
-          profit: 0,
-          profitPercent: 0,
-          currency,
-          account,
-          category: currency === 'KRW' ? '국내주식' : '해외주식'
-        })
-        assetsChanged = true
-      }
-    } else if (transaction.type === 'sell') {
-      if (assetIndex >= 0) {
-        const asset = assets[assetIndex]
-        const newQuantity = asset.quantity - quantityValue
+        if (assetIndex >= 0) {
+          const asset = assets[assetIndex]
+          const totalQuantity = asset.quantity + quantityValue
+          const totalCost = (asset.quantity * asset.avgPrice) + (quantityValue * priceValue)
+          const newAvgPrice = totalQuantity > 0 ? totalCost / totalQuantity : priceValue
+          const currentPrice = Number.isFinite(asset.currentPrice) ? asset.currentPrice : priceValue
+          const profitPercent = newAvgPrice !== 0 ? ((currentPrice - newAvgPrice) / newAvgPrice) * 100 : 0
 
-        if (newQuantity <= 0) {
-          assets.splice(assetIndex, 1)
-        } else {
-          const currentPrice = Number.isFinite(asset.currentPrice)
-            ? asset.currentPrice
-            : (Number.isFinite(priceValue) ? priceValue : asset.avgPrice)
           assets[assetIndex] = {
             ...asset,
-            quantity: newQuantity,
-            totalValue: newQuantity * currentPrice,
-            profit: (newQuantity * currentPrice) - (newQuantity * asset.avgPrice),
-            profitPercent: ((currentPrice - asset.avgPrice) / asset.avgPrice) * 100
+            quantity: totalQuantity,
+            avgPrice: newAvgPrice,
+            currentPrice,
+            totalValue: totalQuantity * currentPrice,
+            profit: (totalQuantity * currentPrice) - (totalQuantity * newAvgPrice),
+            profitPercent
           }
-        }
-        assetsChanged = true
-      }
-    }
+          assetsChanged = true
+        } else {
+          const details = newAssetDetails || {}
+          const currency = (details.currency || 'USD').toUpperCase()
+          const account = details.account || '기본계좌'
+          const type = details.type || '주식'
+          const name = details.name || transactionSymbol
+          const totalValue = quantityValue * priceValue
 
-    if (assetsChanged) {
-      try {
-        localStorage.setItem('portfolio_assets', JSON.stringify(assets))
-      } catch (error) {
-        console.error('Failed to persist portfolio assets:', error)
+          assets.push({
+            id: Date.now(),
+            symbol: transactionSymbol,
+            name,
+            type,
+            quantity: quantityValue,
+            avgPrice: priceValue,
+            currentPrice: priceValue,
+            totalValue,
+            profit: 0,
+            profitPercent: 0,
+            currency,
+            account,
+            category: currency === 'KRW' ? '국내주식' : '해외주식'
+          })
+          assetsChanged = true
+        }
+      } else if (transaction.type === 'sell') {
+        if (assetIndex >= 0) {
+          const asset = assets[assetIndex]
+          const newQuantity = asset.quantity - quantityValue
+
+          if (newQuantity <= 0) {
+            assets.splice(assetIndex, 1)
+          } else {
+            const currentPrice = Number.isFinite(asset.currentPrice)
+              ? asset.currentPrice
+              : (Number.isFinite(priceValue) ? priceValue : asset.avgPrice)
+            const profitPercent = asset.avgPrice !== 0
+              ? ((currentPrice - asset.avgPrice) / asset.avgPrice) * 100
+              : 0
+
+            assets[assetIndex] = {
+              ...asset,
+              quantity: newQuantity,
+              totalValue: newQuantity * currentPrice,
+              profit: (newQuantity * currentPrice) - (newQuantity * asset.avgPrice),
+              profitPercent
+            }
+          }
+          assetsChanged = true
+        }
       }
-      setPortfolioAssets([...assets])
+
+      if (!assetsChanged) {
+        nextAssets = prevAssets
+        return prevAssets
+      }
+
+      nextAssets = assets
+      return assets
+    })
+
+    if (assetsChanged && Array.isArray(nextAssets)) {
+      try {
+        await dataSync.savePortfolioAssets(nextAssets)
+      } catch (error) {
+        console.warn('⚠️ Failed to sync portfolio assets after transaction:', error)
+      }
     }
-  }
+  }, [])
 
   const handleDeleteLog = (id) => {
     if (window.confirm('이 거래 기록을 삭제하시겠습니까?')) {
-      const updatedLogs = logs.filter(log => log.id !== id)
-      setLogs(updatedLogs)
-      localStorage.setItem('investment_logs', JSON.stringify(updatedLogs))
+      updateLogsState(prev => prev.filter(log => log.id !== id))
     }
   }
 

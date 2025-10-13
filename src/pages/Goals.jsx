@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import ChartCard from '../components/ChartCard'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
+import dataSync from '../utils/dataSync'
 
 const Goals = () => {
   const [portfolioTotalUSD, setPortfolioTotalUSD] = useState(0)
@@ -17,16 +18,40 @@ const Goals = () => {
   const [loadingAI, setLoadingAI] = useState(false)
   const [portfolioAssets, setPortfolioAssets] = useState([])
 
-  // Load goals from localStorage on mount
+  const updateGoalsState = useCallback((updater) => {
+    let nextGoals = []
+
+    setGoals(prevGoals => {
+      nextGoals = typeof updater === 'function' ? updater(prevGoals) : updater
+      return nextGoals
+    })
+
+    if (Array.isArray(nextGoals)) {
+      dataSync.saveGoals(nextGoals).catch(error => {
+        console.warn('⚠️ Failed to sync goals:', error)
+      })
+    }
+  }, [])
+
+  // Load goals & portfolio assets with Supabase sync support
   useEffect(() => {
-    const savedGoals = localStorage.getItem('investment_goals')
-    if (savedGoals) {
+    const loadInitialData = async () => {
       try {
-        setGoals(JSON.parse(savedGoals))
+        const [loadedGoals, loadedAssets] = await Promise.all([
+          dataSync.loadGoals(),
+          dataSync.loadPortfolioAssets()
+        ])
+
+        setGoals(Array.isArray(loadedGoals) ? loadedGoals : [])
+        setPortfolioAssets(Array.isArray(loadedAssets) ? loadedAssets : [])
       } catch (error) {
-        console.error('Failed to load goals from localStorage:', error)
+        console.error('Failed to load goals or portfolio data:', error)
+        setGoals([])
+        setPortfolioAssets([])
       }
     }
+
+    loadInitialData()
   }, [])
 
   // Fetch real-time exchange rate
@@ -103,37 +128,54 @@ const Goals = () => {
 
   // Update linked goals when portfolio totals or exchange rate changes
   useEffect(() => {
-    setGoals(prevGoals => prevGoals.map(goal => {
-      if (goal.linkedToPortfolio) {
+    if (goals.length === 0) return
+    if (!goals.some(goal => goal.linkedToPortfolio)) return
+
+    updateGoalsState(prevGoals => {
+      let hasChange = false
+
+      const nextGoals = prevGoals.map(goal => {
+        if (!goal.linkedToPortfolio) {
+          return goal
+        }
+
         let newAmount
 
         if (goal.linkType === 'profit') {
-          // Link to profit only
           newAmount = goal.currency === 'KRW'
             ? portfolioProfitKRW + (portfolioProfitUSD * exchangeRate)
             : portfolioProfitUSD + (portfolioProfitKRW / exchangeRate)
         } else {
-          // Link to total value (default)
           newAmount = goal.currency === 'KRW'
             ? portfolioTotalKRW + (portfolioTotalUSD * exchangeRate)
             : portfolioTotalUSD + (portfolioTotalKRW / exchangeRate)
         }
 
-        console.log(`🔗 Syncing Goal "${goal.name}" (${goal.linkType === 'profit' ? '총수익금' : '총액'}, ${goal.currency}): ${goal.currency === 'KRW' ? '₩' : '$'}${newAmount.toFixed(0)}`)
+        const normalizedAmount = Number.isFinite(newAmount) ? newAmount : 0
 
-        return {
-          ...goal,
-          currentAmount: newAmount
+        if (Math.abs((goal.currentAmount || 0) - normalizedAmount) > 0.01) {
+          console.log(`🔗 Syncing Goal "${goal.name}" (${goal.linkType === 'profit' ? '총수익금' : '총액'}, ${goal.currency}): ${goal.currency === 'KRW' ? '₩' : '$'}${normalizedAmount.toFixed(0)}`)
+          hasChange = true
+          return {
+            ...goal,
+            currentAmount: normalizedAmount
+          }
         }
-      }
-      return goal
-    }))
-  }, [portfolioTotalUSD, portfolioTotalKRW, portfolioProfitUSD, portfolioProfitKRW, exchangeRate])
 
-  // Save goals to localStorage
-  useEffect(() => {
-    localStorage.setItem('investment_goals', JSON.stringify(goals))
-  }, [goals])
+        return goal
+      })
+
+      return hasChange ? nextGoals : prevGoals
+    })
+  }, [
+    goals,
+    portfolioTotalUSD,
+    portfolioTotalKRW,
+    portfolioProfitUSD,
+    portfolioProfitKRW,
+    exchangeRate,
+    updateGoalsState
+  ])
 
   const [showModal, setShowModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -326,7 +368,7 @@ const Goals = () => {
       currency: formData.currency
     }
 
-    setGoals(prev => [...prev, newGoal])
+    updateGoalsState(prev => [...prev, newGoal])
     handleCloseModal()
   }
 
@@ -337,7 +379,7 @@ const Goals = () => {
 
   const handleConfirmDelete = () => {
     if (goalToDelete) {
-      setGoals(prev => prev.filter(g => g.id !== goalToDelete.id))
+      updateGoalsState(prev => prev.filter(g => g.id !== goalToDelete.id))
       setShowDeleteConfirm(false)
       setGoalToDelete(null)
     }

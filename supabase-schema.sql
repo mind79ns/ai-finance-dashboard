@@ -39,12 +39,18 @@ CREATE TABLE IF NOT EXISTS public.goals (
   id BIGINT PRIMARY KEY,
   user_id TEXT NOT NULL DEFAULT 'default_user',
   title TEXT DEFAULT '',
+  name TEXT DEFAULT '',
   target_amount NUMERIC DEFAULT 0,
   current_amount NUMERIC DEFAULT 0,
   deadline DATE,
   category TEXT DEFAULT '저축',
   description TEXT DEFAULT '',
   completed BOOLEAN DEFAULT FALSE,
+  status TEXT DEFAULT 'active',
+  linked_to_portfolio BOOLEAN DEFAULT FALSE,
+  link_type TEXT DEFAULT 'total',
+  currency TEXT DEFAULT 'USD',
+  metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -57,9 +63,14 @@ CREATE TABLE IF NOT EXISTS public.investment_logs (
   title TEXT DEFAULT '',
   type TEXT DEFAULT '',
   amount NUMERIC DEFAULT 0,
+  quantity NUMERIC DEFAULT 0,
+  price NUMERIC DEFAULT 0,
+  total NUMERIC DEFAULT 0,
   asset TEXT DEFAULT '',
+  account TEXT DEFAULT '기본계좌',
   note TEXT DEFAULT '',
   tags TEXT[] DEFAULT '{}',
+  metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -132,3 +143,22 @@ CREATE TRIGGER update_goals_updated_at
 CREATE TRIGGER update_investment_logs_updated_at
   BEFORE UPDATE ON public.investment_logs
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ====================================
+-- 스키마 보강 (기존 프로젝트 호환용)
+-- ====================================
+
+ALTER TABLE public.goals
+  ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active',
+  ADD COLUMN IF NOT EXISTS linked_to_portfolio BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS link_type TEXT DEFAULT 'total',
+  ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD',
+  ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+
+ALTER TABLE public.investment_logs
+  ADD COLUMN IF NOT EXISTS quantity NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS total NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS account TEXT DEFAULT '기본계좌',
+  ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;

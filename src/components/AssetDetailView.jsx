@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import dataSync from '../utils/dataSync'
 import {
   TrendingUp,
   TrendingDown,
@@ -73,18 +74,22 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
 
     setPriceHistory(generatePriceHistory())
 
-    // Load transaction history from investment logs
-    const savedLogs = localStorage.getItem('investment_logs')
-    if (savedLogs) {
+    // Load transaction history from Supabase/localStorage sync
+    const loadTransactionHistory = async () => {
       try {
-        const logs = JSON.parse(savedLogs)
-        // Filter logs for this asset
-        const assetLogs = logs.filter(log => log.asset === asset.symbol)
-        setTransactionHistory(assetLogs)
+        const logs = await dataSync.loadInvestmentLogs()
+        if (Array.isArray(logs)) {
+          const assetLogs = logs.filter(log => log.asset === asset.symbol)
+          setTransactionHistory(assetLogs)
+        } else {
+          setTransactionHistory([])
+        }
       } catch (error) {
         console.error('Failed to load transaction history:', error)
       }
     }
+
+    loadTransactionHistory()
   }, [asset])
 
   // 거래 추가 모달 열기
@@ -114,74 +119,76 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
   }
 
   // 거래 추가 제출
-  const handleSubmitTransaction = (e) => {
+  const handleSubmitTransaction = async (e) => {
     e.preventDefault()
+
+    const quantity = parseFloat(transactionForm.quantity)
+    const price = parseFloat(transactionForm.price)
+
+    if (!Number.isFinite(quantity) || !Number.isFinite(price) || quantity <= 0 || price <= 0) {
+      alert('유효한 수량과 가격을 입력해주세요.')
+      return
+    }
 
     const newTransaction = {
       id: Date.now(),
       asset: asset.symbol,
       assetName: asset.name,
       type: transactionForm.type,
-      quantity: parseFloat(transactionForm.quantity),
-      price: parseFloat(transactionForm.price),
-      total: parseFloat(transactionForm.quantity) * parseFloat(transactionForm.price),
+      quantity,
+      price,
+      total: quantity * price,
       date: transactionForm.date,
       memo: transactionForm.memo,
       currency: asset.currency,
       account: asset.account || '기본계좌'
     }
 
-    // Save to investment_logs
-    const savedLogs = localStorage.getItem('investment_logs')
-    const logs = savedLogs ? JSON.parse(savedLogs) : []
-    logs.push(newTransaction)
-    localStorage.setItem('investment_logs', JSON.stringify(logs))
+    const existingLogs = await dataSync.loadInvestmentLogs()
+    const logs = Array.isArray(existingLogs) ? [...existingLogs, newTransaction] : [newTransaction]
+    await dataSync.saveInvestmentLogs(logs)
 
-    // Update portfolio (same logic as InvestmentLog)
-    const savedAssets = localStorage.getItem('portfolio_assets')
-    if (savedAssets) {
-      const assets = JSON.parse(savedAssets)
-      const assetIndex = assets.findIndex(a => a.symbol === asset.symbol)
+    const portfolioAssets = await dataSync.loadPortfolioAssets()
+    const assets = Array.isArray(portfolioAssets) ? portfolioAssets.map(item => ({ ...item })) : []
+    const assetIndex = assets.findIndex(item => item.symbol === asset.symbol)
+    let portfolioChanged = false
 
-      if (assetIndex !== -1) {
-        const currentAsset = assets[assetIndex]
+    if (assetIndex !== -1) {
+      const currentAsset = assets[assetIndex]
 
-        if (transactionForm.type === 'buy') {
-          // Update weighted average price
-          const totalQuantity = currentAsset.quantity + newTransaction.quantity
-          const totalCost = (currentAsset.quantity * currentAsset.avgPrice) + (newTransaction.quantity * newTransaction.price)
-          const newAvgPrice = totalCost / totalQuantity
+      if (transactionForm.type === 'buy') {
+        const totalQuantity = Number(currentAsset.quantity || 0) + quantity
+        const totalCost = (Number(currentAsset.quantity || 0) * Number(currentAsset.avgPrice || 0)) + (quantity * price)
+        const newAvgPrice = totalQuantity > 0 ? totalCost / totalQuantity : Number(currentAsset.avgPrice || price)
 
+        assets[assetIndex] = {
+          ...currentAsset,
+          quantity: totalQuantity,
+          avgPrice: newAvgPrice
+        }
+        portfolioChanged = true
+      } else if (transactionForm.type === 'sell') {
+        const newQuantity = Number(currentAsset.quantity || 0) - quantity
+
+        if (newQuantity <= 0) {
+          assets.splice(assetIndex, 1)
+        } else {
           assets[assetIndex] = {
             ...currentAsset,
-            quantity: totalQuantity,
-            avgPrice: newAvgPrice
-          }
-        } else if (transactionForm.type === 'sell') {
-          // Reduce quantity
-          const newQuantity = currentAsset.quantity - newTransaction.quantity
-
-          if (newQuantity <= 0) {
-            // Remove asset if fully sold
-            assets.splice(assetIndex, 1)
-          } else {
-            assets[assetIndex] = {
-              ...currentAsset,
-              quantity: newQuantity
-            }
+            quantity: newQuantity
           }
         }
-
-        localStorage.setItem('portfolio_assets', JSON.stringify(assets))
+        portfolioChanged = true
       }
     }
 
-    // Reload transaction history
-    const updatedLogs = JSON.parse(localStorage.getItem('investment_logs'))
-    const assetLogs = updatedLogs.filter(log => log.asset === asset.symbol)
+    if (portfolioChanged) {
+      await dataSync.savePortfolioAssets(assets)
+    }
+
+    const assetLogs = logs.filter(log => log.asset === asset.symbol)
     setTransactionHistory(assetLogs)
 
-    // Trigger storage event for cross-tab sync
     window.dispatchEvent(new Event('storage'))
 
     handleCloseTransactionModal()

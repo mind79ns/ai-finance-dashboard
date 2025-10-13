@@ -29,6 +29,7 @@ import { ko } from 'date-fns/locale'
 import ChartCard from '../components/ChartCard'
 import StatCard from '../components/StatCard'
 import marketDataService from '../services/marketDataService'
+import dataSync from '../utils/dataSync'
 
 const DEFAULT_USD_KRW = 1340
 
@@ -61,19 +62,22 @@ const Dashboard = () => {
     setError(null)
 
     try {
-      const [market] = await Promise.all([
+      const [market, loadedAssets, loadedLogs, loadedGoals] = await Promise.all([
         marketDataService.getAllMarketData().catch(err => {
           console.error('Dashboard market data error:', err)
           return null
-        })
+        }),
+        dataSync.loadPortfolioAssets(),
+        dataSync.loadInvestmentLogs(),
+        dataSync.loadGoals()
       ])
 
       const usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
       setMarketData(market)
 
-      const assetsRaw = safeParseLocalStorage('portfolio_assets', [])
-      const logsRaw = safeParseLocalStorage('investment_logs', [])
-      const goalsRaw = safeParseLocalStorage('investment_goals', [])
+      const assetsRaw = Array.isArray(loadedAssets) ? loadedAssets : safeParseLocalStorage('portfolio_assets', [])
+      const logsRaw = Array.isArray(loadedLogs) ? loadedLogs : safeParseLocalStorage('investment_logs', [])
+      const goalsRaw = Array.isArray(loadedGoals) ? loadedGoals : safeParseLocalStorage('investment_goals', [])
 
       const {
         totals,

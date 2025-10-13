@@ -4,6 +4,7 @@ import { Sparkles, FileText, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, A
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
 import AIStrategyBadge from '../components/AIStrategyBadge'
+import dataSync from '../utils/dataSync'
 
 const formatNumber = (value, digits = 2) => {
   if (value === null || value === undefined) return 'N/A'
@@ -162,14 +163,17 @@ const AIReport = () => {
 
   const loadRealData = async () => {
     try {
-      // Get real market data
-      const market = await marketDataService.getAllMarketData()
+      // Get real market data & sync Supabase-backed datasets
+      const [market, assetsResponse, goalsResponse] = await Promise.all([
+        marketDataService.getAllMarketData(),
+        dataSync.loadPortfolioAssets(),
+        dataSync.loadGoals()
+      ])
       setMarketData(market)
 
-      // Get portfolio data from localStorage (or could fetch from Portfolio component)
-      const savedAssets = localStorage.getItem('portfolio_assets')
-      if (savedAssets) {
-        const assets = JSON.parse(savedAssets)
+      // Build portfolio analytics if data exists
+      const assets = Array.isArray(assetsResponse) ? assetsResponse : []
+      if (assets.length > 0) {
         const usdKrwRate = market?.currency?.usdKrw?.rate
         const usdToKrw = Number.isFinite(Number(usdKrwRate)) ? Number(usdKrwRate) : null
         const krwToUsd = usdToKrw ? 1 / usdToKrw : null
@@ -312,59 +316,51 @@ const AIReport = () => {
           assets: assetDetails,
           allocation
         })
+      } else {
+        setPortfolioData(null)
       }
 
-      const savedGoals = localStorage.getItem('investment_goals')
-      if (savedGoals) {
-        try {
-          const goals = JSON.parse(savedGoals)
-          if (Array.isArray(goals) && goals.length > 0) {
-            const totalGoals = goals.length
-            const linkedGoals = goals.filter(goal => goal.linkedToPortfolio)
-            const averageProgress = goals.reduce((sum, goal) => {
-              const target = Number(goal.targetAmount || 0)
-              const current = Number(goal.currentAmount || 0)
-              if (!target || target <= 0) return sum
-              return sum + Math.min((current / target) * 100, 100)
-            }, 0) / totalGoals
+      const goals = Array.isArray(goalsResponse) ? goalsResponse : []
+      if (goals.length > 0) {
+        const totalGoals = goals.length
+        const linkedGoals = goals.filter(goal => goal.linkedToPortfolio)
+        const averageProgress = goals.reduce((sum, goal) => {
+          const target = Number(goal.targetAmount || 0)
+          const current = Number(goal.currentAmount || 0)
+          if (!target || target <= 0) return sum
+          return sum + Math.min((current / target) * 100, 100)
+        }, 0) / totalGoals
 
-            const futureGoals = goals
-              .filter(goal => goal.targetDate && new Date(goal.targetDate) >= new Date())
-              .sort((a, b) => new Date(a.targetDate) - new Date(b.targetDate))
+        const futureGoals = goals
+          .filter(goal => goal.targetDate && new Date(goal.targetDate) >= new Date())
+          .sort((a, b) => new Date(a.targetDate) - new Date(b.targetDate))
 
-            const upcomingGoal = futureGoals[0] || null
+        const upcomingGoal = futureGoals[0] || null
 
-            setGoalsSummary({
-              totalGoals,
-              linkedGoals: linkedGoals.length,
-              averageProgress: Number.isFinite(averageProgress) ? averageProgress : null,
-              upcomingGoal: upcomingGoal
-                ? {
-                    name: upcomingGoal.name,
-                    targetDate: upcomingGoal.targetDate,
-                    progress: upcomingGoal.targetAmount
-                      ? Math.min((Number(upcomingGoal.currentAmount || 0) / Number(upcomingGoal.targetAmount)) * 100, 100)
-                      : null,
-                    currency: upcomingGoal.currency || 'USD'
-                  }
-                : null,
-              goals: goals.slice(0, 5).map(goal => ({
-                name: goal.name,
-                category: goal.category,
-                targetAmount: goal.targetAmount,
-                currentAmount: goal.currentAmount,
-                currency: goal.currency || 'USD',
-                targetDate: goal.targetDate,
-                linkedToPortfolio: goal.linkedToPortfolio
-              }))
-            })
-          } else {
-            setGoalsSummary(null)
-          }
-        } catch (error) {
-          console.error('Failed to parse goals:', error)
-          setGoalsSummary(null)
-        }
+        setGoalsSummary({
+          totalGoals,
+          linkedGoals: linkedGoals.length,
+          averageProgress: Number.isFinite(averageProgress) ? averageProgress : null,
+          upcomingGoal: upcomingGoal
+            ? {
+                name: upcomingGoal.name,
+                targetDate: upcomingGoal.targetDate,
+                progress: upcomingGoal.targetAmount
+                  ? Math.min((Number(upcomingGoal.currentAmount || 0) / Number(upcomingGoal.targetAmount)) * 100, 100)
+                  : null,
+                currency: upcomingGoal.currency || 'USD'
+              }
+            : null,
+          goals: goals.slice(0, 5).map(goal => ({
+            name: goal.name,
+            category: goal.category,
+            targetAmount: goal.targetAmount,
+            currentAmount: goal.currentAmount,
+            currency: goal.currency || 'USD',
+            targetDate: goal.targetDate,
+            linkedToPortfolio: goal.linkedToPortfolio
+          }))
+        })
       } else {
         setGoalsSummary(null)
       }

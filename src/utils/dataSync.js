@@ -13,6 +13,33 @@
 
 import supabaseService from '../services/supabaseService'
 
+const STORAGE_KEYS = {
+  portfolios: 'portfolio_assets',
+  accountPrincipals: 'account_principals',
+  goals: 'investment_goals',
+  legacyGoals: 'goals',
+  investmentLogs: 'investment_logs'
+}
+
+const readLocalJSON = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return fallback
+    return JSON.parse(raw)
+  } catch (error) {
+    console.warn(`⚠️ Failed to parse localStorage key "${key}":`, error.message)
+    return fallback
+  }
+}
+
+const writeLocalJSON = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (error) {
+    console.warn(`⚠️ Failed to write localStorage key "${key}":`, error.message)
+  }
+}
+
 // Supabase 사용 가능 여부 확인
 const isSupabaseAvailable = () => {
   try {
@@ -32,8 +59,7 @@ const isSupabaseAvailable = () => {
 export const loadPortfolioAssets = async () => {
   try {
     // 1. localStorage에서 먼저 로드 (기존 방식)
-    const localData = localStorage.getItem('portfolio_assets')
-    const localAssets = localData ? JSON.parse(localData) : []
+    const localAssets = readLocalJSON(STORAGE_KEYS.portfolios, [])
 
     // 2. Supabase 사용 불가능하면 로컬 데이터 반환
     if (!isSupabaseAvailable()) {
@@ -67,7 +93,7 @@ export const loadPortfolioAssets = async () => {
       }))
 
       // localStorage에도 백업
-      localStorage.setItem('portfolio_assets', JSON.stringify(convertedAssets))
+      writeLocalJSON(STORAGE_KEYS.portfolios, convertedAssets)
       return convertedAssets
     }
 
@@ -87,7 +113,7 @@ export const loadPortfolioAssets = async () => {
 export const savePortfolioAssets = async (assets) => {
   try {
     // 1. 항상 localStorage에 먼저 저장 (기존 방식 유지)
-    localStorage.setItem('portfolio_assets', JSON.stringify(assets))
+    writeLocalJSON(STORAGE_KEYS.portfolios, assets)
     console.log('✅ Saved to localStorage')
 
     // 2. Supabase 사용 불가능하면 여기서 종료
@@ -98,8 +124,7 @@ export const savePortfolioAssets = async (assets) => {
     // 3. Supabase에도 저장 시도 (비동기, 실패해도 괜찮음)
     console.log('☁️ Syncing to Supabase...')
 
-    // 기존 Supabase 데이터 삭제 후 새로 추가 (간단한 전체 동기화)
-    // TODO: 향후 개선 시 diff 기반 업데이트로 변경 가능
+    await supabaseService.syncPortfolios(assets)
 
     return { success: true, source: 'localStorage+Supabase' }
 
@@ -113,11 +138,10 @@ export const savePortfolioAssets = async (assets) => {
 export const addPortfolioAsset = async (asset) => {
   try {
     // 1. localStorage 업데이트
-    const localData = localStorage.getItem('portfolio_assets')
-    const assets = localData ? JSON.parse(localData) : []
+    const assets = readLocalJSON(STORAGE_KEYS.portfolios, [])
     const newAsset = { ...asset, id: asset.id || Date.now() }
     const updatedAssets = [...assets, newAsset]
-    localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
+    writeLocalJSON(STORAGE_KEYS.portfolios, updatedAssets)
     console.log('✅ Asset added to localStorage')
 
     // 2. Supabase에도 추가 시도
@@ -139,10 +163,9 @@ export const addPortfolioAsset = async (asset) => {
 export const deletePortfolioAsset = async (assetId) => {
   try {
     // 1. localStorage 업데이트
-    const localData = localStorage.getItem('portfolio_assets')
-    const assets = localData ? JSON.parse(localData) : []
+    const assets = readLocalJSON(STORAGE_KEYS.portfolios, [])
     const updatedAssets = assets.filter(a => a.id !== assetId)
-    localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
+    writeLocalJSON(STORAGE_KEYS.portfolios, updatedAssets)
     console.log('✅ Asset deleted from localStorage')
 
     // 2. Supabase에서도 삭제 시도
@@ -164,10 +187,9 @@ export const deletePortfolioAsset = async (assetId) => {
 export const bulkDeletePortfolioAssets = async (assetIds) => {
   try {
     // 1. localStorage 업데이트
-    const localData = localStorage.getItem('portfolio_assets')
-    const assets = localData ? JSON.parse(localData) : []
+    const assets = readLocalJSON(STORAGE_KEYS.portfolios, [])
     const updatedAssets = assets.filter(a => !assetIds.includes(a.id))
-    localStorage.setItem('portfolio_assets', JSON.stringify(updatedAssets))
+    writeLocalJSON(STORAGE_KEYS.portfolios, updatedAssets)
     console.log(`✅ ${assetIds.length} assets deleted from localStorage`)
 
     // 2. Supabase에서도 삭제 시도
@@ -195,8 +217,7 @@ export const bulkDeletePortfolioAssets = async (assetIds) => {
 export const loadAccountPrincipals = async () => {
   try {
     // 1. localStorage에서 먼저 로드
-    const localData = localStorage.getItem('account_principals')
-    const localPrincipals = localData ? JSON.parse(localData) : {}
+    const localPrincipals = readLocalJSON(STORAGE_KEYS.accountPrincipals, {})
 
     // 2. Supabase 사용 불가능하면 로컬 데이터 반환
     if (!isSupabaseAvailable()) {
@@ -211,7 +232,7 @@ export const loadAccountPrincipals = async () => {
     // 4. Supabase 데이터가 있으면 사용
     if (supabasePrincipals && Object.keys(supabasePrincipals).length > 0) {
       console.log('✅ Loaded account principals from Supabase')
-      localStorage.setItem('account_principals', JSON.stringify(supabasePrincipals))
+      writeLocalJSON(STORAGE_KEYS.accountPrincipals, supabasePrincipals)
       return supabasePrincipals
     }
 
@@ -220,8 +241,7 @@ export const loadAccountPrincipals = async () => {
 
   } catch (error) {
     console.warn('⚠️ Supabase load failed, using localStorage:', error.message)
-    const localData = localStorage.getItem('account_principals')
-    return localData ? JSON.parse(localData) : {}
+    return readLocalJSON(STORAGE_KEYS.accountPrincipals, {})
   }
 }
 
@@ -229,10 +249,9 @@ export const loadAccountPrincipals = async () => {
 export const saveAccountPrincipal = async (accountName, principalData) => {
   try {
     // 1. localStorage 업데이트
-    const localData = localStorage.getItem('account_principals')
-    const principals = localData ? JSON.parse(localData) : {}
+    const principals = readLocalJSON(STORAGE_KEYS.accountPrincipals, {})
     principals[accountName] = principalData
-    localStorage.setItem('account_principals', JSON.stringify(principals))
+    writeLocalJSON(STORAGE_KEYS.accountPrincipals, principals)
     console.log('✅ Account principal saved to localStorage')
 
     // 2. Supabase에도 저장 시도
@@ -252,6 +271,114 @@ export const saveAccountPrincipal = async (accountName, principalData) => {
 
 /**
  * ==========================================
+ * Goals 동기화
+ * ==========================================
+ */
+
+export const loadGoals = async () => {
+  try {
+    let localGoals = readLocalJSON(STORAGE_KEYS.goals, null)
+
+    if (!Array.isArray(localGoals)) {
+      const legacyGoals = readLocalJSON(STORAGE_KEYS.legacyGoals, [])
+      if (legacyGoals.length > 0) {
+        console.log(`🔁 Migrating legacy goals (${legacyGoals.length}) to new storage key`)
+        writeLocalJSON(STORAGE_KEYS.goals, legacyGoals)
+        localStorage.removeItem(STORAGE_KEYS.legacyGoals)
+        localGoals = legacyGoals
+      } else {
+        localGoals = []
+      }
+    }
+
+    if (!isSupabaseAvailable()) {
+      return localGoals
+    }
+
+    console.log('☁️ Loading goals from Supabase...')
+    const supabaseGoals = await supabaseService.getGoals()
+
+    if (Array.isArray(supabaseGoals) && supabaseGoals.length > 0) {
+      writeLocalJSON(STORAGE_KEYS.goals, supabaseGoals)
+      localStorage.removeItem(STORAGE_KEYS.legacyGoals)
+      return supabaseGoals
+    }
+
+    return localGoals
+  } catch (error) {
+    console.warn('⚠️ Supabase load failed, using local goals:', error.message)
+    return readLocalJSON(STORAGE_KEYS.goals, [])
+  }
+}
+
+export const saveGoals = async (goals) => {
+  try {
+    writeLocalJSON(STORAGE_KEYS.goals, goals)
+    localStorage.removeItem(STORAGE_KEYS.legacyGoals)
+    console.log('✅ Goals saved to localStorage')
+
+    if (!isSupabaseAvailable()) {
+      return { success: true, source: 'localStorage' }
+    }
+
+    console.log('☁️ Syncing goals to Supabase...')
+    await supabaseService.syncGoals(goals)
+    return { success: true, source: 'localStorage+Supabase' }
+  } catch (error) {
+    console.warn('⚠️ Supabase goal sync failed (local copy saved):', error.message)
+    return { success: true, source: 'localStorage', supabaseError: error.message }
+  }
+}
+
+/**
+ * ==========================================
+ * Investment Logs 동기화
+ * ==========================================
+ */
+
+export const loadInvestmentLogs = async () => {
+  try {
+    const localLogs = readLocalJSON(STORAGE_KEYS.investmentLogs, [])
+
+    if (!isSupabaseAvailable()) {
+      return localLogs
+    }
+
+    console.log('☁️ Loading investment logs from Supabase...')
+    const supabaseLogs = await supabaseService.getInvestmentLogs()
+
+    if (Array.isArray(supabaseLogs) && supabaseLogs.length > 0) {
+      writeLocalJSON(STORAGE_KEYS.investmentLogs, supabaseLogs)
+      return supabaseLogs
+    }
+
+    return localLogs
+  } catch (error) {
+    console.warn('⚠️ Supabase log load failed, using local data:', error.message)
+    return readLocalJSON(STORAGE_KEYS.investmentLogs, [])
+  }
+}
+
+export const saveInvestmentLogs = async (logs) => {
+  try {
+    writeLocalJSON(STORAGE_KEYS.investmentLogs, logs)
+    console.log('✅ Investment logs saved to localStorage')
+
+    if (!isSupabaseAvailable()) {
+      return { success: true, source: 'localStorage' }
+    }
+
+    console.log('☁️ Syncing investment logs to Supabase...')
+    await supabaseService.syncInvestmentLogs(logs)
+    return { success: true, source: 'localStorage+Supabase' }
+  } catch (error) {
+    console.warn('⚠️ Supabase log sync failed (local copy saved):', error.message)
+    return { success: true, source: 'localStorage', supabaseError: error.message }
+  }
+}
+
+/**
+ * ==========================================
  * 동기화 상태 확인
  * ==========================================
  */
@@ -261,10 +388,10 @@ export const getSyncStatus = () => {
   return {
     supabaseAvailable: isSupabaseAvailable(),
     hasLocalData: {
-      portfolioAssets: !!localStorage.getItem('portfolio_assets'),
-      accountPrincipals: !!localStorage.getItem('account_principals'),
-      goals: !!localStorage.getItem('goals'),
-      investmentLogs: !!localStorage.getItem('investment_logs')
+      portfolioAssets: !!localStorage.getItem(STORAGE_KEYS.portfolios),
+      accountPrincipals: !!localStorage.getItem(STORAGE_KEYS.accountPrincipals),
+      goals: !!localStorage.getItem(STORAGE_KEYS.goals) || !!localStorage.getItem(STORAGE_KEYS.legacyGoals),
+      investmentLogs: !!localStorage.getItem(STORAGE_KEYS.investmentLogs)
     }
   }
 }
@@ -280,6 +407,14 @@ export default {
   // Account Principals
   loadAccountPrincipals,
   saveAccountPrincipal,
+
+  // Goals
+  loadGoals,
+  saveGoals,
+
+  // Investment Logs
+  loadInvestmentLogs,
+  saveInvestmentLogs,
 
   // Status
   getSyncStatus,

@@ -20,6 +20,130 @@ export const supabase = isSupabaseConfigured
 // 기본 사용자 ID (향후 인증 기능 추가 시 변경)
 const DEFAULT_USER_ID = 'default_user'
 
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw new Error('Supabase not configured')
+  }
+}
+
+const toNumber = (value, fallback = 0) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return fallback
+  }
+  return Number(value)
+}
+
+const normalizePortfolioForSupabase = (asset, userId = DEFAULT_USER_ID) => ({
+  id: Math.floor(toNumber(asset?.id ?? Date.now())),
+  user_id: userId,
+  symbol: asset?.symbol,
+  name: asset?.name,
+  type: asset?.type,
+  quantity: toNumber(asset?.quantity),
+  avg_price: toNumber(asset?.avgPrice),
+  current_price: toNumber(asset?.currentPrice ?? asset?.avgPrice ?? 0),
+  total_value: toNumber(asset?.totalValue ?? (asset?.quantity * asset?.avgPrice)),
+  profit: toNumber(asset?.profit),
+  profit_percent: toNumber(asset?.profitPercent),
+  currency: asset?.currency || 'USD',
+  account: asset?.account || '기본계좌',
+  category: asset?.category || '해외주식'
+})
+
+const normalizeGoalForSupabase = (goal, userId = DEFAULT_USER_ID) => {
+  const status = goal?.status || (goal?.completed ? 'completed' : 'active')
+
+  return {
+    id: Math.floor(toNumber(goal?.id ?? Date.now())),
+    user_id: userId,
+    title: goal?.title || goal?.name || '',
+    name: goal?.name || goal?.title || '',
+    target_amount: toNumber(goal?.targetAmount),
+    current_amount: toNumber(goal?.currentAmount),
+    deadline: goal?.targetDate || goal?.deadline || null,
+    category: goal?.category || '장기목표',
+    description: goal?.description || '',
+    completed: goal?.completed ?? (status === 'completed'),
+    status,
+    linked_to_portfolio: !!goal?.linkedToPortfolio,
+    link_type: goal?.linkType || 'total',
+    currency: goal?.currency || 'USD',
+    metadata: goal?.metadata && typeof goal.metadata === 'object'
+      ? goal.metadata
+      : {
+          linkedToPortfolio: !!goal?.linkedToPortfolio,
+          linkType: goal?.linkType || 'total',
+          currency: goal?.currency || 'USD',
+          status
+        }
+  }
+}
+
+const normalizeLogForSupabase = (log, userId = DEFAULT_USER_ID) => ({
+  id: Math.floor(toNumber(log?.id ?? Date.now())),
+  user_id: userId,
+  date: log?.date,
+  title: log?.title || '',
+  type: log?.type || '',
+  amount: toNumber(log?.total ?? log?.amount),
+  quantity: toNumber(log?.quantity),
+  price: toNumber(log?.price),
+  total: toNumber(log?.total ?? log?.amount),
+  asset: log?.asset || '',
+  account: log?.account || '기본계좌',
+  note: log?.note || '',
+  tags: Array.isArray(log?.tags) ? log.tags : [],
+  metadata: log?.metadata && typeof log.metadata === 'object' ? log.metadata : {}
+})
+
+const mapGoalFromSupabase = (item) => {
+  const metadata = item?.metadata && typeof item.metadata === 'object' ? item.metadata : {}
+  const status = item?.status || metadata.status || (item?.completed ? 'completed' : 'active')
+
+  return {
+    id: item?.id,
+    name: item?.name || item?.title || '',
+    title: item?.title || item?.name || '',
+    targetAmount: toNumber(item?.target_amount),
+    currentAmount: toNumber(item?.current_amount),
+    targetDate: item?.deadline,
+    category: item?.category || '장기목표',
+    description: item?.description || metadata.description || '',
+    completed: item?.completed ?? (status === 'completed'),
+    status,
+    linkedToPortfolio: item?.linked_to_portfolio ?? metadata.linkedToPortfolio ?? false,
+    linkType: item?.link_type || metadata.linkType || 'total',
+    currency: item?.currency || metadata.currency || 'USD',
+    metadata,
+    createdAt: item?.created_at,
+    updatedAt: item?.updated_at
+  }
+}
+
+const mapLogFromSupabase = (item) => {
+  const metadata = item?.metadata && typeof item.metadata === 'object' ? item.metadata : {}
+
+  const quantity = item?.quantity ?? metadata.quantity
+  const price = item?.price ?? metadata.price
+  const total = item?.total ?? item?.amount ?? metadata.total
+
+  return {
+    id: item?.id,
+    date: item?.date,
+    type: item?.type,
+    asset: item?.asset,
+    quantity: toNumber(quantity),
+    price: toNumber(price),
+    total: toNumber(total),
+    note: item?.note || metadata.note || '',
+    tags: Array.isArray(item?.tags) ? item.tags : [],
+    account: item?.account || metadata.account || '기본계좌',
+    metadata,
+    createdAt: item?.created_at,
+    updatedAt: item?.updated_at
+  }
+}
+
 /**
  * ==========================================
  * Portfolio 관련 함수
@@ -28,9 +152,7 @@ const DEFAULT_USER_ID = 'default_user'
 
 // 모든 포트폴리오 자산 가져오기
 export const getPortfolios = async (userId = DEFAULT_USER_ID) => {
-  if (!supabase) {
-    throw new Error('Supabase not configured')
-  }
+  ensureSupabase()
 
   try {
     const { data, error } = await supabase
@@ -47,12 +169,12 @@ export const getPortfolios = async (userId = DEFAULT_USER_ID) => {
       symbol: item.symbol,
       name: item.name,
       type: item.type,
-      quantity: parseFloat(item.quantity),
-      avgPrice: parseFloat(item.avg_price),
-      currentPrice: parseFloat(item.current_price),
-      totalValue: parseFloat(item.total_value),
-      profit: parseFloat(item.profit),
-      profitPercent: parseFloat(item.profit_percent),
+      quantity: toNumber(item.quantity),
+      avgPrice: toNumber(item.avg_price),
+      currentPrice: toNumber(item.current_price),
+      totalValue: toNumber(item.total_value),
+      profit: toNumber(item.profit),
+      profitPercent: toNumber(item.profit_percent),
       currency: item.currency,
       account: item.account,
       category: item.category,
@@ -67,25 +189,14 @@ export const getPortfolios = async (userId = DEFAULT_USER_ID) => {
 
 // 포트폴리오 자산 추가
 export const addPortfolio = async (asset, userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
+    const payload = normalizePortfolioForSupabase(asset, userId)
+
     const { data, error } = await supabase
       .from('portfolios')
-      .insert([{
-        id: Math.floor(asset.id), // 정수로 변환
-        user_id: userId,
-        symbol: asset.symbol,
-        name: asset.name,
-        type: asset.type,
-        quantity: asset.quantity,
-        avg_price: asset.avgPrice,
-        current_price: asset.currentPrice || asset.avgPrice,
-        total_value: asset.totalValue || (asset.quantity * asset.avgPrice),
-        profit: asset.profit || 0,
-        profit_percent: asset.profitPercent || 0,
-        currency: asset.currency || 'USD',
-        account: asset.account || '기본계좌',
-        category: asset.category || '해외주식'
-      }])
+      .upsert(payload, { onConflict: 'id' })
       .select()
       .single()
 
@@ -99,6 +210,8 @@ export const addPortfolio = async (asset, userId = DEFAULT_USER_ID) => {
 
 // 포트폴리오 자산 업데이트
 export const updatePortfolio = async (id, updates) => {
+  ensureSupabase()
+
   try {
     const updateData = {}
 
@@ -126,6 +239,8 @@ export const updatePortfolio = async (id, updates) => {
 
 // 포트폴리오 자산 삭제
 export const deletePortfolio = async (id) => {
+  ensureSupabase()
+
   try {
     const { error } = await supabase
       .from('portfolios')
@@ -142,27 +257,14 @@ export const deletePortfolio = async (id) => {
 
 // 여러 자산 일괄 추가 (CSV 가져오기용)
 export const bulkAddPortfolios = async (assets, userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
-    const insertData = assets.map(asset => ({
-      id: Math.floor(asset.id), // 정수로 변환
-      user_id: userId,
-      symbol: asset.symbol,
-      name: asset.name,
-      type: asset.type,
-      quantity: asset.quantity,
-      avg_price: asset.avgPrice,
-      current_price: asset.currentPrice || asset.avgPrice,
-      total_value: asset.totalValue || (asset.quantity * asset.avgPrice),
-      profit: asset.profit || 0,
-      profit_percent: asset.profitPercent || 0,
-      currency: asset.currency || 'USD',
-      account: asset.account || '기본계좌',
-      category: asset.category || '해외주식'
-    }))
+    const insertData = assets.map(asset => normalizePortfolioForSupabase(asset, userId))
 
     const { data, error } = await supabase
       .from('portfolios')
-      .insert(insertData)
+      .upsert(insertData, { onConflict: 'id' })
       .select()
 
     if (error) throw error
@@ -175,6 +277,8 @@ export const bulkAddPortfolios = async (assets, userId = DEFAULT_USER_ID) => {
 
 // 여러 자산 일괄 삭제
 export const bulkDeletePortfolios = async (ids) => {
+  ensureSupabase()
+
   try {
     const { error } = await supabase
       .from('portfolios')
@@ -189,6 +293,56 @@ export const bulkDeletePortfolios = async (ids) => {
   }
 }
 
+export const syncPortfolios = async (assets = [], userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
+  try {
+    const payload = assets.map(asset => normalizePortfolioForSupabase(asset, userId))
+
+    if (payload.length === 0) {
+      const { error: deleteAllError } = await supabase
+        .from('portfolios')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteAllError) throw deleteAllError
+      return { success: true }
+    }
+
+    const { error: upsertError } = await supabase
+      .from('portfolios')
+      .upsert(payload, { onConflict: 'id' })
+
+    if (upsertError) throw upsertError
+
+    const { data: existingRows, error: fetchError } = await supabase
+      .from('portfolios')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (fetchError) throw fetchError
+
+    const incomingIds = new Set(payload.map(item => item.id))
+    const staleIds = (existingRows || [])
+      .map(row => row.id)
+      .filter(id => !incomingIds.has(id))
+
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('portfolios')
+        .delete()
+        .in('id', staleIds)
+
+      if (deleteError) throw deleteError
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error syncing portfolios:', error)
+    throw error
+  }
+}
+
 /**
  * ==========================================
  * Account Principals 관련 함수
@@ -197,6 +351,8 @@ export const bulkDeletePortfolios = async (ids) => {
 
 // 모든 계좌 원금/예수금 가져오기
 export const getAccountPrincipals = async (userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
     const { data, error } = await supabase
       .from('account_principals')
@@ -224,6 +380,8 @@ export const getAccountPrincipals = async (userId = DEFAULT_USER_ID) => {
 
 // 계좌 원금/예수금 저장 또는 업데이트
 export const saveAccountPrincipal = async (accountName, principalData, userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
     const { data, error } = await supabase
       .from('account_principals')
@@ -255,6 +413,8 @@ export const saveAccountPrincipal = async (accountName, principalData, userId = 
 
 // 모든 재무 목표 가져오기
 export const getGoals = async (userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
     const { data, error } = await supabase
       .from('goals')
@@ -264,18 +424,7 @@ export const getGoals = async (userId = DEFAULT_USER_ID) => {
 
     if (error) throw error
 
-    return data.map(item => ({
-      id: item.id,
-      title: item.title,
-      targetAmount: parseFloat(item.target_amount),
-      currentAmount: parseFloat(item.current_amount),
-      deadline: item.deadline,
-      category: item.category,
-      description: item.description || '',
-      completed: item.completed,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at
-    }))
+    return data.map(mapGoalFromSupabase)
   } catch (error) {
     console.error('Error fetching goals:', error)
     throw error
@@ -284,20 +433,14 @@ export const getGoals = async (userId = DEFAULT_USER_ID) => {
 
 // 재무 목표 추가
 export const addGoal = async (goal, userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
+    const payload = normalizeGoalForSupabase(goal, userId)
+
     const { data, error } = await supabase
       .from('goals')
-      .insert([{
-        id: Math.floor(goal.id), // 정수로 변환
-        user_id: userId,
-        title: goal.title || '',
-        target_amount: goal.targetAmount || 0,
-        current_amount: goal.currentAmount || 0,
-        deadline: goal.deadline,
-        category: goal.category || '저축',
-        description: goal.description || '',
-        completed: goal.completed || false
-      }])
+      .upsert(payload, { onConflict: 'id' })
       .select()
       .single()
 
@@ -311,16 +454,24 @@ export const addGoal = async (goal, userId = DEFAULT_USER_ID) => {
 
 // 재무 목표 업데이트
 export const updateGoal = async (id, updates) => {
+  ensureSupabase()
+
   try {
     const updateData = {}
 
     if (updates.title !== undefined) updateData.title = updates.title
-    if (updates.targetAmount !== undefined) updateData.target_amount = updates.targetAmount
-    if (updates.currentAmount !== undefined) updateData.current_amount = updates.currentAmount
+    if (updates.name !== undefined) updateData.name = updates.name
+    if (updates.targetAmount !== undefined) updateData.target_amount = toNumber(updates.targetAmount)
+    if (updates.currentAmount !== undefined) updateData.current_amount = toNumber(updates.currentAmount)
     if (updates.deadline !== undefined) updateData.deadline = updates.deadline
     if (updates.category !== undefined) updateData.category = updates.category
     if (updates.description !== undefined) updateData.description = updates.description
     if (updates.completed !== undefined) updateData.completed = updates.completed
+    if (updates.status !== undefined) updateData.status = updates.status
+    if (updates.linkedToPortfolio !== undefined) updateData.linked_to_portfolio = updates.linkedToPortfolio
+    if (updates.linkType !== undefined) updateData.link_type = updates.linkType
+    if (updates.currency !== undefined) updateData.currency = updates.currency
+    if (updates.metadata !== undefined) updateData.metadata = updates.metadata
 
     const { data, error } = await supabase
       .from('goals')
@@ -339,6 +490,8 @@ export const updateGoal = async (id, updates) => {
 
 // 재무 목표 삭제
 export const deleteGoal = async (id) => {
+  ensureSupabase()
+
   try {
     const { error } = await supabase
       .from('goals')
@@ -353,6 +506,56 @@ export const deleteGoal = async (id) => {
   }
 }
 
+export const syncGoals = async (goals = [], userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
+  try {
+    const payload = goals.map(goal => normalizeGoalForSupabase(goal, userId))
+
+    if (payload.length === 0) {
+      const { error: deleteAllError } = await supabase
+        .from('goals')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteAllError) throw deleteAllError
+      return { success: true }
+    }
+
+    const { error: upsertError } = await supabase
+      .from('goals')
+      .upsert(payload, { onConflict: 'id' })
+
+    if (upsertError) throw upsertError
+
+    const { data: existingRows, error: fetchError } = await supabase
+      .from('goals')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (fetchError) throw fetchError
+
+    const incomingIds = new Set(payload.map(item => item.id))
+    const staleIds = (existingRows || [])
+      .map(row => row.id)
+      .filter(id => !incomingIds.has(id))
+
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('goals')
+        .delete()
+        .in('id', staleIds)
+
+      if (deleteError) throw deleteError
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error syncing goals:', error)
+    throw error
+  }
+}
+
 /**
  * ==========================================
  * Investment Logs 관련 함수
@@ -361,6 +564,8 @@ export const deleteGoal = async (id) => {
 
 // 모든 투자 일지 가져오기
 export const getInvestmentLogs = async (userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
     const { data, error } = await supabase
       .from('investment_logs')
@@ -370,18 +575,7 @@ export const getInvestmentLogs = async (userId = DEFAULT_USER_ID) => {
 
     if (error) throw error
 
-    return data.map(item => ({
-      id: item.id,
-      date: item.date,
-      title: item.title,
-      type: item.type,
-      amount: parseFloat(item.amount),
-      asset: item.asset || '',
-      note: item.note || '',
-      tags: item.tags || [],
-      createdAt: item.created_at,
-      updatedAt: item.updated_at
-    }))
+    return data.map(mapLogFromSupabase)
   } catch (error) {
     console.error('Error fetching investment logs:', error)
     throw error
@@ -390,20 +584,14 @@ export const getInvestmentLogs = async (userId = DEFAULT_USER_ID) => {
 
 // 투자 일지 추가
 export const addInvestmentLog = async (log, userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
+    const payload = normalizeLogForSupabase(log, userId)
+
     const { data, error } = await supabase
       .from('investment_logs')
-      .insert([{
-        id: Math.floor(log.id), // 정수로 변환
-        user_id: userId,
-        date: log.date,
-        title: log.title || '',
-        type: log.type || '',
-        amount: log.amount || 0,
-        asset: log.asset || '',
-        note: log.note || '',
-        tags: log.tags || []
-      }])
+      .upsert(payload, { onConflict: 'id' })
       .select()
       .single()
 
@@ -417,16 +605,23 @@ export const addInvestmentLog = async (log, userId = DEFAULT_USER_ID) => {
 
 // 투자 일지 업데이트
 export const updateInvestmentLog = async (id, updates) => {
+  ensureSupabase()
+
   try {
     const updateData = {}
 
     if (updates.date !== undefined) updateData.date = updates.date
     if (updates.title !== undefined) updateData.title = updates.title
     if (updates.type !== undefined) updateData.type = updates.type
-    if (updates.amount !== undefined) updateData.amount = updates.amount
+    if (updates.amount !== undefined) updateData.amount = toNumber(updates.amount)
+    if (updates.quantity !== undefined) updateData.quantity = toNumber(updates.quantity)
+    if (updates.price !== undefined) updateData.price = toNumber(updates.price)
+    if (updates.total !== undefined) updateData.total = toNumber(updates.total)
     if (updates.asset !== undefined) updateData.asset = updates.asset
+    if (updates.account !== undefined) updateData.account = updates.account
     if (updates.note !== undefined) updateData.note = updates.note
     if (updates.tags !== undefined) updateData.tags = updates.tags
+    if (updates.metadata !== undefined) updateData.metadata = updates.metadata
 
     const { data, error } = await supabase
       .from('investment_logs')
@@ -445,6 +640,8 @@ export const updateInvestmentLog = async (id, updates) => {
 
 // 투자 일지 삭제
 export const deleteInvestmentLog = async (id) => {
+  ensureSupabase()
+
   try {
     const { error } = await supabase
       .from('investment_logs')
@@ -459,6 +656,56 @@ export const deleteInvestmentLog = async (id) => {
   }
 }
 
+export const syncInvestmentLogs = async (logs = [], userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
+  try {
+    const payload = logs.map(log => normalizeLogForSupabase(log, userId))
+
+    if (payload.length === 0) {
+      const { error: deleteAllError } = await supabase
+        .from('investment_logs')
+        .delete()
+        .eq('user_id', userId)
+
+      if (deleteAllError) throw deleteAllError
+      return { success: true }
+    }
+
+    const { error: upsertError } = await supabase
+      .from('investment_logs')
+      .upsert(payload, { onConflict: 'id' })
+
+    if (upsertError) throw upsertError
+
+    const { data: existingRows, error: fetchError } = await supabase
+      .from('investment_logs')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (fetchError) throw fetchError
+
+    const incomingIds = new Set(payload.map(item => item.id))
+    const staleIds = (existingRows || [])
+      .map(row => row.id)
+      .filter(id => !incomingIds.has(id))
+
+    if (staleIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('investment_logs')
+        .delete()
+        .in('id', staleIds)
+
+      if (deleteError) throw deleteError
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error syncing investment logs:', error)
+    throw error
+  }
+}
+
 /**
  * ==========================================
  * 마이그레이션 헬퍼 함수
@@ -467,6 +714,8 @@ export const deleteInvestmentLog = async (id) => {
 
 // localStorage에서 Supabase로 데이터 마이그레이션
 export const migrateFromLocalStorage = async (userId = DEFAULT_USER_ID) => {
+  ensureSupabase()
+
   try {
     console.log('🔄 Starting data migration from localStorage to Supabase...')
 
@@ -476,7 +725,7 @@ export const migrateFromLocalStorage = async (userId = DEFAULT_USER_ID) => {
       const assets = JSON.parse(portfolioAssets)
       if (assets.length > 0) {
         console.log(`📦 Migrating ${assets.length} portfolio assets...`)
-        await bulkAddPortfolios(assets, userId)
+        await syncPortfolios(assets, userId)
         console.log('✅ Portfolio assets migrated successfully')
       }
     }
@@ -496,14 +745,12 @@ export const migrateFromLocalStorage = async (userId = DEFAULT_USER_ID) => {
     }
 
     // 3. Goals 마이그레이션
-    const goals = localStorage.getItem('goals')
+    const goals = localStorage.getItem('investment_goals') || localStorage.getItem('goals')
     if (goals) {
       const goalsData = JSON.parse(goals)
       if (goalsData.length > 0) {
         console.log(`📦 Migrating ${goalsData.length} goals...`)
-        for (const goal of goalsData) {
-          await addGoal(goal, userId)
-        }
+        await syncGoals(goalsData, userId)
         console.log('✅ Goals migrated successfully')
       }
     }
@@ -514,9 +761,7 @@ export const migrateFromLocalStorage = async (userId = DEFAULT_USER_ID) => {
       const logsData = JSON.parse(logs)
       if (logsData.length > 0) {
         console.log(`📦 Migrating ${logsData.length} investment logs...`)
-        for (const log of logsData) {
-          await addInvestmentLog(log, userId)
-        }
+        await syncInvestmentLogs(logsData, userId)
         console.log('✅ Investment logs migrated successfully')
       }
     }
@@ -565,6 +810,7 @@ export default {
   deletePortfolio,
   bulkAddPortfolios,
   bulkDeletePortfolios,
+  syncPortfolios,
 
   // Account Principals
   getAccountPrincipals,
@@ -575,12 +821,14 @@ export default {
   addGoal,
   updateGoal,
   deleteGoal,
+  syncGoals,
 
   // Investment Logs
   getInvestmentLogs,
   addInvestmentLog,
   updateInvestmentLog,
   deleteInvestmentLog,
+  syncInvestmentLogs,
 
   // Utilities
   migrateFromLocalStorage,
