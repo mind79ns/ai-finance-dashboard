@@ -26,8 +26,16 @@ import {
   ComposedChart
 } from 'recharts'
 import dataSync from '../utils/dataSync'
+import marketDataService from '../services/marketDataService'
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+
+const DEFAULT_EXCHANGE_RATE = 1340
+const normalizeAccountKey = (value) =>
+  (value || '')
+    .toString()
+    .replace(/\s+/g, '')
+    .toLowerCase()
 
 const DEFAULT_INCOME_CATEGORIES = [
   { id: 'accumulated', name: '누적금액', color: '#6366f1', isAccumulated: true },
@@ -103,6 +111,7 @@ const AssetStatus = () => {
   // Default account types for breakdown
   // Account types from localStorage or defaults
   const [accountTypes, setAccountTypes] = useState(() => DEFAULT_ACCOUNT_TYPES.map(acc => ({ ...acc })))
+  const [portfolioMetrics, setPortfolioMetrics] = useState({})
 
   const cloneDefaults = (defaults) => defaults.map(item => ({ ...item }))
   const ensureArrayWithFallback = (value, defaults) => {
@@ -173,6 +182,83 @@ const AssetStatus = () => {
 
     return () => {
       cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchPortfolioMetrics = async () => {
+      try {
+        const [assets, principals, marketData] = await Promise.all([
+          dataSync.loadPortfolioAssets(),
+          dataSync.loadAccountPrincipals(),
+          marketDataService.getAllMarketData().catch(() => null)
+        ])
+
+        if (cancelled) return
+
+        const exchangeRate = Number(marketData?.currency?.usdKrw?.rate) || DEFAULT_EXCHANGE_RATE
+        const metricsMap = {}
+
+        const ensureEntry = (accountName) => {
+          const key = accountName || '기본계좌'
+          if (!metricsMap[key]) {
+            metricsMap[key] = {
+              accountName: key,
+              normalizedName: normalizeAccountKey(key),
+              principal: 0,
+              remaining: 0,
+              investmentAmount: 0,
+              evaluationAmount: 0
+            }
+          }
+          return metricsMap[key]
+        }
+
+        if (principals && typeof principals === 'object') {
+          Object.entries(principals).forEach(([accountName, principalData]) => {
+            const entry = ensureEntry(accountName)
+            entry.principal = Number(principalData?.principal) || 0
+            entry.remaining = Number(principalData?.remaining) || 0
+          })
+        }
+
+        if (Array.isArray(assets)) {
+          assets.forEach(asset => {
+            const entry = ensureEntry(asset.account || '기본계좌')
+            const quantity = Number(asset.quantity) || 0
+            const avgPrice = Number(asset.avgPrice) || 0
+            const currentPrice = Number(asset.currentPrice ?? asset.avgPrice) || 0
+            const multiplier = asset.currency === 'USD' ? exchangeRate : 1
+            entry.investmentAmount += quantity * avgPrice * multiplier
+            entry.evaluationAmount += quantity * currentPrice * multiplier
+          })
+        }
+
+        setPortfolioMetrics(metricsMap)
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load portfolio metrics:', error)
+          setPortfolioMetrics({})
+        }
+      }
+    }
+
+    fetchPortfolioMetrics()
+
+    const handleStorageChange = (event) => {
+      if (!event?.key) return
+      if (['portfolio_assets', 'account_principals'].includes(event.key)) {
+        fetchPortfolioMetrics()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('storage', handleStorageChange)
     }
   }, [])
 
@@ -1304,6 +1390,7 @@ const AssetStatus = () => {
           year={selectedYear}
           accountTypes={accountTypes}
           accountData={accountBreakdown}
+          portfolioMetrics={portfolioMetrics}
           onSave={handleSaveAccountData}
           onClose={handleCloseEditModal}
         />
@@ -1414,7 +1501,7 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
 }
 
 // Edit Account Modal Component
-const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) => {
+const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, portfolioMetrics }) => {
   const [formData, setFormData] = useState({})
 
   useEffect(() => {
@@ -1437,6 +1524,36 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) 
         [categoryId]: value
       }
     }))
+  }
+
+  const handleApplyMetric = (accountId, categoryId, metricValue) => {
+    const numericValue = Number(metricValue)
+    if (!Number.isFinite(numericValue)) return
+    const roundedValue = Math.round(numericValue)
+    setFormData(prev => ({
+      ...prev,
+      [accountId]: {
+        ...prev[accountId],
+        [categoryId]: String(roundedValue)
+      }
+    }))
+  }
+
+  const formatMetricValue = (value) => {
+    if (!Number.isFinite(value)) return '-'
+    return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value))
+  }
+
+  const getMetricsForAccount = (accountName) => {
+    if (!portfolioMetrics) return null
+    if (portfolioMetrics[accountName]) return portfolioMetrics[accountName]
+    const normalized = normalizeAccountKey(accountName)
+    if (!normalized) return null
+    const matchedEntry = Object.values(portfolioMetrics).find(entry =>
+      normalizeAccountKey(entry?.accountName) === normalized ||
+      entry?.normalizedName === normalized
+    )
+    return matchedEntry || null
   }
 
   const handleSubmit = (e) => {
@@ -1475,6 +1592,15 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) 
               <tbody>
                 {accountTypes.map((acc, idx) => {
                   const Icon = getIconComponent(acc.icon)
+                  const metrics = getMetricsForAccount(acc.name)
+                  const metricButtons = metrics
+                    ? [
+                        { key: 'evaluationAmount', label: '평가금액', value: metrics.evaluationAmount },
+                        { key: 'investmentAmount', label: '투자금', value: metrics.investmentAmount },
+                        { key: 'principal', label: '원금', value: metrics.principal },
+                        { key: 'remaining', label: '예수금', value: metrics.remaining }
+                      ].filter(item => Number.isFinite(item.value) && Math.abs(item.value) > 0)
+                    : []
                   return (
                     <tr key={acc.id} className={`border-b border-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                       <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 z-10" style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f9fafb' }}>
@@ -1485,13 +1611,33 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose }) 
                       </td>
                       {ASSET_CATEGORIES.map(cat => (
                         <td key={cat.id} className="py-2 px-2">
-                          <input
-                            type="number"
-                            value={formData[acc.id]?.[cat.id] || ''}
-                            onChange={(e) => handleChange(acc.id, cat.id, e.target.value)}
-                            className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right text-sm"
-                            placeholder="0"
-                          />
+                          <div className="flex flex-col gap-1">
+                            <input
+                              type="number"
+                              value={formData[acc.id]?.[cat.id] || ''}
+                              onChange={(e) => handleChange(acc.id, cat.id, e.target.value)}
+                              className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right text-sm"
+                              placeholder="0"
+                            />
+                            {metricButtons.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {metricButtons.map(option => (
+                                  <button
+                                    key={option.key}
+                                    type="button"
+                                    onClick={() => handleApplyMetric(acc.id, cat.id, option.value)}
+                                    className="px-2 py-1 text-[11px] border border-primary-200 text-primary-600 rounded bg-primary-50 hover:bg-primary-100 transition-colors"
+                                    title={`${option.label}: ${formatMetricValue(option.value)}원`}
+                                  >
+                                    {option.label}
+                                    <span className="ml-1 text-primary-500">
+                                      {formatMetricValue(option.value)}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </td>
                       ))}
                     </tr>
