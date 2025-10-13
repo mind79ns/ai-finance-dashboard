@@ -71,7 +71,7 @@ export const addPortfolio = async (asset, userId = DEFAULT_USER_ID) => {
     const { data, error } = await supabase
       .from('portfolios')
       .insert([{
-        id: asset.id,
+        id: Math.floor(asset.id), // 정수로 변환
         user_id: userId,
         symbol: asset.symbol,
         name: asset.name,
@@ -144,7 +144,7 @@ export const deletePortfolio = async (id) => {
 export const bulkAddPortfolios = async (assets, userId = DEFAULT_USER_ID) => {
   try {
     const insertData = assets.map(asset => ({
-      id: asset.id,
+      id: Math.floor(asset.id), // 정수로 변환
       user_id: userId,
       symbol: asset.symbol,
       name: asset.name,
@@ -288,7 +288,7 @@ export const addGoal = async (goal, userId = DEFAULT_USER_ID) => {
     const { data, error } = await supabase
       .from('goals')
       .insert([{
-        id: goal.id,
+        id: Math.floor(goal.id), // 정수로 변환
         user_id: userId,
         title: goal.title || '',
         target_amount: goal.targetAmount || 0,
@@ -394,7 +394,7 @@ export const addInvestmentLog = async (log, userId = DEFAULT_USER_ID) => {
     const { data, error } = await supabase
       .from('investment_logs')
       .insert([{
-        id: log.id,
+        id: Math.floor(log.id), // 정수로 변환
         user_id: userId,
         date: log.date,
         title: log.title || '',
