@@ -4,7 +4,7 @@
 
 -- 1. portfolios 테이블: 포트폴리오 자산
 CREATE TABLE IF NOT EXISTS public.portfolios (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id BIGINT PRIMARY KEY,
   user_id TEXT NOT NULL DEFAULT 'default_user',
   symbol TEXT NOT NULL,
   name TEXT NOT NULL,
@@ -36,11 +36,11 @@ CREATE TABLE IF NOT EXISTS public.account_principals (
 
 -- 3. goals 테이블: 재무 목표
 CREATE TABLE IF NOT EXISTS public.goals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id BIGINT PRIMARY KEY,
   user_id TEXT NOT NULL DEFAULT 'default_user',
-  title TEXT NOT NULL,
-  target_amount NUMERIC NOT NULL,
-  current_amount NUMERIC NOT NULL DEFAULT 0,
+  title TEXT DEFAULT '',
+  target_amount NUMERIC DEFAULT 0,
+  current_amount NUMERIC DEFAULT 0,
   deadline DATE,
   category TEXT DEFAULT '저축',
   description TEXT DEFAULT '',
@@ -51,12 +51,12 @@ CREATE TABLE IF NOT EXISTS public.goals (
 
 -- 4. investment_logs 테이블: 투자 일지
 CREATE TABLE IF NOT EXISTS public.investment_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id BIGINT PRIMARY KEY,
   user_id TEXT NOT NULL DEFAULT 'default_user',
-  date DATE NOT NULL,
-  title TEXT NOT NULL,
-  type TEXT NOT NULL,
-  amount NUMERIC NOT NULL DEFAULT 0,
+  date DATE,
+  title TEXT DEFAULT '',
+  type TEXT DEFAULT '',
+  amount NUMERIC DEFAULT 0,
   asset TEXT DEFAULT '',
   note TEXT DEFAULT '',
   tags TEXT[] DEFAULT '{}',

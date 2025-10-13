@@ -1,5 +1,30 @@
 # Supabase 설정 가이드
 
+## ⚠️ 중요: 기존 테이블 삭제 필요
+
+만약 이전에 SQL을 실행했다면, 먼저 **기존 테이블을 삭제**해야 합니다:
+
+### Supabase Dashboard → SQL Editor → New Query
+
+```sql
+-- 기존 테이블 삭제 (순서 중요: 트리거/정책 먼저 삭제)
+DROP TRIGGER IF EXISTS update_portfolios_updated_at ON public.portfolios;
+DROP TRIGGER IF EXISTS update_account_principals_updated_at ON public.account_principals;
+DROP TRIGGER IF EXISTS update_goals_updated_at ON public.goals;
+DROP TRIGGER IF EXISTS update_investment_logs_updated_at ON public.investment_logs;
+
+DROP TABLE IF EXISTS public.portfolios CASCADE;
+DROP TABLE IF EXISTS public.account_principals CASCADE;
+DROP TABLE IF EXISTS public.goals CASCADE;
+DROP TABLE IF EXISTS public.investment_logs CASCADE;
+
+DROP FUNCTION IF EXISTS update_updated_at_column();
+```
+
+**"Run" 버튼 클릭** → "Success" 확인 후 아래 단계 진행
+
+---
+
 ## 1단계: Supabase 프로젝트 생성
 
 1. **Supabase 웹사이트 접속**: https://supabase.com
@@ -42,7 +67,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 
 ## 4단계: 데이터베이스 테이블 생성
 
-### 방법 1: SQL 파일 사용 (권장)
+### 방법 1: SQL 파일 사용 (권장) ✅
 
 1. 프로젝트 루트의 **`supabase-schema.sql`** 파일을 텍스트 에디터로 열기
 2. **전체 내용을 복사** (Ctrl+A → Ctrl+C)
@@ -51,154 +76,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 5. 우측 하단 **"Run"** 버튼 클릭
 6. ✅ **"Success. No rows returned"** 메시지 확인
 
-### 방법 2: 아래 SQL 직접 복사
+### 주요 변경사항 (NOT NULL 제약 완화)
 
-**⚠️ 주의: 아래 SQL만 복사하세요. ``` 기호는 포함하지 마세요!**
-
-Supabase Dashboard에서 **SQL Editor** (왼쪽 메뉴) → **New Query** 클릭 후, 아래 SQL 스크립트를 전체 복사하여 실행하세요:
-
-```sql
--- ====================================
--- AI Finance Dashboard - Supabase Schema
--- ====================================
-
--- 1. portfolios 테이블: 포트폴리오 자산
-CREATE TABLE IF NOT EXISTS public.portfolios (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL DEFAULT 'default_user',
-  symbol TEXT NOT NULL,
-  name TEXT NOT NULL,
-  type TEXT NOT NULL,
-  quantity NUMERIC NOT NULL,
-  avg_price NUMERIC NOT NULL,
-  current_price NUMERIC NOT NULL DEFAULT 0,
-  total_value NUMERIC NOT NULL DEFAULT 0,
-  profit NUMERIC NOT NULL DEFAULT 0,
-  profit_percent NUMERIC NOT NULL DEFAULT 0,
-  currency TEXT NOT NULL DEFAULT 'USD',
-  account TEXT NOT NULL DEFAULT '기본계좌',
-  category TEXT NOT NULL DEFAULT '해외주식',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 2. account_principals 테이블: 계좌별 원금/예수금
-CREATE TABLE IF NOT EXISTS public.account_principals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL DEFAULT 'default_user',
-  account_name TEXT NOT NULL UNIQUE,
-  principal NUMERIC NOT NULL DEFAULT 0,
-  remaining NUMERIC NOT NULL DEFAULT 0,
-  note TEXT DEFAULT '',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 3. goals 테이블: 재무 목표
-CREATE TABLE IF NOT EXISTS public.goals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL DEFAULT 'default_user',
-  title TEXT NOT NULL,
-  target_amount NUMERIC NOT NULL,
-  current_amount NUMERIC NOT NULL DEFAULT 0,
-  deadline DATE,
-  category TEXT DEFAULT '저축',
-  description TEXT DEFAULT '',
-  completed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. investment_logs 테이블: 투자 일지
-CREATE TABLE IF NOT EXISTS public.investment_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL DEFAULT 'default_user',
-  date DATE NOT NULL,
-  title TEXT NOT NULL,
-  type TEXT NOT NULL,
-  amount NUMERIC NOT NULL DEFAULT 0,
-  asset TEXT DEFAULT '',
-  note TEXT DEFAULT '',
-  tags TEXT[] DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ====================================
--- 인덱스 생성 (쿼리 성능 향상)
--- ====================================
-
-CREATE INDEX IF NOT EXISTS idx_portfolios_user_id ON public.portfolios(user_id);
-CREATE INDEX IF NOT EXISTS idx_portfolios_symbol ON public.portfolios(symbol);
-CREATE INDEX IF NOT EXISTS idx_portfolios_account ON public.portfolios(account);
-
-CREATE INDEX IF NOT EXISTS idx_account_principals_user_id ON public.account_principals(user_id);
-CREATE INDEX IF NOT EXISTS idx_account_principals_account ON public.account_principals(account_name);
-
-CREATE INDEX IF NOT EXISTS idx_goals_user_id ON public.goals(user_id);
-CREATE INDEX IF NOT EXISTS idx_goals_deadline ON public.goals(deadline);
-
-CREATE INDEX IF NOT EXISTS idx_investment_logs_user_id ON public.investment_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_investment_logs_date ON public.investment_logs(date);
-
--- ====================================
--- Row Level Security (RLS) 설정
--- ====================================
-
--- RLS 활성화
-ALTER TABLE public.portfolios ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.account_principals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.investment_logs ENABLE ROW LEVEL SECURITY;
-
--- 모든 사용자가 읽기/쓰기 가능하도록 설정 (인증 없이 사용)
--- 나중에 인증 기능 추가 시 user_id 기반으로 변경 가능
-CREATE POLICY "Enable all access for all users" ON public.portfolios
-  FOR ALL USING (true);
-
-CREATE POLICY "Enable all access for all users" ON public.account_principals
-  FOR ALL USING (true);
-
-CREATE POLICY "Enable all access for all users" ON public.goals
-  FOR ALL USING (true);
-
-CREATE POLICY "Enable all access for all users" ON public.investment_logs
-  FOR ALL USING (true);
-
--- ====================================
--- 자동 업데이트 트리거 (updated_at)
--- ====================================
-
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_portfolios_updated_at
-  BEFORE UPDATE ON public.portfolios
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_account_principals_updated_at
-  BEFORE UPDATE ON public.account_principals
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_goals_updated_at
-  BEFORE UPDATE ON public.goals
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_investment_logs_updated_at
-  BEFORE UPDATE ON public.investment_logs
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-```
-
-**실행 방법**:
-1. SQL 스크립트 전체를 복사
-2. Supabase Dashboard → SQL Editor에 붙여넣기
-3. 우측 하단 "Run" 버튼 클릭
-4. ✅ "Success. No rows returned" 메시지 확인
+- `investment_logs.title`, `type`, `date` → NULL 허용 (빈 값 가능)
+- `goals.title`, `target_amount` → NULL 허용 (빈 값 가능)
+- `portfolios.id`, `goals.id`, `investment_logs.id` → BIGINT (localStorage ID 호환)
 
 ---
 
@@ -224,11 +106,23 @@ npm install @supabase/supabase-js
 
 ## 완료! 🎉
 
-이제 다음 작업이 진행됩니다:
-1. ✅ Supabase 서비스 파일 생성
-2. ✅ localStorage 데이터 마이그레이션 로직 구현
-3. ✅ Portfolio, Goals, InvestmentLog 페이지에 Supabase 연동
-4. ✅ 실시간 동기화 구현
+이제 다음 기능이 작동합니다:
+1. ✅ PC에서 자산 추가 → Supabase 저장
+2. ✅ 모바일/다른 PC에서 접속 → Supabase 데이터 로드
+3. ✅ 네트워크 없을 때 → localStorage만 사용 (자동 fallback)
+
+### 동작 확인 방법:
+
+1. **PC에서 자산 추가**:
+   - 포트폴리오에 새 자산 추가
+   - 개발자 도구 콘솔에서 `☁️ Syncing to Supabase...` 메시지 확인
+
+2. **Supabase에서 확인**:
+   - Table Editor → `portfolios` 테이블 → 데이터 확인
+
+3. **모바일에서 확인**:
+   - 모바일 브라우저로 접속
+   - 같은 데이터가 표시되는지 확인
 
 ---
 
@@ -238,6 +132,7 @@ npm install @supabase/supabase-js
 - 모든 포트폴리오 자산 저장
 - symbol, name, type, quantity, avgPrice 등
 - 계좌별(account) 그룹핑 가능
+- **id**: BIGINT (localStorage 호환)
 
 ### account_principals 테이블
 - 계좌별 원금/예수금 저장
@@ -246,10 +141,14 @@ npm install @supabase/supabase-js
 ### goals 테이블
 - 재무 목표 저장
 - deadline, completed 상태 추적
+- **id**: BIGINT (localStorage 호환)
+- **title, target_amount**: NULL 허용
 
 ### investment_logs 테이블
 - 투자 일지 저장
 - date, type, amount, note 등
+- **id**: BIGINT (localStorage 호환)
+- **title, type, date**: NULL 허용
 
 ---
 
@@ -265,3 +164,15 @@ npm install @supabase/supabase-js
    ON public.portfolios
    FOR ALL USING (auth.uid()::text = user_id);
    ```
+
+---
+
+## 문제 해결
+
+### "null value in column violates not-null constraint" 에러
+→ 위의 "기존 테이블 삭제" SQL을 먼저 실행 후 새 스키마 재실행
+
+### 데이터가 동기화되지 않음
+1. 개발자 도구 콘솔 확인 (`F12`)
+2. `☁️ Loading from Supabase...` 메시지 확인
+3. 에러 발생 시 `.env` 파일의 Supabase URL/Key 재확인
