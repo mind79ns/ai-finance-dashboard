@@ -135,12 +135,19 @@ export const loadPortfolioAssets = async () => {
 }
 
 // Portfolio 데이터 저장 (localStorage + Supabase)
-export const savePortfolioAssets = async (assets) => {
+export const savePortfolioAssets = async (assets, options = {}) => {
   try {
     // 1. 항상 localStorage에 먼저 저장 (기존 방식 유지)
     writeLocalJSON(STORAGE_KEYS.portfolios, assets)
     console.log('✅ Saved to localStorage')
-    broadcastUpdate('portfolio_assets_updated', { assets })
+    const eventDetail = { assets }
+    if (options && typeof options === 'object') {
+      Object.entries(options).forEach(([key, value]) => {
+        if (key === 'assets') return
+        eventDetail[key] = value
+      })
+    }
+    broadcastUpdate('portfolio_assets_updated', eventDetail)
 
     // 2. Supabase 사용 불가능하면 여기서 종료
     if (!isSupabaseAvailable()) {

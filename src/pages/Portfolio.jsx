@@ -97,9 +97,12 @@ const Portfolio = () => {
         setLoading(true)
         const marketData = await marketDataService.getAllMarketData()
 
+        let nextExchangeRate = exchangeRate
+
         // Update exchange rate
-        if (marketData.currency?.usdKrw) {
-          setExchangeRate(marketData.currency.usdKrw.rate)
+        if (marketData.currency?.usdKrw?.rate) {
+          nextExchangeRate = marketData.currency.usdKrw.rate
+          setExchangeRate(nextExchangeRate)
         }
 
         // Get list of USD stock/ETF symbols to fetch
@@ -181,7 +184,7 @@ const Portfolio = () => {
           skipPriceUpdateRef.current = true
           setAssets(updatedAssets)
           // Sync price updates to localStorage + Supabase
-          await dataSync.savePortfolioAssets(updatedAssets)
+          await dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: nextExchangeRate })
           setLastUpdate(new Date())
         }
       } catch (error) {

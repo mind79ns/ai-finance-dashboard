@@ -43,6 +43,7 @@ const Dashboard = () => {
     totalValueUSD: 0,
     profitPercent: 0
   })
+  const [accountSummary, setAccountSummary] = useState([])
   const [allocationData, setAllocationData] = useState([])
   const [portfolioHistory, setPortfolioHistory] = useState([])
   const [monthlyContribution, setMonthlyContribution] = useState({
@@ -83,7 +84,8 @@ const Dashboard = () => {
         totals,
         allocation,
         assetsMap,
-        performance
+        performance,
+        accountBreakdown
       } = buildPortfolioSummary(assetsRaw, usdToKrw)
 
       setPortfolioSummary({
@@ -93,6 +95,7 @@ const Dashboard = () => {
         profitPercent: totals.profitPercent
       })
 
+      setAccountSummary(accountBreakdown)
       setAllocationData(allocation)
       setAssetPerformance(performance)
 
@@ -156,6 +159,7 @@ const Dashboard = () => {
       <HeaderSummary
         totals={portfolioSummary}
         assetsCount={allocationData.length}
+        accountSummary={accountSummary}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
@@ -362,7 +366,7 @@ const Dashboard = () => {
   )
 }
 
-const HeaderSummary = ({ totals, assetsCount }) => {
+const HeaderSummary = ({ totals, assetsCount, accountSummary }) => {
   return (
     <div className="grid grid-cols-1 gap-3 sm:gap-4">
       <div className="card bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
@@ -391,6 +395,16 @@ const HeaderSummary = ({ totals, assetsCount }) => {
               sub="계좌/카테고리 포함"
               icon={Building2}
             />
+            {accountSummary && accountSummary.length > 0 && accountSummary.map((account, index) => (
+              <SummaryKPI
+                key={account.account}
+                label={account.account}
+                value={formatCurrency(account.totalValueKRW, 'KRW')}
+                positive={account.profitKRW >= 0}
+                sub={`${account.profitPercent >= 0 ? '+' : ''}${account.profitPercent.toFixed(2)}%`}
+                icon={Wallet}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -628,6 +642,7 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
   let totalProfitKRW = 0
   const allocationMap = {}
   const assetsMap = {}
+  const accountMap = {}
 
   const performance = []
 
@@ -637,6 +652,7 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     const avgPrice = Number(asset.avgPrice || 0)
     const currency = asset.currency || 'USD'
     const type = asset.type || '기타'
+    const account = asset.account || '기본계좌'
 
     const totalValue = quantity * currentPrice
     const totalProfit = quantity * (currentPrice - avgPrice)
@@ -654,6 +670,20 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
       allocationMap[type] = 0
     }
     allocationMap[type] += valueKRW
+
+    // 계좌별 집계
+    if (!accountMap[account]) {
+      accountMap[account] = {
+        account,
+        totalValueKRW: 0,
+        profitKRW: 0,
+        profitPercent: 0,
+        assetCount: 0
+      }
+    }
+    accountMap[account].totalValueKRW += valueKRW
+    accountMap[account].profitKRW += profitKRW
+    accountMap[account].assetCount += 1
 
     assetsMap[asset.symbol] = {
       ...asset,
@@ -675,6 +705,14 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     })
   })
 
+  // 계좌별 수익률 계산
+  Object.values(accountMap).forEach(account => {
+    const investedAmount = account.totalValueKRW - account.profitKRW
+    account.profitPercent = investedAmount > 0
+      ? (account.profitKRW / investedAmount) * 100
+      : 0
+  })
+
   const profitPercent = totalValueKRW - totalProfitKRW !== 0
     ? (totalProfitKRW / (totalValueKRW - totalProfitKRW)) * 100
     : 0
@@ -687,6 +725,8 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     color: palette[index % palette.length]
   })).sort((a, b) => b.value - a.value)
 
+  const accountBreakdown = Object.values(accountMap).sort((a, b) => b.totalValueKRW - a.totalValueKRW)
+
   return {
     totals: {
       totalValueKRW,
@@ -696,8 +736,8 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     },
     allocation,
     assetsMap,
-    performance: performance
-      .sort((a, b) => b.profitKRW - a.profitKRW)
+    performance: performance.sort((a, b) => b.profitKRW - a.profitKRW),
+    accountBreakdown
   }
 }
 

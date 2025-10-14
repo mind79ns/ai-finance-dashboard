@@ -157,6 +157,9 @@ const AssetStatus = () => {
   const incomeReadyRef = useRef(false)
   const expenseReadyRef = useRef(false)
   const accountTypesReadyRef = useRef(false)
+  const latestAssetsRef = useRef([])
+  const latestPrincipalsRef = useRef({})
+  const latestExchangeRateRef = useRef(DEFAULT_EXCHANGE_RATE)
 
   // Load data from storage/Supabase
   useEffect(() => {
@@ -208,6 +211,81 @@ const AssetStatus = () => {
   useEffect(() => {
     let cancelled = false
 
+    const computeMetrics = (assetsInput, principalsInput, exchangeRateInput) => {
+      const metricsMap = {}
+      const ensureEntry = (accountName) => {
+        const canonicalName = mapPortfolioAccountName(accountName)
+        const key = canonicalName || '기본계좌'
+        if (!metricsMap[key]) {
+          metricsMap[key] = {
+            accountName: key,
+            normalizedName: normalizeAccountKey(key),
+            principal: 0,
+            remaining: 0,
+            investmentAmount: 0,
+            evaluationAmount: 0
+          }
+        }
+        return metricsMap[key]
+      }
+
+      if (principalsInput && typeof principalsInput === 'object') {
+        Object.entries(principalsInput).forEach(([accountName, principalData]) => {
+          const entry = ensureEntry(accountName)
+          const principalValue = Number(principalData?.principal)
+          const remainingValue = Number(principalData?.remaining)
+
+          if (Number.isFinite(principalValue)) {
+            entry.principal += principalValue
+          }
+
+          if (Number.isFinite(remainingValue)) {
+            entry.remaining += remainingValue
+          }
+        })
+      }
+
+      if (Array.isArray(assetsInput)) {
+        assetsInput.forEach(asset => {
+          const entry = ensureEntry(asset.account || '기본계좌')
+          const quantity = Number(asset.quantity) || 0
+          const avgPrice = Number(asset.avgPrice) || 0
+          const currentPrice = Number(asset.currentPrice ?? asset.avgPrice) || 0
+          const multiplier = asset.currency === 'USD' ? exchangeRateInput : 1
+          entry.investmentAmount += quantity * avgPrice * multiplier
+          entry.evaluationAmount += quantity * currentPrice * multiplier
+        })
+      }
+
+      return metricsMap
+    }
+
+    const updateMetricsState = (assetsInput, principalsInput, exchangeRateInput) => {
+      if (cancelled) return
+
+      const assets = Array.isArray(assetsInput)
+        ? assetsInput.map(asset => ({ ...asset }))
+        : []
+
+      const principals = principalsInput && typeof principalsInput === 'object'
+        ? Object.fromEntries(Object.entries(principalsInput).map(([accountName, data]) => {
+          return [accountName, { ...data }]
+        }))
+        : {}
+
+      const numericExchangeRate = Number(exchangeRateInput)
+      const fallbackRate = Number(latestExchangeRateRef.current)
+      const exchangeRate = Number.isFinite(numericExchangeRate) && numericExchangeRate > 0
+        ? numericExchangeRate
+        : (Number.isFinite(fallbackRate) && fallbackRate > 0 ? fallbackRate : DEFAULT_EXCHANGE_RATE)
+
+      latestAssetsRef.current = assets
+      latestPrincipalsRef.current = principals
+      latestExchangeRateRef.current = exchangeRate
+
+      setPortfolioMetrics(computeMetrics(assets, principals, exchangeRate))
+    }
+
     const fetchPortfolioMetrics = async () => {
       try {
         const [assets, principals, marketData] = await Promise.all([
@@ -219,66 +297,17 @@ const AssetStatus = () => {
         if (cancelled) return
 
         const exchangeRate = Number(marketData?.currency?.usdKrw?.rate) || DEFAULT_EXCHANGE_RATE
-        const metricsMap = {}
-
-        const ensureEntry = (accountName) => {
-          const canonicalName = mapPortfolioAccountName(accountName)
-          const key = canonicalName || '기본계좌'
-          if (!metricsMap[key]) {
-            metricsMap[key] = {
-              accountName: key,
-              normalizedName: normalizeAccountKey(key),
-              principal: 0,
-              remaining: 0,
-              investmentAmount: 0,
-              evaluationAmount: 0
-            }
-          }
-          return metricsMap[key]
-        }
-
-        if (principals && typeof principals === 'object') {
-          Object.entries(principals).forEach(([accountName, principalData]) => {
-            const entry = ensureEntry(accountName)
-            const principalValue = Number(principalData?.principal)
-            const remainingValue = Number(principalData?.remaining)
-
-            if (Number.isFinite(principalValue)) {
-              entry.principal += principalValue
-            }
-
-            if (Number.isFinite(remainingValue)) {
-              entry.remaining += remainingValue
-            }
-          })
-        }
-
-        if (Array.isArray(assets)) {
-          assets.forEach(asset => {
-            const entry = ensureEntry(asset.account || '기본계좌')
-            const quantity = Number(asset.quantity) || 0
-            const avgPrice = Number(asset.avgPrice) || 0
-            const currentPrice = Number(asset.currentPrice ?? asset.avgPrice) || 0
-            const multiplier = asset.currency === 'USD' ? exchangeRate : 1
-            entry.investmentAmount += quantity * avgPrice * multiplier
-            entry.evaluationAmount += quantity * currentPrice * multiplier
-          })
-        }
-
-        setPortfolioMetrics(metricsMap)
+        updateMetricsState(assets, principals, exchangeRate)
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to load portfolio metrics:', error)
+          latestAssetsRef.current = []
+          latestPrincipalsRef.current = {}
+          latestExchangeRateRef.current = DEFAULT_EXCHANGE_RATE
           setPortfolioMetrics({})
         }
       }
     }
-
-    const handlePortfolioMetricsRefresh = () => {
-      fetchPortfolioMetrics()
-    }
-
-    fetchPortfolioMetrics()
 
     const handleStorageChange = (event) => {
       if (!event?.key) return
@@ -287,15 +316,53 @@ const AssetStatus = () => {
       }
     }
 
+    const handlePortfolioAssetsUpdated = (event) => {
+      if (cancelled) return
+      const updatedAssets = Array.isArray(event?.detail?.assets) ? event.detail.assets : null
+      const detailExchangeRate = Number(event?.detail?.exchangeRate)
+
+      if (updatedAssets) {
+        const exchangeRate = Number.isFinite(detailExchangeRate) && detailExchangeRate > 0
+          ? detailExchangeRate
+          : latestExchangeRateRef.current
+        updateMetricsState(updatedAssets, latestPrincipalsRef.current, exchangeRate)
+      } else {
+        fetchPortfolioMetrics()
+      }
+    }
+
+    const handleAccountPrincipalsUpdated = (event) => {
+      if (cancelled) return
+      const { accountName, principalData, principals, allPrincipals } = event?.detail || {}
+      const principalsPayload = principals || allPrincipals
+
+      if (principalsPayload && typeof principalsPayload === 'object') {
+        updateMetricsState(latestAssetsRef.current, principalsPayload, latestExchangeRateRef.current)
+        return
+      }
+
+      if (accountName && principalData) {
+        const updatedPrincipals = {
+          ...latestPrincipalsRef.current,
+          [accountName]: { ...principalData }
+        }
+        updateMetricsState(latestAssetsRef.current, updatedPrincipals, latestExchangeRateRef.current)
+      } else {
+        fetchPortfolioMetrics()
+      }
+    }
+
+    fetchPortfolioMetrics()
+
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('portfolio_assets_updated', handlePortfolioMetricsRefresh)
-    window.addEventListener('account_principals_updated', handlePortfolioMetricsRefresh)
+    window.addEventListener('portfolio_assets_updated', handlePortfolioAssetsUpdated)
+    window.addEventListener('account_principals_updated', handleAccountPrincipalsUpdated)
 
     return () => {
       cancelled = true
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('portfolio_assets_updated', handlePortfolioMetricsRefresh)
-      window.removeEventListener('account_principals_updated', handlePortfolioMetricsRefresh)
+      window.removeEventListener('portfolio_assets_updated', handlePortfolioAssetsUpdated)
+      window.removeEventListener('account_principals_updated', handleAccountPrincipalsUpdated)
     }
   }, [])
 
