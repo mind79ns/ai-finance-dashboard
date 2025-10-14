@@ -100,7 +100,7 @@ const Portfolio = () => {
         let nextExchangeRate = exchangeRate
 
         // Update exchange rate
-        if (marketData.currency?.usdKrw?.rate) {
+        if (marketData?.currency?.usdKrw?.rate) {
           nextExchangeRate = marketData.currency.usdKrw.rate
           setExchangeRate(nextExchangeRate)
         }

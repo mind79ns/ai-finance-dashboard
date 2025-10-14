@@ -213,6 +213,7 @@ const AssetStatus = () => {
 
     const computeMetrics = (assetsInput, principalsInput, exchangeRateInput) => {
       const metricsMap = {}
+      const effectiveExchangeRate = Number(exchangeRateInput) || DEFAULT_EXCHANGE_RATE
       const ensureEntry = (accountName) => {
         const canonicalName = mapPortfolioAccountName(accountName)
         const key = canonicalName || '기본계좌'
@@ -251,7 +252,7 @@ const AssetStatus = () => {
           const quantity = Number(asset.quantity) || 0
           const avgPrice = Number(asset.avgPrice) || 0
           const currentPrice = Number(asset.currentPrice ?? asset.avgPrice) || 0
-          const multiplier = asset.currency === 'USD' ? exchangeRateInput : 1
+          const multiplier = asset.currency === 'USD' ? effectiveExchangeRate : 1
           entry.investmentAmount += quantity * avgPrice * multiplier
           entry.evaluationAmount += quantity * currentPrice * multiplier
         })
