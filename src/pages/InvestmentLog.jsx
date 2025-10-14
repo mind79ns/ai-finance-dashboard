@@ -212,6 +212,7 @@ const InvestmentLog = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    // 자산 심볼 결정: __custom__ 또는 직접 입력
     const assetSymbol = formData.asset === '__custom__'
       ? formData.customAsset.trim()
       : formData.asset.trim()
@@ -228,6 +229,17 @@ const InvestmentLog = () => {
 
     const quantity = parseFloat(formData.quantity)
     const price = parseFloat(formData.price)
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      alert('유효한 수량을 입력해주세요.')
+      return
+    }
+
+    if (!Number.isFinite(price) || price <= 0) {
+      alert('유효한 가격을 입력해주세요.')
+      return
+    }
+
     const total = quantity * price
 
     const normalizedAssetSymbol = assetSymbol.toUpperCase()
@@ -236,6 +248,8 @@ const InvestmentLog = () => {
       ? (formData.customAccountName || '').trim()
       : (formData.selectedAccount || '').trim()
     const accountForNewAsset = resolvedAccount || defaultAccountOption
+
+    // 신규 자산 정보 생성 (매수이고 기존 자산이 없을 때)
     const newAssetDetails = formData.type === 'buy' && !existingAsset
       ? {
           name: (formData.customAssetName || '').trim() || normalizedAssetSymbol,
@@ -256,6 +270,7 @@ const InvestmentLog = () => {
       note: formData.note
     }
 
+    // 로그 저장
     updateLogsState(prev => [newLog, ...prev])
 
     // 포트폴리오 자동 업데이트
@@ -269,6 +284,12 @@ const InvestmentLog = () => {
     let nextAssets = []
     let assetsChanged = false
 
+    console.log('📊 포트폴리오 업데이트 시작:', {
+      transaction,
+      newAssetDetails,
+      currentAssetsCount: portfolioAssets.length
+    })
+
     setPortfolioAssets(prevAssets => {
       const assets = prevAssets.map(asset => ({ ...asset }))
 
@@ -277,20 +298,27 @@ const InvestmentLog = () => {
       const quantityValue = Number(transaction.quantity)
       const priceValue = Number(transaction.price)
 
+      console.log('🔍 자산 검색 결과:', {
+        symbol: transactionSymbol,
+        foundIndex: assetIndex,
+        isNewAsset: assetIndex < 0
+      })
+
       if (!Number.isFinite(quantityValue)) {
-        console.warn('Invalid transaction quantity:', transaction)
+        console.warn('❌ Invalid transaction quantity:', transaction)
         nextAssets = prevAssets
         return prevAssets
       }
 
       if (transaction.type === 'buy') {
         if (!Number.isFinite(priceValue)) {
-          console.warn('Invalid transaction price for buy transaction:', transaction)
+          console.warn('❌ Invalid transaction price for buy transaction:', transaction)
           nextAssets = prevAssets
           return prevAssets
         }
 
         if (assetIndex >= 0) {
+          // 기존 자산 업데이트
           const asset = assets[assetIndex]
           const totalQuantity = asset.quantity + quantityValue
           const totalCost = (asset.quantity * asset.avgPrice) + (quantityValue * priceValue)
@@ -307,8 +335,10 @@ const InvestmentLog = () => {
             profit: (totalQuantity * currentPrice) - (totalQuantity * newAvgPrice),
             profitPercent
           }
+          console.log('✅ 기존 자산 업데이트:', assets[assetIndex])
           assetsChanged = true
         } else {
+          // 신규 자산 추가
           const details = newAssetDetails || {}
           const currency = (details.currency || 'USD').toUpperCase()
           const account = details.account || '기본계좌'
@@ -316,7 +346,7 @@ const InvestmentLog = () => {
           const name = details.name || transactionSymbol
           const totalValue = quantityValue * priceValue
 
-          assets.push({
+          const newAsset = {
             id: Date.now(),
             symbol: transactionSymbol,
             name,
@@ -330,7 +360,10 @@ const InvestmentLog = () => {
             currency,
             account,
             category: currency === 'KRW' ? '국내주식' : '해외주식'
-          })
+          }
+
+          assets.push(newAsset)
+          console.log('✅ 신규 자산 추가:', newAsset)
           assetsChanged = true
         }
       } else if (transaction.type === 'sell') {
@@ -339,6 +372,7 @@ const InvestmentLog = () => {
           const newQuantity = asset.quantity - quantityValue
 
           if (newQuantity <= 0) {
+            console.log('🗑️ 자산 완전 매도:', asset.symbol)
             assets.splice(assetIndex, 1)
           } else {
             const currentPrice = Number.isFinite(asset.currentPrice)
@@ -355,8 +389,11 @@ const InvestmentLog = () => {
               profit: (newQuantity * currentPrice) - (newQuantity * asset.avgPrice),
               profitPercent
             }
+            console.log('✅ 자산 일부 매도:', assets[assetIndex])
           }
           assetsChanged = true
+        } else {
+          console.warn('⚠️ 매도하려는 자산을 찾을 수 없음:', transactionSymbol)
         }
       }
 
@@ -371,10 +408,15 @@ const InvestmentLog = () => {
 
     if (assetsChanged && Array.isArray(nextAssets)) {
       try {
+        console.log('💾 포트폴리오 저장 시도, 자산 개수:', nextAssets.length)
         await dataSync.savePortfolioAssets(nextAssets)
+        console.log('✅ 포트폴리오 저장 성공')
       } catch (error) {
-        console.warn('⚠️ Failed to sync portfolio assets after transaction:', error)
+        console.error('❌ 포트폴리오 저장 실패:', error)
+        alert('포트폴리오 저장 중 오류가 발생했습니다. 다시 시도해주세요.')
       }
+    } else {
+      console.log('ℹ️ 포트폴리오 변경사항 없음')
     }
   }, [])
 
