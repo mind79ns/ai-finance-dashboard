@@ -10,24 +10,32 @@ const InvestmentLog = () => {
   const [portfolioAssets, setPortfolioAssets] = useState([])
 
   const updateLogsState = useCallback(async (updater) => {
-    let nextLogs = []
+    return new Promise((resolve, reject) => {
+      setLogs(prevLogs => {
+        const nextLogs = typeof updater === 'function' ? updater(prevLogs) : updater
 
-    setLogs(prevLogs => {
-      nextLogs = typeof updater === 'function' ? updater(prevLogs) : updater
-      return nextLogs
+        // 상태 업데이트 후 비동기로 저장 처리
+        if (Array.isArray(nextLogs)) {
+          setTimeout(async () => {
+            try {
+              console.log('💾 투자일지 저장 시작, 로그 개수:', nextLogs.length)
+              console.log('📝 저장할 로그 데이터:', nextLogs)
+              const result = await dataSync.saveInvestmentLogs(nextLogs)
+              console.log('✅ 투자일지 저장 완료:', result)
+              resolve(result)
+            } catch (error) {
+              console.error('❌ 투자일지 저장 실패:', error)
+              alert('투자일지 저장 중 오류가 발생했습니다. 다시 시도해주세요.')
+              reject(error)
+            }
+          }, 0)
+        } else {
+          resolve()
+        }
+
+        return nextLogs
+      })
     })
-
-    if (Array.isArray(nextLogs)) {
-      try {
-        console.log('💾 투자일지 저장 시작, 로그 개수:', nextLogs.length)
-        const result = await dataSync.saveInvestmentLogs(nextLogs)
-        console.log('✅ 투자일지 저장 완료:', result)
-      } catch (error) {
-        console.error('❌ 투자일지 저장 실패:', error)
-        alert('투자일지 저장 중 오류가 발생했습니다. 다시 시도해주세요.')
-        throw error
-      }
-    }
   }, [])
 
   const accountOptions = useMemo(() => {
