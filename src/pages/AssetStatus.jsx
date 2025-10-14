@@ -240,8 +240,16 @@ const AssetStatus = () => {
         if (principals && typeof principals === 'object') {
           Object.entries(principals).forEach(([accountName, principalData]) => {
             const entry = ensureEntry(accountName)
-            entry.principal = Number(principalData?.principal) || 0
-            entry.remaining = Number(principalData?.remaining) || 0
+            const principalValue = Number(principalData?.principal)
+            const remainingValue = Number(principalData?.remaining)
+
+            if (Number.isFinite(principalValue)) {
+              entry.principal += principalValue
+            }
+
+            if (Number.isFinite(remainingValue)) {
+              entry.remaining += remainingValue
+            }
           })
         }
 
