@@ -274,6 +274,10 @@ const AssetStatus = () => {
       }
     }
 
+    const handlePortfolioMetricsRefresh = () => {
+      fetchPortfolioMetrics()
+    }
+
     fetchPortfolioMetrics()
 
     const handleStorageChange = (event) => {
@@ -284,10 +288,14 @@ const AssetStatus = () => {
     }
 
     window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('portfolio_assets_updated', handlePortfolioMetricsRefresh)
+    window.addEventListener('account_principals_updated', handlePortfolioMetricsRefresh)
 
     return () => {
       cancelled = true
       window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('portfolio_assets_updated', handlePortfolioMetricsRefresh)
+      window.removeEventListener('account_principals_updated', handlePortfolioMetricsRefresh)
     }
   }, [])
 

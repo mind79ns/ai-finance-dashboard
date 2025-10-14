@@ -21,6 +21,7 @@ const Portfolio = () => {
     avgPrice: '',
     currency: 'USD',
     account: '기본계좌',
+    customAccountName: '',
     category: '해외주식'
   })
   const [loading, setLoading] = useState(false)
@@ -222,6 +223,9 @@ const Portfolio = () => {
   const totalProfitKRW = krwTotalProfit + (usdTotalProfit * exchangeRate)
   const totalAvgProfitPercent = totalValueKRW > totalProfitKRW ? (totalProfitKRW / (totalValueKRW - totalProfitKRW)) * 100 : 0
 
+  // 계좌 목록 추출 (실제 보유 자산의 계좌)
+  const accountOptions = Array.from(new Set(assets.map(asset => asset.account || '기본계좌')))
+
   // 계좌별 통계 계산 (USD/KRW 분리)
   const accountStats = assets.reduce((acc, asset) => {
     const account = asset.account || '기본계좌'
@@ -276,7 +280,8 @@ const Portfolio = () => {
       quantity: '',
       avgPrice: '',
       currency: 'USD',
-      account: '기본계좌',
+      account: accountOptions.length > 0 ? accountOptions[0] : '기본계좌',
+      customAccountName: '',
       category: '해외주식'
     })
   }
@@ -292,9 +297,20 @@ const Portfolio = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    // 계좌 검증 - 신규 계좌 직접 입력인 경우
+    if (formData.account === '__custom__' && !formData.customAccountName.trim()) {
+      alert('신규 계좌 이름을 입력해주세요.')
+      return
+    }
+
     const quantity = parseFloat(formData.quantity)
     const avgPrice = parseFloat(formData.avgPrice)
     const totalValue = quantity * avgPrice
+
+    // 계좌 결정: __custom__ 선택시 customAccountName 사용
+    const finalAccount = formData.account === '__custom__'
+      ? formData.customAccountName.trim()
+      : formData.account
 
     const newAsset = {
       id: Date.now(),
@@ -308,7 +324,7 @@ const Portfolio = () => {
       profit: 0,
       profitPercent: 0,
       currency: formData.currency,
-      account: formData.account,
+      account: finalAccount,
       category: formData.category
     }
 
@@ -1696,12 +1712,28 @@ const Portfolio = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
-                    <option value="기본계좌">기본계좌</option>
-                    <option value="해외계좌">해외계좌</option>
-                    <option value="ISA계좌">ISA계좌</option>
-                    <option value="연금계좌">연금계좌</option>
-                    <option value="기타">기타</option>
+                    {accountOptions.length > 0 ? (
+                      accountOptions.map(account => (
+                        <option key={account} value={account}>
+                          {account}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="기본계좌">기본계좌</option>
+                    )}
+                    <option value="__custom__">신규 계좌 직접 입력</option>
                   </select>
+                  {formData.account === '__custom__' && (
+                    <input
+                      type="text"
+                      name="customAccountName"
+                      placeholder="신규 계좌 이름 입력"
+                      value={formData.customAccountName}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  )}
                 </div>
 
                 <div>

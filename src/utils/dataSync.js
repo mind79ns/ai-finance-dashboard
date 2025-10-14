@@ -52,6 +52,19 @@ const cloneDeep = (value) => {
   }
 }
 
+const broadcastUpdate = (eventName, detail) => {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return
+  }
+
+  try {
+    const event = new CustomEvent(eventName, { detail })
+    window.dispatchEvent(event)
+  } catch (error) {
+    console.warn(`⚠️ Failed to dispatch "${eventName}" event:`, error.message)
+  }
+}
+
 // Supabase 사용 가능 여부 확인
 const isSupabaseAvailable = () => {
   try {
@@ -127,6 +140,7 @@ export const savePortfolioAssets = async (assets) => {
     // 1. 항상 localStorage에 먼저 저장 (기존 방식 유지)
     writeLocalJSON(STORAGE_KEYS.portfolios, assets)
     console.log('✅ Saved to localStorage')
+    broadcastUpdate('portfolio_assets_updated', { assets })
 
     // 2. Supabase 사용 불가능하면 여기서 종료
     if (!isSupabaseAvailable()) {
@@ -155,6 +169,7 @@ export const addPortfolioAsset = async (asset) => {
     const updatedAssets = [...assets, newAsset]
     writeLocalJSON(STORAGE_KEYS.portfolios, updatedAssets)
     console.log('✅ Asset added to localStorage')
+    broadcastUpdate('portfolio_assets_updated', { assets: updatedAssets })
 
     // 2. Supabase에도 추가 시도
     if (isSupabaseAvailable()) {
@@ -179,6 +194,7 @@ export const deletePortfolioAsset = async (assetId) => {
     const updatedAssets = assets.filter(a => a.id !== assetId)
     writeLocalJSON(STORAGE_KEYS.portfolios, updatedAssets)
     console.log('✅ Asset deleted from localStorage')
+    broadcastUpdate('portfolio_assets_updated', { assets: updatedAssets })
 
     // 2. Supabase에서도 삭제 시도
     if (isSupabaseAvailable()) {
@@ -203,6 +219,7 @@ export const bulkDeletePortfolioAssets = async (assetIds) => {
     const updatedAssets = assets.filter(a => !assetIds.includes(a.id))
     writeLocalJSON(STORAGE_KEYS.portfolios, updatedAssets)
     console.log(`✅ ${assetIds.length} assets deleted from localStorage`)
+    broadcastUpdate('portfolio_assets_updated', { assets: updatedAssets })
 
     // 2. Supabase에서도 삭제 시도
     if (isSupabaseAvailable()) {
@@ -265,6 +282,7 @@ export const saveAccountPrincipal = async (accountName, principalData) => {
     principals[accountName] = principalData
     writeLocalJSON(STORAGE_KEYS.accountPrincipals, principals)
     console.log('✅ Account principal saved to localStorage')
+    broadcastUpdate('account_principals_updated', { accountName, principalData })
 
     // 2. Supabase에도 저장 시도
     if (isSupabaseAvailable()) {
