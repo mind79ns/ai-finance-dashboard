@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   Plus,
   Edit,
@@ -1634,6 +1634,7 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
 // Edit Account Modal Component
 const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, portfolioMetrics }) => {
   const [formData, setFormData] = useState({})
+  const [linkedFields, setLinkedFields] = useState({})
   const [activeMetricPicker, setActiveMetricPicker] = useState(null)
   const [selectedPortfolioAccount, setSelectedPortfolioAccount] = useState('')
   const [selectedPortfolioMetric, setSelectedPortfolioMetric] = useState('evaluationAmount')
@@ -1648,6 +1649,7 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
       })
     })
     setFormData(initial)
+    setLinkedFields({})
   }, [accountData, accountTypes])
 
   const portfolioAccountOptions = useMemo(() => {
@@ -1681,6 +1683,22 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
         [categoryId]: value
       }
     }))
+
+    setLinkedFields(prev => {
+      const accountLinks = prev[accountId]
+      if (!accountLinks || !accountLinks[categoryId]) return prev
+
+      const updatedAccountLinks = { ...accountLinks }
+      delete updatedAccountLinks[categoryId]
+
+      const updated = { ...prev }
+      if (Object.keys(updatedAccountLinks).length > 0) {
+        updated[accountId] = updatedAccountLinks
+      } else {
+        delete updated[accountId]
+      }
+      return updated
+    })
   }
 
   const formatMetricValue = (value) => {
@@ -1695,18 +1713,68 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
     { key: 'remaining', label: '예수금(잔여)' }
   ]
 
-  const getMetricValue = (accountName, metricKey) => {
+  const getMetricLabel = (metricKey) => {
+    const option = metricOptions.find(opt => opt.key === metricKey)
+    return option ? option.label : metricKey
+  }
+
+  const getMetricValue = useCallback((accountName, metricKey) => {
     if (!portfolioMetrics) return null
     const entry = portfolioMetrics[accountName]
       || Object.values(portfolioMetrics).find(opt => normalizeAccountKey(opt?.accountName) === normalizeAccountKey(accountName))
     if (!entry) return null
     return entry[metricKey]
-  }
+  }, [portfolioMetrics])
+
+  useEffect(() => {
+    if (!portfolioMetrics || !linkedFields) return
+    const hasLinked = Object.values(linkedFields).some(categories => categories && Object.keys(categories).length > 0)
+    if (!hasLinked) return
+
+    setFormData(prev => {
+      let hasChanges = false
+      const result = { ...prev }
+
+      Object.entries(linkedFields).forEach(([accountId, categories]) => {
+        if (!categories) return
+
+        const prevAccount = prev[accountId] || {}
+        const updatedAccount = { ...prevAccount }
+        let accountChanged = false
+
+        Object.entries(categories).forEach(([categoryId, linkInfo]) => {
+          if (!linkInfo) return
+          const metricValue = getMetricValue(linkInfo.portfolioAccount, linkInfo.metricKey)
+          if (metricValue === null || metricValue === undefined) return
+          const numericValue = Number(metricValue)
+          if (!Number.isFinite(numericValue)) return
+
+          const newValue = String(Math.round(numericValue))
+          const prevValue = prevAccount[categoryId] != null ? String(prevAccount[categoryId]) : ''
+          if (prevValue !== newValue) {
+            updatedAccount[categoryId] = newValue
+            accountChanged = true
+          }
+        })
+
+        if (accountChanged) {
+          result[accountId] = updatedAccount
+          hasChanges = true
+        }
+      })
+
+      return hasChanges ? result : prev
+    })
+  }, [portfolioMetrics, linkedFields, getMetricValue])
 
   const handleApplySelectedMetric = () => {
     if (!activeMetricPicker) return
     if (!selectedPortfolioAccount || !selectedPortfolioMetric) return
     const metricValue = getMetricValue(selectedPortfolioAccount, selectedPortfolioMetric)
+    if (metricValue === null || metricValue === undefined) {
+      setActiveMetricPicker(null)
+      return
+    }
     const numericValue = Number(metricValue)
     if (!Number.isFinite(numericValue)) {
       setActiveMetricPicker(null)
@@ -1721,12 +1789,50 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
         [categoryId]: String(roundedValue)
       }
     }))
+    setLinkedFields(prev => ({
+      ...prev,
+      [accountId]: {
+        ...(prev[accountId] || {}),
+        [categoryId]: {
+          portfolioAccount: selectedPortfolioAccount,
+          metricKey: selectedPortfolioMetric,
+          metricLabel: getMetricLabel(selectedPortfolioMetric)
+        }
+      }
+    }))
     setActiveMetricPicker(null)
   }
 
   const handleOpenMetricPicker = (accountId, categoryId) => {
     if (portfolioAccountOptions.length === 0) return
+    const existingLink = linkedFields[accountId]?.[categoryId]
+    if (existingLink) {
+      if (existingLink.portfolioAccount) {
+        setSelectedPortfolioAccount(existingLink.portfolioAccount)
+      }
+      if (existingLink.metricKey) {
+        setSelectedPortfolioMetric(existingLink.metricKey)
+      }
+    }
     setActiveMetricPicker({ accountId, categoryId })
+  }
+
+  const handleUnlink = (accountId, categoryId) => {
+    setLinkedFields(prev => {
+      const accountLinks = prev[accountId]
+      if (!accountLinks || !accountLinks[categoryId]) return prev
+
+      const updatedAccountLinks = { ...accountLinks }
+      delete updatedAccountLinks[categoryId]
+
+      const updated = { ...prev }
+      if (Object.keys(updatedAccountLinks).length > 0) {
+        updated[accountId] = updatedAccountLinks
+      } else {
+        delete updated[accountId]
+      }
+      return updated
+    })
   }
 
   const handleCloseMetricPicker = () => {
@@ -1778,28 +1884,45 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                             <span>{acc.name}</span>
                           </div>
                         </td>
-                        {ASSET_CATEGORIES.map(cat => (
-                          <td key={cat.id} className="py-2 px-2">
-                            <div className="flex flex-col gap-2">
-                              <input
-                                type="number"
-                                value={formData[acc.id]?.[cat.id] || ''}
-                                onChange={(e) => handleChange(acc.id, cat.id, e.target.value)}
-                                className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right text-sm"
-                                placeholder="0"
-                              />
-                              {portfolioAccountOptions.length > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenMetricPicker(acc.id, cat.id)}
-                                  className="px-2 py-1 text-[11px] border border-primary-200 text-primary-600 rounded bg-primary-50 hover:bg-primary-100 transition-colors self-end"
-                                >
-                                  포트폴리오 값 선택
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        ))}
+                        {ASSET_CATEGORIES.map(cat => {
+                          const linkedInfo = linkedFields[acc.id]?.[cat.id]
+                          return (
+                            <td key={cat.id} className="py-2 px-2">
+                              <div className="flex flex-col gap-2">
+                                <input
+                                  type="number"
+                                  value={formData[acc.id]?.[cat.id] || ''}
+                                  onChange={(e) => handleChange(acc.id, cat.id, e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right text-sm"
+                                  placeholder="0"
+                                />
+                                {portfolioAccountOptions.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenMetricPicker(acc.id, cat.id)}
+                                    className="px-2 py-1 text-[11px] border border-primary-200 text-primary-600 rounded bg-primary-50 hover:bg-primary-100 transition-colors self-end"
+                                  >
+                                    포트폴리오 값 선택
+                                  </button>
+                                )}
+                                {linkedInfo && (
+                                  <div className="flex items-center justify-between gap-2 text-[11px] text-primary-700 bg-primary-50/70 rounded px-2 py-1">
+                                    <span className="truncate">
+                                      포트폴리오 연동: {linkedInfo.portfolioAccount} · {linkedInfo.metricLabel || getMetricLabel(linkedInfo.metricKey)}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUnlink(acc.id, cat.id)}
+                                      className="text-[11px] text-primary-700 underline underline-offset-2 whitespace-nowrap"
+                                    >
+                                      연동 해제
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          )
+                        })}
                       </tr>
                     )
                   })}

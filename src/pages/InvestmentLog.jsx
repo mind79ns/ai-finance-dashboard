@@ -9,7 +9,7 @@ const InvestmentLog = () => {
   const [logs, setLogs] = useState([])
   const [portfolioAssets, setPortfolioAssets] = useState([])
 
-  const updateLogsState = useCallback((updater) => {
+  const updateLogsState = useCallback(async (updater) => {
     let nextLogs = []
 
     setLogs(prevLogs => {
@@ -18,9 +18,15 @@ const InvestmentLog = () => {
     })
 
     if (Array.isArray(nextLogs)) {
-      dataSync.saveInvestmentLogs(nextLogs).catch(error => {
-        console.warn('⚠️ Failed to sync investment logs:', error)
-      })
+      try {
+        console.log('💾 투자일지 저장 시작, 로그 개수:', nextLogs.length)
+        const result = await dataSync.saveInvestmentLogs(nextLogs)
+        console.log('✅ 투자일지 저장 완료:', result)
+      } catch (error) {
+        console.error('❌ 투자일지 저장 실패:', error)
+        alert('투자일지 저장 중 오류가 발생했습니다. 다시 시도해주세요.')
+        throw error
+      }
     }
   }, [])
 
@@ -271,7 +277,13 @@ const InvestmentLog = () => {
     }
 
     // 로그 저장
-    updateLogsState(prev => [newLog, ...prev])
+    try {
+      await updateLogsState(prev => [newLog, ...prev])
+      console.log('✅ 거래 로그 저장 성공')
+    } catch (error) {
+      console.error('❌ 거래 로그 저장 실패:', error)
+      return // 저장 실패시 포트폴리오 업데이트 중단
+    }
 
     // 포트폴리오 자동 업데이트
     await updatePortfolioFromTransaction(newLog, { newAssetDetails })
@@ -420,9 +432,14 @@ const InvestmentLog = () => {
     }
   }, [])
 
-  const handleDeleteLog = (id) => {
+  const handleDeleteLog = async (id) => {
     if (window.confirm('이 거래 기록을 삭제하시겠습니까?')) {
-      updateLogsState(prev => prev.filter(log => log.id !== id))
+      try {
+        await updateLogsState(prev => prev.filter(log => log.id !== id))
+        console.log('✅ 거래 로그 삭제 성공')
+      } catch (error) {
+        console.error('❌ 거래 로그 삭제 실패:', error)
+      }
     }
   }
 
