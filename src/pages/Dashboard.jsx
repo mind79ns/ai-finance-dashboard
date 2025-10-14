@@ -370,42 +370,54 @@ const HeaderSummary = ({ totals, assetsCount, accountSummary }) => {
   return (
     <div className="grid grid-cols-1 gap-3 sm:gap-4">
       <div className="card bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-wide text-slate-300">포트폴리오 스냅샷</p>
-            <h1 className="text-xl sm:text-2xl font-bold mt-1 truncate">
-              {formatCurrency(totals.totalValueKRW, 'KRW')}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-2">
-              현재 총 평가액 <span className="hidden sm:inline">(USD 환산 {formatCurrency(totals.totalValueUSD, 'USD')})</span>
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 sm:gap-6">
-            <SummaryKPI
-              label="총 수익금"
-              value={formatCurrency(totals.totalProfitKRW, 'KRW')}
-              positive={totals.totalProfitKRW >= 0}
-              sub={`${totals.profitPercent >= 0 ? '+' : ''}${totals.profitPercent.toFixed(2)}%`}
-              icon={totals.totalProfitKRW >= 0 ? ArrowUpRight : ArrowDownRight}
-            />
-            <SummaryKPI
-              label="등록된 자산"
-              value={`${assetsCount}종`}
-              positive
-              sub="계좌/카테고리 포함"
-              icon={Building2}
-            />
-            {accountSummary && accountSummary.length > 0 && accountSummary.map((account, index) => (
+        <div className="space-y-4 sm:space-y-6">
+          {/* 포트폴리오 스냅샷 */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs uppercase tracking-wide text-slate-300">포트폴리오 스냅샷</p>
+              <h1 className="text-xl sm:text-2xl font-bold mt-1 truncate">
+                {formatCurrency(totals.totalValueKRW, 'KRW')}
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 mt-2">
+                현재 총 평가액 <span className="hidden sm:inline">(USD 환산 {formatCurrency(totals.totalValueUSD, 'USD')})</span>
+              </p>
+            </div>
+            {/* 총 수익금 카드 */}
+            <div className="flex-shrink-0">
               <SummaryKPI
-                key={account.account}
-                label={account.account}
-                value={formatCurrency(account.totalValueKRW, 'KRW')}
-                positive={account.profitKRW >= 0}
-                sub={`${account.profitPercent >= 0 ? '+' : ''}${account.profitPercent.toFixed(2)}%`}
-                icon={Wallet}
+                label="총 수익금"
+                value={formatCurrency(totals.totalProfitKRW, 'KRW')}
+                positive={totals.totalProfitKRW >= 0}
+                sub={`${totals.profitPercent >= 0 ? '+' : ''}${totals.profitPercent.toFixed(2)}%`}
+                icon={totals.totalProfitKRW >= 0 ? ArrowUpRight : ArrowDownRight}
               />
-            ))}
+            </div>
           </div>
+
+          {/* 계좌별 자산 현황 */}
+          {accountSummary && accountSummary.length > 0 && (
+            <div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                {accountSummary.map((account) => (
+                  <AccountCard
+                    key={account.account}
+                    label={account.account}
+                    value={formatCurrency(account.totalValueKRW, 'KRW')}
+                    positive={account.profitKRW >= 0}
+                    sub={`${account.profitPercent >= 0 ? '+' : ''}${account.profitPercent.toFixed(2)}%`}
+                  />
+                ))}
+                {/* TOTAL 카드 */}
+                <AccountCard
+                  label="TOTAL"
+                  value={formatCurrency(totals.totalValueKRW, 'KRW')}
+                  positive={totals.totalProfitKRW >= 0}
+                  sub={`${totals.profitPercent >= 0 ? '+' : ''}${totals.profitPercent.toFixed(2)}%`}
+                  isTotal
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -503,6 +515,19 @@ const SummaryKPI = ({ label, value, sub, positive, icon: Icon }) => (
         {sub}
       </p>
     </div>
+  </div>
+)
+
+const AccountCard = ({ label, value, sub, positive, isTotal }) => (
+  <div className={`bg-white/10 border ${isTotal ? 'border-emerald-400/50 bg-emerald-500/20' : 'border-white/20'} rounded-lg px-3 py-3 hover:bg-white/15 transition-colors`}>
+    <div className="flex items-center gap-2 mb-2">
+      <Wallet className="w-4 h-4 text-slate-300 flex-shrink-0" />
+      <p className="text-xs font-medium text-slate-200 truncate">{label}</p>
+    </div>
+    <p className="text-sm font-bold text-white truncate mb-1">{value}</p>
+    <p className={`text-xs font-semibold ${positive ? 'text-emerald-300' : 'text-rose-300'}`}>
+      {sub}
+    </p>
   </div>
 )
 
