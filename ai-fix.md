@@ -1,60 +1,58 @@
-# CI/CD Build Error Diagnosis and Fix Suggestions
+## 오류 분석 및 수정 제안서
 
-## Error Details
-During the test stage of your CI/CD pipeline, the following error occurred:
-
+### 오류 내용
+CI/CD 빌드에서 `test` 단계에서 발생한 오류 로그입니다. 주된 문제는 다음과 같습니다:
 ```
 npm error Missing script: "test"
 ```
+이 에러는 `package.json` 파일에 `test` 스크립트가 정의되어 있지 않다는 것을 의미합니다.
 
-This indicates that the npm command is attempting to execute a script named `"test"` that is not defined in your `package.json`.
+### 발생 원인
+- `package.json` 파일 내에 `scripts` 항목에 `test` 스크립트가 누락된 경우입니다.
+- `test` 스크립트가 명칭 오류로 인해 잘못 정의되었거나.
+- 아예 `package.json` 파일이 없거나 잘못된 위치에 있는 경우입니다.
 
-## Diagnosis
-The error message clearly states that the `"test"` script is missing from your `package.json`. NPM uses this script to run tests defined for your application. When the `npm test` command is executed, it looks for a script section in `package.json` which does not exist in this case.
+### 수정 제안
 
-## Suggested Fixes
+1. **`package.json` 파일 확인**
+   - 현재 프로젝트 루트 디렉토리에 `package.json` 파일이 존재하는지 확인합니다.
+   - 해당 파일이 없을 경우, 아래의 명령어를 사용하여 새로 생성합니다:
+     ```bash
+     npm init -y
+     ```
 
-### Step 1: Check the `package.json`
-1. Open your `package.json` file located at the root of your project.
-2. Look for a section labeled `"scripts"`. If it does not exist, or if there is no `"test"` script defined, you will need to add one.
+2. **`package.json` 수정**
+   - `package.json` 파일을 열고, `scripts` 항목에 `test` 스크립트를 추가합니다. 예를 들어, Jest를 사용하는 경우:
+     ```json
+     {
+       "scripts": {
+         "test": "jest"
+       }
+     }
+     ```
+   - 아래는 기본적인 `test` 스크립트 예시입니다:
+     ```json
+     {
+       "scripts": {
+         "test": "echo \"Error: no test specified\" && exit 1"
+       }
+     }
+     ```
+   - 이 코드는 기본적으로 테스트가 정의되지 않았음을 알리는 메시지를 출력합니다. 실제 테스트 프레임워크에 맞게 스크립트를 수정해주셔야 합니다.
 
-### Step 2: Define the Test Script
-Add a `"test"` script in the `"scripts"` section. The content of this script will depend on the testing framework and tools you are using (such as Jest, Mocha, or your custom test command). An example definition can be:
+3. **스크립트 확인**
+   - `package.json` 파일의 수정을 완료한 후, 아래의 명령어를 실행하여 스크립트가 잘 정의되었는지 확인합니다:
+     ```bash
+     npm run
+     ```
+   - 이 명령어를 통해 현재 정의된 모든 스크립트 목록을 볼 수 있습니다.
 
-```json
-{
-  "scripts": {
-    "test": "jest"
-  }
-}
-```
+4. **CI/CD 재실행**
+   - 수정된 `package.json` 파일을 저장한 후, CI/CD 파이프라인을 재실행하여 테스트 단계가 정상적으로 작동하는지 확인합니다.
 
-If you are using a different testing framework, replace `jest` with the appropriate command. Here are some examples for common testing frameworks:
+### 추가 참고 사항
+- 현재 자동화된 테스트 프레임워크(예: Jest, Mocha, Jasmine 등)를 설정하는 것을 고려하는 것이 좋습니다.
+- CI/CD 스크립트에서 특정한 테스트 런너가 요구되는 경우, 해당 런너를 추가로 설치해야 할 수도 있습니다.
 
-- **Jest:**
-  ```json
-  "test": "jest"
-  ```
-
-- **Mocha:**
-  ```json
-  "test": "mocha"
-  ```
-
-- **Custom Command:**
-  If you have a custom command, simply replace `jest` with that command.
-
-### Step 3: Verify Your Changes
-1. After making changes, save the `package.json` file.
-2. Run `npm run` in your terminal to confirm that the `test` command is now listed among the available scripts.
-3. Execute `npm test` to ensure that your tests run successfully without errors.
-
-### Additional Recommendations
-- **Check for Existing Tests:** If you do not have any tests written, consider adding some to ensure your application is working as expected.
-  
-- **Consult Documentation:** If you are unsure of the command you need for your testing framework, refer to its official documentation for detailed instructions and options.
-
-- **Install Necessary Packages:** Ensure that your testing framework is installed in your project. You may need to run `npm install <testing-framework>` (e.g., `npm install jest`).
-
-## Conclusion
-By following the steps above, you should be able to resolve the error regarding the missing `"test"` script. This will enable your CI/CD pipeline to progress past the test phase successfully. If you continue to face issues, inspect your configuration files and ensure all dependencies are installed correctly.
+### 결론
+`test` 스크립트의 누락은 프로젝트에서 테스트가 실행되지 않도록 만드는 주요 원인입니다. 위의 수정 제안을 따르시면 해당 오류를 해결하고 CI/CD 파이프라인에서 테스트 단계가 정상적으로 실행될 것입니다.

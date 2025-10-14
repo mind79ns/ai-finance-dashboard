@@ -132,6 +132,7 @@ const AssetStatus = () => {
   // Account types from localStorage or defaults
   const [accountTypes, setAccountTypes] = useState(() => DEFAULT_ACCOUNT_TYPES.map(acc => ({ ...acc })))
   const [portfolioMetrics, setPortfolioMetrics] = useState({})
+  const [portfolioLinks, setPortfolioLinks] = useState({})
 
   const cloneDefaults = (defaults) => defaults.map(item => ({ ...item }))
   const ensureArrayWithFallback = (value, defaults) => {
@@ -157,6 +158,7 @@ const AssetStatus = () => {
   const incomeReadyRef = useRef(false)
   const expenseReadyRef = useRef(false)
   const accountTypesReadyRef = useRef(false)
+  const portfolioLinksReadyRef = useRef(false)
   const latestAssetsRef = useRef([])
   const latestPrincipalsRef = useRef({})
   const latestExchangeRateRef = useRef(DEFAULT_EXCHANGE_RATE)
@@ -172,13 +174,15 @@ const AssetStatus = () => {
           loadedAccount,
           loadedIncome,
           loadedExpense,
-          loadedAccountTypes
+          loadedAccountTypes,
+          loadedPortfolioLinks
         ] = await Promise.all([
           dataSync.loadUserSetting('asset_status_data', {}),
           dataSync.loadUserSetting('asset_account_data', {}),
           dataSync.loadUserSetting('asset_income_categories', DEFAULT_INCOME_CATEGORIES),
           dataSync.loadUserSetting('asset_expense_categories', DEFAULT_EXPENSE_CATEGORIES),
-          dataSync.loadUserSetting('asset_account_types', DEFAULT_ACCOUNT_TYPES)
+          dataSync.loadUserSetting('asset_account_types', DEFAULT_ACCOUNT_TYPES),
+          dataSync.loadUserSetting('asset_portfolio_links', {})
         ])
 
         if (cancelled) return
@@ -188,12 +192,14 @@ const AssetStatus = () => {
         setIncomeCategories(ensureIncomeCategoryStructure(loadedIncome))
         setExpenseCategories(ensureArrayWithFallback(loadedExpense, DEFAULT_EXPENSE_CATEGORIES))
         setAccountTypes(ensureArrayWithFallback(loadedAccountTypes, DEFAULT_ACCOUNT_TYPES))
+        setPortfolioLinks(loadedPortfolioLinks && typeof loadedPortfolioLinks === 'object' ? loadedPortfolioLinks : {})
 
         statusReadyRef.current = true
         accountReadyRef.current = true
         incomeReadyRef.current = true
         expenseReadyRef.current = true
         accountTypesReadyRef.current = true
+        portfolioLinksReadyRef.current = true
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to load asset status data:', error)
@@ -367,6 +373,68 @@ const AssetStatus = () => {
     }
   }, [])
 
+  const getPortfolioMetricValue = useCallback((accountName, metricKey) => {
+    if (!portfolioMetrics || !accountName || !metricKey) return null
+    const directEntry = portfolioMetrics[accountName]
+    if (directEntry) {
+      return directEntry[metricKey]
+    }
+    const normalizedTarget = normalizeAccountKey(accountName)
+    const fallbackEntry = Object.values(portfolioMetrics).find(
+      entry => normalizeAccountKey(entry?.accountName) === normalizedTarget
+    )
+    return fallbackEntry ? fallbackEntry[metricKey] : null
+  }, [portfolioMetrics])
+
+  useEffect(() => {
+    if (!portfolioLinks || Object.keys(portfolioLinks).length === 0) return
+    if (!portfolioMetrics || Object.keys(portfolioMetrics).length === 0) return
+
+    setAccountData(prev => {
+      let hasChanges = false
+      const updated = { ...prev }
+
+      Object.entries(portfolioLinks).forEach(([yearKey, accountMap]) => {
+        if (!accountMap || typeof accountMap !== 'object') return
+
+        const prevYearData = updated[yearKey] ? { ...updated[yearKey] } : {}
+        let yearChanged = false
+
+        Object.entries(accountMap).forEach(([accountId, categoryMap]) => {
+          if (!categoryMap || typeof categoryMap !== 'object') return
+
+          const prevAccountData = prevYearData[accountId] ? { ...prevYearData[accountId] } : {}
+          let accountChanged = false
+
+          Object.entries(categoryMap).forEach(([categoryId, linkInfo]) => {
+            if (!linkInfo) return
+            const metricValue = getPortfolioMetricValue(linkInfo.portfolioAccount, linkInfo.metricKey)
+            const numericValue = Number(metricValue)
+            if (!Number.isFinite(numericValue)) return
+
+            const roundedValue = Math.round(numericValue)
+            if (prevAccountData[categoryId] !== roundedValue) {
+              prevAccountData[categoryId] = roundedValue
+              accountChanged = true
+            }
+          })
+
+          if (accountChanged) {
+            prevYearData[accountId] = prevAccountData
+            yearChanged = true
+          }
+        })
+
+        if (yearChanged) {
+          updated[yearKey] = prevYearData
+          hasChanges = true
+        }
+      })
+
+      return hasChanges ? updated : prev
+    })
+  }, [portfolioLinks, portfolioMetrics, getPortfolioMetricValue])
+
   // Persist changes to Supabase/localStorage
   useEffect(() => {
     if (!statusReadyRef.current) return
@@ -392,6 +460,11 @@ const AssetStatus = () => {
     if (!accountTypesReadyRef.current) return
     dataSync.saveUserSetting('asset_account_types', accountTypes)
   }, [accountTypes])
+
+  useEffect(() => {
+    if (!portfolioLinksReadyRef.current) return
+    dataSync.saveUserSetting('asset_portfolio_links', portfolioLinks)
+  }, [portfolioLinks])
 
   // Get available years
   const availableYears = useMemo(() => {
@@ -580,6 +653,80 @@ const AssetStatus = () => {
       return updated
     })
   }
+
+  const handleLinkPortfolioValue = useCallback((year, accountId, categoryId, linkInfo) => {
+    if (!year || !accountId || !categoryId || !linkInfo) return
+
+    setPortfolioLinks(prev => {
+      const yearKey = String(year)
+      const nextLink = {
+        portfolioAccount: linkInfo.portfolioAccount,
+        metricKey: linkInfo.metricKey,
+        metricLabel: linkInfo.metricLabel
+      }
+
+      if (!nextLink.portfolioAccount || !nextLink.metricKey) {
+        return prev
+      }
+
+      const existingYearLinks = prev[yearKey]
+      const updatedYearLinks = existingYearLinks ? { ...existingYearLinks } : {}
+      const existingAccountLinks = updatedYearLinks[accountId]
+      const updatedAccountLinks = existingAccountLinks ? { ...existingAccountLinks } : {}
+
+      const currentLink = existingAccountLinks?.[categoryId]
+      if (
+        currentLink &&
+        currentLink.portfolioAccount === nextLink.portfolioAccount &&
+        currentLink.metricKey === nextLink.metricKey &&
+        currentLink.metricLabel === nextLink.metricLabel
+      ) {
+        return prev
+      }
+
+      updatedAccountLinks[categoryId] = nextLink
+      updatedYearLinks[accountId] = updatedAccountLinks
+
+      return {
+        ...prev,
+        [yearKey]: updatedYearLinks
+      }
+    })
+  }, [])
+
+  const handleUnlinkPortfolioValue = useCallback((year, accountId, categoryId) => {
+    if (!year || !accountId || !categoryId) return
+
+    setPortfolioLinks(prev => {
+      const yearKey = String(year)
+      const existingYearLinks = prev[yearKey]
+      if (!existingYearLinks) return prev
+
+      const existingAccountLinks = existingYearLinks[accountId]
+      if (!existingAccountLinks || !existingAccountLinks[categoryId]) {
+        return prev
+      }
+
+      const updatedAccountLinks = { ...existingAccountLinks }
+      delete updatedAccountLinks[categoryId]
+
+      const updatedYearLinks = { ...existingYearLinks }
+      if (Object.keys(updatedAccountLinks).length > 0) {
+        updatedYearLinks[accountId] = updatedAccountLinks
+      } else {
+        delete updatedYearLinks[accountId]
+      }
+
+      const nextLinks = { ...prev }
+      if (Object.keys(updatedYearLinks).length > 0) {
+        nextLinks[yearKey] = updatedYearLinks
+      } else {
+        delete nextLinks[yearKey]
+      }
+
+      return nextLinks
+    })
+  }, [])
 
   const formatCurrency = (value) => {
     if (!value && value !== 0) return '-'
@@ -1598,6 +1745,9 @@ const AssetStatus = () => {
           accountTypes={accountTypes}
           accountData={accountBreakdown}
           portfolioMetrics={portfolioMetrics}
+          portfolioLinks={portfolioLinks[String(selectedYear)] || {}}
+          onLink={handleLinkPortfolioValue}
+          onUnlink={handleUnlinkPortfolioValue}
           onSave={handleSaveAccountData}
           onClose={handleCloseEditModal}
         />
@@ -1708,25 +1858,49 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
 }
 
 // Edit Account Modal Component
-const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, portfolioMetrics }) => {
+const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, portfolioMetrics, portfolioLinks, onLink, onUnlink }) => {
   const [formData, setFormData] = useState({})
-  const [linkedFields, setLinkedFields] = useState({})
   const [activeMetricPicker, setActiveMetricPicker] = useState(null)
   const [selectedPortfolioAccount, setSelectedPortfolioAccount] = useState('')
   const [selectedPortfolioMetric, setSelectedPortfolioMetric] = useState('evaluationAmount')
 
   useEffect(() => {
-    const initial = {}
+    const initialMap = {}
     accountTypes.forEach(acc => {
       const existing = accountData.find(a => a.id === acc.id)
-      initial[acc.id] = {}
+      initialMap[acc.id] = {}
       ASSET_CATEGORIES.forEach(cat => {
-        initial[acc.id][cat.id] = existing?.categories?.[cat.id] || 0
+        initialMap[acc.id][cat.id] = existing?.categories?.[cat.id] || 0
       })
     })
-    setFormData(initial)
-    setLinkedFields({})
-  }, [accountData, accountTypes])
+
+    setFormData(prev => {
+      const isInitialLoad = Object.keys(prev).length === 0
+
+      if (isInitialLoad) {
+        return initialMap
+      }
+
+      const merged = {}
+
+      accountTypes.forEach(acc => {
+        const prevAccount = prev[acc.id] || {}
+        const initialAccount = initialMap[acc.id] || {}
+        merged[acc.id] = { ...prevAccount }
+
+        ASSET_CATEGORIES.forEach(cat => {
+          const isLinked = !!portfolioLinks?.[acc.id]?.[cat.id]
+          const hasPrevValue = Object.prototype.hasOwnProperty.call(prevAccount, cat.id)
+
+          if (isLinked || !hasPrevValue) {
+            merged[acc.id][cat.id] = initialAccount[cat.id] || 0
+          }
+        })
+      })
+
+      return merged
+    })
+  }, [accountData, accountTypes, portfolioLinks])
 
   const portfolioAccountOptions = useMemo(() => {
     if (!portfolioMetrics || typeof portfolioMetrics !== 'object') return []
@@ -1760,21 +1934,9 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
       }
     }))
 
-    setLinkedFields(prev => {
-      const accountLinks = prev[accountId]
-      if (!accountLinks || !accountLinks[categoryId]) return prev
-
-      const updatedAccountLinks = { ...accountLinks }
-      delete updatedAccountLinks[categoryId]
-
-      const updated = { ...prev }
-      if (Object.keys(updatedAccountLinks).length > 0) {
-        updated[accountId] = updatedAccountLinks
-      } else {
-        delete updated[accountId]
-      }
-      return updated
-    })
+    if (portfolioLinks?.[accountId]?.[categoryId]) {
+      onUnlink?.(year, accountId, categoryId)
+    }
   }
 
   const formatMetricValue = (value) => {
@@ -1802,47 +1964,6 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
     return entry[metricKey]
   }, [portfolioMetrics])
 
-  useEffect(() => {
-    if (!portfolioMetrics || !linkedFields) return
-    const hasLinked = Object.values(linkedFields).some(categories => categories && Object.keys(categories).length > 0)
-    if (!hasLinked) return
-
-    setFormData(prev => {
-      let hasChanges = false
-      const result = { ...prev }
-
-      Object.entries(linkedFields).forEach(([accountId, categories]) => {
-        if (!categories) return
-
-        const prevAccount = prev[accountId] || {}
-        const updatedAccount = { ...prevAccount }
-        let accountChanged = false
-
-        Object.entries(categories).forEach(([categoryId, linkInfo]) => {
-          if (!linkInfo) return
-          const metricValue = getMetricValue(linkInfo.portfolioAccount, linkInfo.metricKey)
-          if (metricValue === null || metricValue === undefined) return
-          const numericValue = Number(metricValue)
-          if (!Number.isFinite(numericValue)) return
-
-          const newValue = String(Math.round(numericValue))
-          const prevValue = prevAccount[categoryId] != null ? String(prevAccount[categoryId]) : ''
-          if (prevValue !== newValue) {
-            updatedAccount[categoryId] = newValue
-            accountChanged = true
-          }
-        })
-
-        if (accountChanged) {
-          result[accountId] = updatedAccount
-          hasChanges = true
-        }
-      })
-
-      return hasChanges ? result : prev
-    })
-  }, [portfolioMetrics, linkedFields, getMetricValue])
-
   const handleApplySelectedMetric = () => {
     if (!activeMetricPicker) return
     if (!selectedPortfolioAccount || !selectedPortfolioMetric) return
@@ -1865,23 +1986,17 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
         [categoryId]: String(roundedValue)
       }
     }))
-    setLinkedFields(prev => ({
-      ...prev,
-      [accountId]: {
-        ...(prev[accountId] || {}),
-        [categoryId]: {
-          portfolioAccount: selectedPortfolioAccount,
-          metricKey: selectedPortfolioMetric,
-          metricLabel: getMetricLabel(selectedPortfolioMetric)
-        }
-      }
-    }))
+    onLink?.(year, accountId, categoryId, {
+      portfolioAccount: selectedPortfolioAccount,
+      metricKey: selectedPortfolioMetric,
+      metricLabel: getMetricLabel(selectedPortfolioMetric)
+    })
     setActiveMetricPicker(null)
   }
 
   const handleOpenMetricPicker = (accountId, categoryId) => {
     if (portfolioAccountOptions.length === 0) return
-    const existingLink = linkedFields[accountId]?.[categoryId]
+    const existingLink = portfolioLinks?.[accountId]?.[categoryId]
     if (existingLink) {
       if (existingLink.portfolioAccount) {
         setSelectedPortfolioAccount(existingLink.portfolioAccount)
@@ -1894,21 +2009,7 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
   }
 
   const handleUnlink = (accountId, categoryId) => {
-    setLinkedFields(prev => {
-      const accountLinks = prev[accountId]
-      if (!accountLinks || !accountLinks[categoryId]) return prev
-
-      const updatedAccountLinks = { ...accountLinks }
-      delete updatedAccountLinks[categoryId]
-
-      const updated = { ...prev }
-      if (Object.keys(updatedAccountLinks).length > 0) {
-        updated[accountId] = updatedAccountLinks
-      } else {
-        delete updated[accountId]
-      }
-      return updated
-    })
+    onUnlink?.(year, accountId, categoryId)
   }
 
   const handleCloseMetricPicker = () => {
@@ -1961,7 +2062,7 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                           </div>
                         </td>
                         {ASSET_CATEGORIES.map(cat => {
-                          const linkedInfo = linkedFields[acc.id]?.[cat.id]
+                          const linkedInfo = portfolioLinks?.[acc.id]?.[cat.id]
                           return (
                             <td key={cat.id} className="py-2 px-2">
                               <div className="flex flex-col gap-2">
