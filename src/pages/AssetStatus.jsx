@@ -843,29 +843,57 @@ const AssetStatus = () => {
 
       {/* Monthly Income/Expense Table */}
       <div className="card overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-900">월별 수입/지출 현황표</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">월별 수입/지출 현황표</h2>
           <div className="flex gap-2">
             <button
               onClick={handleAddIncomeCategory}
-              className="btn-secondary flex items-center gap-2 text-sm"
+              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
               title="수입 항목 추가"
             >
-              <Plus className="w-4 h-4" />
-              수입 추가
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">수입 추가</span>
+              <span className="sm:hidden">수입</span>
             </button>
             <button
               onClick={handleAddExpenseCategory}
-              className="btn-secondary flex items-center gap-2 text-sm"
+              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
               title="지출 항목 추가"
             >
-              <Plus className="w-4 h-4" />
-              지출 추가
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">지출 추가</span>
+              <span className="sm:hidden">지출</span>
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Notice */}
+        <div className="block sm:hidden p-6 bg-blue-50 border-l-4 border-blue-500">
+          <div className="flex items-start gap-3">
+            <Calendar className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-blue-900 mb-1">모바일 최적화 안내</p>
+              <p className="text-xs text-blue-700 leading-relaxed">
+                월별 수입/지출 현황표는 데이터양이 많아 PC에서 보시는 것을 권장합니다.
+                모바일에서는 위의 <strong>"월별 상세 현황"</strong> 섹션에서 월을 선택하여
+                해당 월의 수입/지출 내역을 확인하실 수 있습니다.
+              </p>
+              <button
+                onClick={() => {
+                  const monthViewSection = document.querySelector('[class*="space-y-4"]')
+                  if (monthViewSection) {
+                    monthViewSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                }}
+                className="mt-3 text-xs font-medium text-blue-600 hover:text-blue-800 underline"
+              >
+                월별 상세 현황으로 이동 →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-blue-100 border-b border-blue-200">
@@ -1251,27 +1279,101 @@ const AssetStatus = () => {
 
       {/* Account Breakdown Table */}
       <div className="card overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-900">계좌별 자산 현황</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">계좌별 자산 현황</h2>
           <div className="flex gap-2">
             <button
               onClick={handleAddAccount}
-              className="btn-secondary flex items-center gap-2 text-sm"
+              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
             >
-              <Plus className="w-4 h-4" />
-              계좌 추가
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">계좌 추가</span>
+              <span className="sm:hidden">계좌</span>
             </button>
             <button
               onClick={() => setShowEditModal(true)}
-              className="btn-secondary flex items-center gap-2 text-sm"
+              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
             >
-              <Edit className="w-4 h-4" />
-              금액 수정
+              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">금액 수정</span>
+              <span className="sm:hidden">수정</span>
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="block sm:hidden p-4 space-y-3">
+          {accountBreakdown.map((account) => {
+            const Icon = getIconComponent(account.icon)
+            const percentage = totalAccountValue > 0 ? (account.total / totalAccountValue * 100) : 0
+
+            return (
+              <div key={account.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
+                {/* Account Header */}
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Icon className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                    <span className="text-sm font-bold text-gray-900 truncate">{account.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-1 rounded">
+                      {percentage.toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Category Breakdown */}
+                <div className="space-y-2 text-xs">
+                  {ASSET_CATEGORIES.map(cat => {
+                    const value = account.categories[cat.id] || 0
+                    if (value === 0) return null
+                    return (
+                      <div key={cat.id} className="flex justify-between items-center">
+                        <span className="text-gray-600">{cat.name}</span>
+                        <span className="font-medium text-gray-900">{formatCurrency(value)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Total */}
+                <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200">
+                  <span className="text-xs font-semibold text-gray-700">합계</span>
+                  <span className="text-sm font-bold text-gray-900">{formatCurrency(account.total)}</span>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Total Summary Card */}
+          <div className="border-2 border-blue-300 rounded-lg p-3 bg-blue-50">
+            <p className="text-sm font-bold text-blue-900 mb-2 text-center">전체 자산 합계</p>
+            <div className="space-y-2 text-xs">
+              {ASSET_CATEGORIES.map(cat => {
+                const value = categoryTotals[cat.id] || 0
+                if (value === 0) return null
+                const catPercentage = totalAccountValue > 0 ? ((value) / totalAccountValue * 100) : 0
+                return (
+                  <div key={cat.id} className="flex justify-between items-center">
+                    <span className="text-blue-700 font-medium">{cat.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-blue-900">{formatCurrency(value)}</span>
+                      <span className="text-blue-600 text-[10px] font-semibold bg-blue-100 px-1.5 py-0.5 rounded">
+                        {catPercentage.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="flex justify-between items-center pt-2 mt-2 border-t border-blue-300">
+                <span className="text-blue-800 font-bold">TOTAL</span>
+                <span className="text-base font-bold text-blue-900">{formatCurrency(totalAccountValue)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-blue-100 border-b border-blue-200">
