@@ -89,20 +89,46 @@ const TransactionHistory = () => {
     })
   }, [])
 
-  // Calculate cumulative sum
+  // Calculate cumulative sum (전체 기간)
   const calculateCumulative = (transactions) => {
     return transactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
   }
 
+  // Calculate current month cumulative sum (당월만)
+  const calculateCurrentMonthCumulative = (transactions) => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1
+
+    return transactions
+      .filter(tx => {
+        const txDate = new Date(tx.date)
+        return txDate.getFullYear() === currentYear && (txDate.getMonth() + 1) === currentMonth
+      })
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+  }
+
   // Calculate cumulative sum in KRW
   const calculateCumulativeKRW = (transactions, currency) => {
-    const sum = calculateCumulative(transactions)
+    const sum = calculateCurrentMonthCumulative(transactions) // 당월만 계산
     if (currency === 'VND') {
       return sum * exchangeRates.vndToKrw
     } else if (currency === 'USD') {
       return sum * exchangeRates.usdToKrw
     }
     return sum
+  }
+
+  // Get current month transaction count
+  const getCurrentMonthCount = (transactions) => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1
+
+    return transactions.filter(tx => {
+      const txDate = new Date(tx.date)
+      return txDate.getFullYear() === currentYear && (txDate.getMonth() + 1) === currentMonth
+    }).length
   }
 
   // Format currency
@@ -343,8 +369,14 @@ const TransactionHistory = () => {
 
   // Currency section component
   const CurrencySection = ({ currency, label, transactions }) => {
-    const cumulative = calculateCumulative(transactions)
+    const currentMonthCumulative = calculateCurrentMonthCumulative(transactions)
     const cumulativeKRW = calculateCumulativeKRW(transactions, currency)
+    const currentMonthCount = getCurrentMonthCount(transactions)
+    const totalCount = transactions.length
+
+    // 현재 년월 표시
+    const now = new Date()
+    const currentYearMonth = `${now.getFullYear()}년 ${now.getMonth() + 1}월`
 
     return (
       <div className="card">
@@ -367,27 +399,27 @@ const TransactionHistory = () => {
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
             <p className="text-sm font-medium text-blue-700 mb-2">금액입력</p>
             <p className="text-2xl font-bold text-blue-900">
-              {formatCurrency(cumulative, currency)}
+              {formatCurrency(currentMonthCumulative, currency)}
             </p>
-            <p className="text-xs text-blue-600 mt-1">{transactions.length}건의 거래</p>
+            <p className="text-xs text-blue-600 mt-1">{currentYearMonth} • {currentMonthCount}건</p>
           </div>
 
-          {/* 누적합산 */}
+          {/* 누적합산 (당월) */}
           <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-            <p className="text-sm font-medium text-green-700 mb-2">누적합산</p>
+            <p className="text-sm font-medium text-green-700 mb-2">누적합산 (당월)</p>
             <p className="text-2xl font-bold text-green-900">
-              {formatCurrency(cumulative, currency)}
+              {formatCurrency(currentMonthCumulative, currency)}
             </p>
             <button
               onClick={() => handleOpenHistoryModal(currency)}
               className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 mt-2"
             >
               <Eye className="w-3 h-3" />
-              이력 보기
+              이력 보기 (전체 {totalCount}건)
             </button>
           </div>
 
-          {/* 누적합산 (원화환율적용) */}
+          {/* 누적합산 (원화환율적용) - 당월 */}
           {currency !== 'KRW' && (
             <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
               <p className="text-sm font-medium text-purple-700 mb-2">누적합산 (원화환율적용)</p>
@@ -395,7 +427,7 @@ const TransactionHistory = () => {
                 {formatCurrency(cumulativeKRW, 'KRW')}
               </p>
               <p className="text-xs text-purple-600 mt-1">
-                환율: {currency === 'VND'
+                {currentYearMonth} • 환율: {currency === 'VND'
                   ? `1₫ = ₩${exchangeRates.vndToKrw.toFixed(3)}`
                   : `$1 = ₩${exchangeRates.usdToKrw.toLocaleString()}`
                 }
