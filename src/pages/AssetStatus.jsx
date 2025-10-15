@@ -137,6 +137,9 @@ const AssetStatus = () => {
   // 입출금 이력 데이터 (연동용)
   const [transactionHistory, setTransactionHistory] = useState({ vnd: [], usd: [], krw: [] })
 
+  // 환율 정보 (VND to KRW)
+  const [vndToKrwRate, setVndToKrwRate] = useState(0.055) // Default rate
+
   const cloneDefaults = (defaults) => defaults.map(item => ({ ...item }))
   const ensureArrayWithFallback = (value, defaults) => {
     if (!Array.isArray(value) || value.length === 0) {
@@ -218,6 +221,21 @@ const AssetStatus = () => {
     return () => {
       cancelled = true
     }
+  }, [])
+
+  // Load exchange rate for VND to KRW
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      try {
+        // VND to KRW rate is approximately 0.055 (1 VND ≈ 0.055 KRW)
+        // You can update this to fetch from an API if needed
+        setVndToKrwRate(0.055)
+      } catch (error) {
+        console.error('Failed to fetch VND exchange rate:', error)
+      }
+    }
+
+    fetchExchangeRate()
   }, [])
 
   useEffect(() => {
@@ -481,16 +499,23 @@ const AssetStatus = () => {
     return years
   }, [statusData])
 
-  // 입출금 이력에서 월별 합계 계산
+  // 입출금 이력에서 월별 합계 계산 (VND는 KRW로 환산)
   const getTransactionMonthlyTotal = useCallback((year, month, currency) => {
     const transactions = transactionHistory[currency.toLowerCase()] || []
-    return transactions
+    const total = transactions
       .filter(tx => {
         const txDate = new Date(tx.date)
         return txDate.getFullYear() === year && (txDate.getMonth() + 1) === month
       })
       .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
-  }, [transactionHistory])
+
+    // VND는 KRW로 환산하여 반환
+    if (currency.toLowerCase() === 'vnd') {
+      return total * vndToKrwRate
+    }
+
+    return total
+  }, [transactionHistory, vndToKrwRate])
 
   // Calculate monthly totals
   const calculateMonthlyData = useMemo(() => {
@@ -1312,11 +1337,6 @@ const AssetStatus = () => {
                     ) : (
                       <div className="flex items-center gap-2 group">
                         <span>{category.name}</span>
-                        {(category.id === 'loan' || category.id === 'vnd') && (
-                          <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded" title={`입출금 이력 ${category.id === 'loan' ? 'KRW' : 'VND'}과 자동 연동`}>
-                            🔗 자동연동
-                          </span>
-                        )}
                         <button
                           onClick={() => handleStartEditCategory(category.id, category.name)}
                           className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
