@@ -134,6 +134,9 @@ const AssetStatus = () => {
   const [portfolioMetrics, setPortfolioMetrics] = useState({})
   const [portfolioLinks, setPortfolioLinks] = useState({})
 
+  // 입출금 이력 데이터 (연동용)
+  const [transactionHistory, setTransactionHistory] = useState({ vnd: [], usd: [], krw: [] })
+
   const cloneDefaults = (defaults) => defaults.map(item => ({ ...item }))
   const ensureArrayWithFallback = (value, defaults) => {
     if (!Array.isArray(value) || value.length === 0) {
@@ -175,14 +178,16 @@ const AssetStatus = () => {
           loadedIncome,
           loadedExpense,
           loadedAccountTypes,
-          loadedPortfolioLinks
+          loadedPortfolioLinks,
+          loadedTransactionHistory
         ] = await Promise.all([
           dataSync.loadUserSetting('asset_status_data', {}),
           dataSync.loadUserSetting('asset_account_data', {}),
           dataSync.loadUserSetting('asset_income_categories', DEFAULT_INCOME_CATEGORIES),
           dataSync.loadUserSetting('asset_expense_categories', DEFAULT_EXPENSE_CATEGORIES),
           dataSync.loadUserSetting('asset_account_types', DEFAULT_ACCOUNT_TYPES),
-          dataSync.loadUserSetting('asset_portfolio_links', {})
+          dataSync.loadUserSetting('asset_portfolio_links', {}),
+          dataSync.loadUserSetting('transaction_history_v2', { vnd: [], usd: [], krw: [] })
         ])
 
         if (cancelled) return
@@ -193,6 +198,7 @@ const AssetStatus = () => {
         setExpenseCategories(ensureArrayWithFallback(loadedExpense, DEFAULT_EXPENSE_CATEGORIES))
         setAccountTypes(ensureArrayWithFallback(loadedAccountTypes, DEFAULT_ACCOUNT_TYPES))
         setPortfolioLinks(loadedPortfolioLinks && typeof loadedPortfolioLinks === 'object' ? loadedPortfolioLinks : {})
+        setTransactionHistory(loadedTransactionHistory || { vnd: [], usd: [], krw: [] })
 
         statusReadyRef.current = true
         accountReadyRef.current = true
@@ -475,6 +481,17 @@ const AssetStatus = () => {
     return years
   }, [statusData])
 
+  // 입출금 이력에서 월별 합계 계산
+  const getTransactionMonthlyTotal = useCallback((year, month, currency) => {
+    const transactions = transactionHistory[currency.toLowerCase()] || []
+    return transactions
+      .filter(tx => {
+        const txDate = new Date(tx.date)
+        return txDate.getFullYear() === year && (txDate.getMonth() + 1) === month
+      })
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+  }, [transactionHistory])
+
   // Calculate monthly totals
   const calculateMonthlyData = useMemo(() => {
     const yearData = statusData[selectedYear] || {}
@@ -483,7 +500,19 @@ const AssetStatus = () => {
 
     for (let i = 0; i < 12; i++) {
       const monthKey = i + 1
-      const monthData = yearData[monthKey] || {}
+      let monthData = { ...yearData[monthKey] } || {}
+
+      // 입출금 이력 연동: KRW 지출 자동 반영
+      const krwTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'krw')
+      if (krwTotal > 0) {
+        monthData['loan'] = krwTotal // 'loan' = 월화 지출
+      }
+
+      // 입출금 이력 연동: VND 지출 자동 반영
+      const vndTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'vnd')
+      if (vndTotal > 0) {
+        monthData['vnd'] = vndTotal // 'vnd' = VND 지출
+      }
 
       // Calculate income total (exclude accumulated amount)
       const incomeTotal = incomeCategories.reduce((sum, cat) => {
@@ -522,7 +551,7 @@ const AssetStatus = () => {
     }
 
     return monthlyData
-  }, [statusData, selectedYear, incomeCategories, expenseCategories])
+  }, [statusData, selectedYear, incomeCategories, expenseCategories, getTransactionMonthlyTotal, transactionHistory])
 
   // Calculate cumulative data for chart
   const chartData = useMemo(() => {
@@ -1283,6 +1312,11 @@ const AssetStatus = () => {
                     ) : (
                       <div className="flex items-center gap-2 group">
                         <span>{category.name}</span>
+                        {(category.id === 'loan' || category.id === 'vnd') && (
+                          <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded" title={`입출금 이력 ${category.id === 'loan' ? 'KRW' : 'VND'}과 자동 연동`}>
+                            🔗 자동연동
+                          </span>
+                        )}
                         <button
                           onClick={() => handleStartEditCategory(category.id, category.name)}
                           className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
@@ -1826,19 +1860,34 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
               지출 항목
             </h4>
             <div className="space-y-3">
-              {expenseCategories.map(cat => (
-                <div key={cat.id} className="flex items-center gap-3">
-                  <label className="w-40 text-sm font-medium text-gray-700">{cat.name}</label>
-                  <input
-                    type="number"
-                    value={formData[cat.id] || ''}
-                    onChange={(e) => handleChange(cat.id, e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="0"
-                  />
-                  <span className="text-sm text-gray-500 w-12">KRW</span>
-                </div>
-              ))}
+              {expenseCategories.map(cat => {
+                // 입출금 이력 연동 항목 확인
+                const isLinked = (cat.id === 'loan' || cat.id === 'vnd')
+                const linkedLabel = cat.id === 'loan' ? 'KRW' : (cat.id === 'vnd' ? 'VND' : '')
+
+                return (
+                  <div key={cat.id} className="flex items-center gap-3">
+                    <label className="w-40 text-sm font-medium text-gray-700">
+                      {cat.name}
+                      {isLinked && (
+                        <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded" title={`입출금 이력 ${linkedLabel}과 자동 연동`}>
+                          🔗 자동
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData[cat.id] || ''}
+                      onChange={(e) => handleChange(cat.id, e.target.value)}
+                      className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isLinked ? 'border-blue-300 bg-blue-50' : 'border-gray-300'}`}
+                      placeholder="0"
+                      readOnly={isLinked}
+                      title={isLinked ? `입출금 이력 페이지의 ${linkedLabel} 거래 내역과 자동 연동됩니다` : ''}
+                    />
+                    <span className="text-sm text-gray-500 w-12">KRW</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
