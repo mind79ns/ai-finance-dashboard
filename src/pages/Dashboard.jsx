@@ -549,13 +549,11 @@ const AccountCard = ({ label, value, sub, positive, isTotal }) => (
 )
 
 const AssetPerformanceTable = ({ data }) => {
-  const displayData = data.slice(0, 12)
-
   return (
     <>
-      {/* Mobile Card View */}
-      <div className="block sm:hidden space-y-3">
-        {displayData.map(row => {
+      {/* Mobile Card View - 스크롤 가능 */}
+      <div className="block sm:hidden max-h-[500px] overflow-y-auto space-y-3 pr-2">
+        {data.map(row => {
           const positive = row.profitKRW >= 0
           const Icon = positive ? ArrowUp : ArrowDown
           return (
@@ -585,55 +583,47 @@ const AssetPerformanceTable = ({ data }) => {
             </div>
           )
         })}
-        {data.length > displayData.length && (
-          <p className="text-xs text-gray-500 text-center py-2">
-            외 {data.length - displayData.length}개 종목
-          </p>
-        )}
       </div>
 
-      {/* Desktop Table View */}
+      {/* Desktop Table View - 스크롤 가능 */}
       <div className="hidden sm:block border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">종목</th>
-              <th className="text-right px-4 py-2 text-xs font-semibold text-gray-600">평가손익</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayData.map(row => {
-              const positive = row.profitKRW >= 0
-              const Icon = positive ? ArrowUp : ArrowDown
-              return (
-                <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-2">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-900 text-sm">{row.name}</span>
-                      <span className="text-xs text-gray-500">{row.symbol} · {row.type}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <div className={`inline-flex items-center gap-1 text-sm font-semibold ${
-                      positive ? 'text-emerald-600' : 'text-rose-600'
-                    }`}>
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{formatCurrency(row.profitKRW, 'KRW')}</span>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {row.profitPercent >= 0 ? '+' : ''}{row.profitPercent.toFixed(2)}% · 평가액 {formatCurrency(row.totalValueKRW, 'KRW')}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        {data.length > displayData.length && (
-          <p className="text-xs text-gray-500 px-4 py-2 bg-gray-50 text-right">
-            외 {data.length - displayData.length}개 종목
-          </p>
-        )}
+        <div className="max-h-[500px] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 sticky top-0 z-10">
+              <tr>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">종목</th>
+                <th className="text-right px-4 py-2 text-xs font-semibold text-gray-600">평가손익</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(row => {
+                const positive = row.profitKRW >= 0
+                const Icon = positive ? ArrowUp : ArrowDown
+                return (
+                  <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-2">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900 text-sm">{row.name}</span>
+                        <span className="text-xs text-gray-500">{row.symbol} · {row.type}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className={`inline-flex items-center gap-1 text-sm font-semibold ${
+                        positive ? 'text-emerald-600' : 'text-rose-600'
+                      }`}>
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{formatCurrency(row.profitKRW, 'KRW')}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {row.profitPercent >= 0 ? '+' : ''}{row.profitPercent.toFixed(2)}% · 평가액 {formatCurrency(row.totalValueKRW, 'KRW')}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   )
