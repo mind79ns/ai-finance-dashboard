@@ -7,6 +7,7 @@ import AIReport from './pages/AIReport'
 import InvestmentLog from './pages/InvestmentLog'
 import Goals from './pages/Goals'
 import AssetStatus from './pages/AssetStatus'
+import TransactionHistory from './pages/TransactionHistory'
 import Settings from './pages/Settings'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/log" element={<InvestmentLog />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/asset-status" element={<AssetStatus />} />
+          <Route path="/transaction-history" element={<TransactionHistory />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>

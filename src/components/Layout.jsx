@@ -8,6 +8,7 @@ import {
   BookOpen,
   Target,
   BarChart3,
+  Receipt,
   Settings,
   Menu,
   X
@@ -25,6 +26,7 @@ const Layout = ({ children }) => {
     { name: '투자일지', href: '/log', icon: BookOpen },
     { name: '목표관리', href: '/goals', icon: Target },
     { name: '자산 현황', href: '/asset-status', icon: BarChart3 },
+    { name: '입출금 이력', href: '/transaction-history', icon: Receipt },
     { name: '설정', href: '/settings', icon: Settings },
   ]
 
