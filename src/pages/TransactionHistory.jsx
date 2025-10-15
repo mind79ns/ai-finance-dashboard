@@ -113,7 +113,7 @@ const TransactionHistory = () => {
   }
 
   // Handle add transaction
-  const handleAddTransaction = () => {
+  const handleAddTransaction = (keepOpen = false) => {
     if (!formData.amount || !selectedCurrency) return
 
     const newTransaction = {
@@ -140,7 +140,17 @@ const TransactionHistory = () => {
     }
 
     saveTransactions(newVnd, newUsd, newKrw)
-    handleCloseModal()
+
+    // 모달 유지하고 폼만 리셋 (연속 추가 가능)
+    if (keepOpen) {
+      setFormData({
+        amount: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0]
+      })
+    } else {
+      handleCloseModal()
+    }
   }
 
   // Handle edit transaction
@@ -192,6 +202,30 @@ const TransactionHistory = () => {
     }
 
     saveTransactions(newVnd, newUsd, newKrw)
+  }
+
+  // Handle delete all transactions for a currency
+  const handleDeleteAllTransactions = (currency) => {
+    const confirmed = window.confirm(`정말 ${currency} 거래 이력을 모두 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)
+    if (!confirmed) return
+
+    let newVnd = [...vndTransactions]
+    let newUsd = [...usdTransactions]
+    let newKrw = [...krwTransactions]
+
+    if (currency === 'VND') {
+      newVnd = []
+      setVndTransactions(newVnd)
+    } else if (currency === 'USD') {
+      newUsd = []
+      setUsdTransactions(newUsd)
+    } else if (currency === 'KRW') {
+      newKrw = []
+      setKrwTransactions(newKrw)
+    }
+
+    saveTransactions(newVnd, newUsd, newKrw)
+    handleCloseModal()
   }
 
   // Open add modal
@@ -417,8 +451,17 @@ const TransactionHistory = () => {
               >
                 취소
               </button>
+              {!editingTransaction && (
+                <button
+                  onClick={() => handleAddTransaction(true)}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  추가 후 계속
+                </button>
+              )}
               <button
-                onClick={editingTransaction ? handleEditTransaction : handleAddTransaction}
+                onClick={editingTransaction ? handleEditTransaction : () => handleAddTransaction(false)}
                 className="flex-1 btn-primary flex items-center justify-center gap-2"
               >
                 <Save className="w-4 h-4" />
@@ -434,12 +477,28 @@ const TransactionHistory = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">
-                거래 이력 ({selectedCurrency})
-              </h3>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
-              </button>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  거래 이력 ({selectedCurrency})
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  총 {getTransactionsByCurrency(selectedCurrency).length}건의 거래
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {getTransactionsByCurrency(selectedCurrency).length > 0 && (
+                  <button
+                    onClick={() => handleDeleteAllTransactions(selectedCurrency)}
+                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1 text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    일괄삭제
+                  </button>
+                )}
+                <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
