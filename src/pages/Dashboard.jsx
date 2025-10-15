@@ -44,6 +44,7 @@ const Dashboard = () => {
     profitPercent: 0
   })
   const [accountSummary, setAccountSummary] = useState([])
+  const [assetStatusTotal, setAssetStatusTotal] = useState(0)
   const [allocationData, setAllocationData] = useState([])
   const [portfolioHistory, setPortfolioHistory] = useState([])
   const [monthlyContribution, setMonthlyContribution] = useState({
@@ -63,14 +64,15 @@ const Dashboard = () => {
     setError(null)
 
     try {
-      const [market, loadedAssets, loadedLogs, loadedGoals] = await Promise.all([
+      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData] = await Promise.all([
         marketDataService.getAllMarketData().catch(err => {
           console.error('Dashboard market data error:', err)
           return null
         }),
         dataSync.loadPortfolioAssets(),
         dataSync.loadInvestmentLogs(),
-        dataSync.loadGoals()
+        dataSync.loadGoals(),
+        dataSync.loadUserSetting('asset_account_data')
       ])
 
       const usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
@@ -79,6 +81,17 @@ const Dashboard = () => {
       const assetsRaw = Array.isArray(loadedAssets) ? loadedAssets : safeParseLocalStorage('portfolio_assets', [])
       const logsRaw = Array.isArray(loadedLogs) ? loadedLogs : safeParseLocalStorage('investment_logs', [])
       const goalsRaw = Array.isArray(loadedGoals) ? loadedGoals : safeParseLocalStorage('investment_goals', [])
+
+      // Calculate AssetStatus TOTAL value
+      const currentYear = new Date().getFullYear()
+      const yearAccounts = assetAccountData?.[currentYear] || {}
+      let assetTotalValue = 0
+      Object.values(yearAccounts).forEach(accountCategories => {
+        Object.values(accountCategories).forEach(value => {
+          assetTotalValue += Number(value || 0)
+        })
+      })
+      setAssetStatusTotal(assetTotalValue)
 
       const {
         totals,
@@ -160,6 +173,7 @@ const Dashboard = () => {
         totals={portfolioSummary}
         assetsCount={allocationData.length}
         accountSummary={accountSummary}
+        assetStatusTotal={assetStatusTotal}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
@@ -366,14 +380,14 @@ const Dashboard = () => {
   )
 }
 
-const HeaderSummary = ({ totals, assetsCount, accountSummary }) => {
+const HeaderSummary = ({ totals, assetsCount, accountSummary, assetStatusTotal }) => {
   return (
     <div className="grid grid-cols-1 gap-3 sm:gap-4">
       <div className="card bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
         <div className="space-y-4 sm:space-y-6">
           {/* 포트폴리오 스냅샷 */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
               <p className="text-xs uppercase tracking-wide text-slate-300">포트폴리오 스냅샷</p>
               <h1 className="text-xl sm:text-2xl font-bold mt-1 truncate">
                 {formatCurrency(totals.totalValueKRW, 'KRW')}
@@ -397,7 +411,7 @@ const HeaderSummary = ({ totals, assetsCount, accountSummary }) => {
           {/* 계좌별 자산 현황 */}
           {accountSummary && accountSummary.length > 0 && (
             <div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {accountSummary.map((account) => (
                   <AccountCard
                     key={account.account}
@@ -410,9 +424,9 @@ const HeaderSummary = ({ totals, assetsCount, accountSummary }) => {
                 {/* TOTAL 카드 */}
                 <AccountCard
                   label="TOTAL"
-                  value={formatCurrency(totals.totalValueKRW, 'KRW')}
-                  positive={totals.totalProfitKRW >= 0}
-                  sub={`${totals.profitPercent >= 0 ? '+' : ''}${totals.profitPercent.toFixed(2)}%`}
+                  value={formatCurrency(assetStatusTotal, 'KRW')}
+                  positive={assetStatusTotal >= 0}
+                  sub="자산현황 TOTAL"
                   isTotal
                 />
               </div>
