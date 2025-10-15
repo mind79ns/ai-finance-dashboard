@@ -384,52 +384,55 @@ const HeaderSummary = ({ totals, assetsCount, accountSummary, assetStatusTotal }
   return (
     <div className="grid grid-cols-1 gap-3 sm:gap-4">
       <div className="card bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div className="space-y-4 sm:space-y-6">
-          {/* 포트폴리오 스냅샷 */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex-1 min-w-0 flex flex-col items-start justify-center">
-              <p className="text-xs uppercase tracking-wide text-slate-300">포트폴리오 스냅샷</p>
-              <h1 className="text-xl sm:text-2xl font-bold mt-1 truncate">
+        <div className="space-y-4">
+          {/* 상단: 포트폴리오 스냅샷, TOTAL, 총 수익금 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* 포트폴리오 스냅샷 (현재 총 평가액) */}
+            <div className="flex flex-col">
+              <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">포트폴리오 스냅샷</p>
+              <h1 className="text-2xl font-bold truncate">
                 {formatCurrency(totals.totalValueKRW, 'KRW')}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300 mt-2">
-                현재 총 평가액 <span className="hidden sm:inline">(USD 환산 {formatCurrency(totals.totalValueUSD, 'USD')})</span>
+              <p className="text-xs text-slate-300 mt-1">
+                현재 총 평가액 <span className="hidden lg:inline">(USD 환산 {formatCurrency(totals.totalValueUSD, 'USD')})</span>
               </p>
             </div>
-            {/* 총 수익금 카드 */}
-            <div className="flex-shrink-0">
-              <SummaryKPI
-                label="총 수익금"
-                value={formatCurrency(totals.totalProfitKRW, 'KRW')}
-                positive={totals.totalProfitKRW >= 0}
-                sub={`${totals.profitPercent >= 0 ? '+' : ''}${totals.profitPercent.toFixed(2)}%`}
-                icon={totals.totalProfitKRW >= 0 ? ArrowUpRight : ArrowDownRight}
-              />
+
+            {/* TOTAL */}
+            <div className="flex flex-col">
+              <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">TOTAL</p>
+              <h1 className="text-2xl font-bold truncate">
+                {formatCurrency(assetStatusTotal, 'KRW')}
+              </h1>
+              <p className="text-xs text-emerald-300 mt-1">
+                자산현황 TOTAL
+              </p>
+            </div>
+
+            {/* 총 수익금 */}
+            <div className="flex flex-col">
+              <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">총 수익금</p>
+              <h1 className={`text-2xl font-bold truncate ${totals.totalProfitKRW >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                {formatCurrency(totals.totalProfitKRW, 'KRW')}
+              </h1>
+              <p className={`text-xs mt-1 ${totals.totalProfitKRW >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                {totals.profitPercent >= 0 ? '+' : ''}{totals.profitPercent.toFixed(2)}%
+              </p>
             </div>
           </div>
 
-          {/* 계좌별 자산 현황 */}
+          {/* 하단: 6개 계좌 카드 3*2 그리드 */}
           {accountSummary && accountSummary.length > 0 && (
-            <div>
-              <div className="grid grid-cols-2 gap-3">
-                {accountSummary.map((account) => (
-                  <AccountCard
-                    key={account.account}
-                    label={account.account}
-                    value={formatCurrency(account.totalValueKRW, 'KRW')}
-                    positive={account.profitKRW >= 0}
-                    sub={`${account.profitPercent >= 0 ? '+' : ''}${account.profitPercent.toFixed(2)}%`}
-                  />
-                ))}
-                {/* TOTAL 카드 */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {accountSummary.map((account) => (
                 <AccountCard
-                  label="TOTAL"
-                  value={formatCurrency(assetStatusTotal, 'KRW')}
-                  positive={assetStatusTotal >= 0}
-                  sub="자산현황 TOTAL"
-                  isTotal
+                  key={account.account}
+                  label={account.account}
+                  value={formatCurrency(account.totalValueKRW, 'KRW')}
+                  positive={account.profitKRW >= 0}
+                  sub={`${account.profitPercent >= 0 ? '+' : ''}${account.profitPercent.toFixed(2)}%`}
                 />
-              </div>
+              ))}
             </div>
           )}
         </div>

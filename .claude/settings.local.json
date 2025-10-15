@@ -19,7 +19,8 @@
       "Bash(npm install:*)",
       "Bash(iconv:*)",
       "Bash(test:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm run deploy)"
     ],
     "deny": [],
     "ask": []
