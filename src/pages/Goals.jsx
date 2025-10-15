@@ -11,6 +11,7 @@ const Goals = () => {
   const [portfolioTotalKRW, setPortfolioTotalKRW] = useState(0)
   const [portfolioProfitUSD, setPortfolioProfitUSD] = useState(0)
   const [portfolioProfitKRW, setPortfolioProfitKRW] = useState(0)
+  const [assetStatusTotal, setAssetStatusTotal] = useState(0)
   const [exchangeRate, setExchangeRate] = useState(1340)
 
   const [goals, setGoals] = useState([])
@@ -45,13 +46,26 @@ const Goals = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const [loadedGoals, loadedAssets] = await Promise.all([
+        const [loadedGoals, loadedAssets, assetAccountData] = await Promise.all([
           dataSync.loadGoals(),
-          dataSync.loadPortfolioAssets()
+          dataSync.loadPortfolioAssets(),
+          dataSync.loadUserSetting('asset_account_data')
         ])
 
         setGoals(Array.isArray(loadedGoals) ? loadedGoals : [])
         setPortfolioAssets(Array.isArray(loadedAssets) ? loadedAssets : [])
+
+        // Calculate AssetStatus TOTAL value
+        const currentYear = new Date().getFullYear()
+        const yearAccounts = assetAccountData?.[currentYear] || {}
+        let assetTotalValue = 0
+        Object.values(yearAccounts).forEach(accountCategories => {
+          Object.values(accountCategories).forEach(value => {
+            assetTotalValue += Number(value || 0)
+          })
+        })
+        setAssetStatusTotal(assetTotalValue)
+        console.log(`💰 AssetStatus TOTAL: ₩${assetTotalValue.toLocaleString()}`)
       } catch (error) {
         console.error('Failed to load goals or portfolio data:', error)
         setGoals([])
@@ -155,7 +169,12 @@ const Goals = () => {
 
         let newAmount
 
-        if (goal.linkType === 'profit') {
+        if (goal.linkType === 'assetTotal') {
+          // Link to AssetStatus TOTAL (always in KRW)
+          newAmount = goal.currency === 'KRW'
+            ? assetStatusTotal
+            : assetStatusTotal / exchangeRate
+        } else if (goal.linkType === 'profit') {
           newAmount = goal.currency === 'KRW'
             ? portfolioProfitKRW + (portfolioProfitUSD * exchangeRate)
             : portfolioProfitUSD + (portfolioProfitKRW / exchangeRate)
@@ -168,7 +187,8 @@ const Goals = () => {
         const normalizedAmount = Number.isFinite(newAmount) ? newAmount : 0
 
         if (Math.abs((goal.currentAmount || 0) - normalizedAmount) > 0.01) {
-          console.log(`🔗 Syncing Goal "${goal.name}" (${goal.linkType === 'profit' ? '총수익금' : '총액'}, ${goal.currency}): ${goal.currency === 'KRW' ? '₩' : '$'}${normalizedAmount.toFixed(0)}`)
+          const linkTypeLabel = goal.linkType === 'assetTotal' ? '자산현황 TOTAL' : goal.linkType === 'profit' ? '총수익금' : '총액'
+          console.log(`🔗 Syncing Goal "${goal.name}" (${linkTypeLabel}, ${goal.currency}): ${goal.currency === 'KRW' ? '₩' : '$'}${normalizedAmount.toFixed(0)}`)
           hasChange = true
           return {
             ...goal,
@@ -187,6 +207,7 @@ const Goals = () => {
     portfolioTotalKRW,
     portfolioProfitUSD,
     portfolioProfitKRW,
+    assetStatusTotal,
     exchangeRate,
     updateGoalsState
   ])
@@ -354,7 +375,12 @@ const Goals = () => {
 
     let currentAmount
     if (formData.linkedToPortfolio) {
-      if (formData.linkType === 'profit') {
+      if (formData.linkType === 'assetTotal') {
+        // Link to AssetStatus TOTAL
+        currentAmount = formData.currency === 'KRW'
+          ? assetStatusTotal
+          : assetStatusTotal / exchangeRate
+      } else if (formData.linkType === 'profit') {
         // Link to profit
         currentAmount = formData.currency === 'KRW'
           ? portfolioProfitKRW + (portfolioProfitUSD * exchangeRate)
@@ -583,9 +609,9 @@ ${JSON.stringify(context, null, 2)}
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-lg font-semibold text-gray-900">{goal.name}</h3>
                     {goal.linkedToPortfolio && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700" title={`포트폴리오 ${goal.linkType === 'profit' ? '총수익금' : '총액'}과 자동 연동`}>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700" title={`${goal.linkType === 'assetTotal' ? '자산현황 TOTAL' : goal.linkType === 'profit' ? '포트폴리오 총수익금' : '포트폴리오 총액'}과 자동 연동`}>
                         <LinkIcon className="w-3 h-3" />
-                        {goal.linkType === 'profit' ? '수익금 연동' : '총액 연동'}
+                        {goal.linkType === 'assetTotal' ? '자산현황 연동' : goal.linkType === 'profit' ? '수익금 연동' : '총액 연동'}
                       </span>
                     )}
                   </div>
@@ -984,6 +1010,17 @@ ${JSON.stringify(context, null, 2)}
                         />
                         <span className="text-sm text-blue-800">포트폴리오 총수익금</span>
                       </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="linkType"
+                          value="assetTotal"
+                          checked={formData.linkType === 'assetTotal'}
+                          onChange={handleInputChange}
+                          className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-blue-800">자산현황 TOTAL</span>
+                      </label>
                     </div>
                   </div>
                 )}
@@ -998,7 +1035,11 @@ ${JSON.stringify(context, null, 2)}
                     <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
                       {(() => {
                         let amount
-                        if (formData.linkType === 'profit') {
+                        if (formData.linkType === 'assetTotal') {
+                          amount = formData.currency === 'KRW'
+                            ? assetStatusTotal
+                            : assetStatusTotal / exchangeRate
+                        } else if (formData.linkType === 'profit') {
                           amount = formData.currency === 'KRW'
                             ? portfolioProfitKRW + (portfolioProfitUSD * exchangeRate)
                             : portfolioProfitUSD + (portfolioProfitKRW / exchangeRate)
@@ -1011,7 +1052,7 @@ ${JSON.stringify(context, null, 2)}
                           ? `₩${Math.round(amount).toLocaleString()}`
                           : `$${amount.toFixed(0)}`
                       })()}
-                      <span className="text-xs ml-1">({formData.linkType === 'profit' ? '수익금' : '총액'} 연동)</span>
+                      <span className="text-xs ml-1">({formData.linkType === 'assetTotal' ? '자산현황' : formData.linkType === 'profit' ? '수익금' : '총액'} 연동)</span>
                     </div>
                   ) : (
                     <input
