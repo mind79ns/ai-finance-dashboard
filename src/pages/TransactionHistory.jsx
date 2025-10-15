@@ -2,135 +2,100 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Receipt,
   Plus,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  DollarSign,
-  Wallet,
-  FileText,
+  Eye,
+  Edit,
+  Trash2,
+  X,
   Save,
-  X
+  DollarSign
 } from 'lucide-react'
 import dataSync from '../utils/dataSync'
-
-const MONTHS = [
-  '1월', '2월', '3월', '4월', '5월', '6월',
-  '7월', '8월', '9월', '10월', '11월', '12월'
-]
+import marketDataService from '../services/marketDataService'
 
 const TransactionHistory = () => {
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  const [transactionData, setTransactionData] = useState({})
-  const [editingCell, setEditingCell] = useState(null)
-  const [editValue, setEditValue] = useState('')
+  const [vndTransactions, setVndTransactions] = useState([])
+  const [usdTransactions, setUsdTransactions] = useState([])
+  const [krwTransactions, setKrwTransactions] = useState([])
 
-  // Load transaction data from localStorage
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [selectedCurrency, setSelectedCurrency] = useState(null)
+
+  const [exchangeRates, setExchangeRates] = useState({
+    vndToKrw: 0.055, // VND to KRW (1 VND ≈ 0.055 KRW)
+    usdToKrw: 1340    // USD to KRW
+  })
+
+  const [formData, setFormData] = useState({
+    amount: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0]
+  })
+
+  const [editingTransaction, setEditingTransaction] = useState(null)
+
+  // Load exchange rates
   useEffect(() => {
-    const loadData = async () => {
+    const fetchExchangeRates = async () => {
       try {
-        const loaded = await dataSync.loadUserSetting('transaction_history')
-        if (loaded && typeof loaded === 'object') {
-          setTransactionData(loaded)
+        const marketData = await marketDataService.getAllMarketData()
+        if (marketData.currency?.usdKrw?.rate) {
+          setExchangeRates(prev => ({
+            ...prev,
+            usdToKrw: marketData.currency.usdKrw.rate
+          }))
+        }
+        // VND to KRW rate (approximate: 1 VND ≈ 0.055 KRW)
+        // You can fetch from another API if needed
+      } catch (error) {
+        console.error('Failed to fetch exchange rates:', error)
+      }
+    }
+
+    fetchExchangeRates()
+    const interval = setInterval(fetchExchangeRates, 300000) // Update every 5 minutes
+    return () => clearInterval(interval)
+  }, [])
+
+  // Load transactions from localStorage
+  useEffect(() => {
+    const loadTransactions = async () => {
+      try {
+        const data = await dataSync.loadUserSetting('transaction_history_v2')
+        if (data) {
+          setVndTransactions(data.vnd || [])
+          setUsdTransactions(data.usd || [])
+          setKrwTransactions(data.krw || [])
         }
       } catch (error) {
-        console.error('Failed to load transaction history:', error)
+        console.error('Failed to load transactions:', error)
       }
     }
-    loadData()
+    loadTransactions()
   }, [])
 
-  // Save transaction data to localStorage
-  const saveData = useCallback((data) => {
-    setTransactionData(data)
-    dataSync.saveUserSetting('transaction_history', data).catch(error => {
-      console.error('Failed to save transaction history:', error)
+  // Save transactions to localStorage
+  const saveTransactions = useCallback((vnd, usd, krw) => {
+    const data = { vnd, usd, krw }
+    dataSync.saveUserSetting('transaction_history_v2', data).catch(error => {
+      console.error('Failed to save transactions:', error)
     })
   }, [])
 
-  // Get or initialize year data
-  const getYearData = useCallback(() => {
-    if (!transactionData[selectedYear]) {
-      return {
-        shinhanVietnam: {
-          depositUSD: Array(12).fill(0),
-          depositVND: Array(12).fill(0),
-          withdrawalUSD: Array(12).fill(0),
-          withdrawalVND: Array(12).fill(0),
-          monthlyExpenseVND: Array(12).fill(0)
-        },
-        investmentIncome: Array(12).fill(0),
-        krwExpense: Array(12).fill(0),
-        otherExpense: Array(12).fill(0),
-        memos: Array(12).fill('')
-      }
-    }
-    return transactionData[selectedYear]
-  }, [transactionData, selectedYear])
-
-  const yearData = getYearData()
-
-  // Calculate cumulative values
-  const calculateCumulative = (values) => {
-    let cumulative = 0
-    return values.map(val => {
-      cumulative += Number(val || 0)
-      return cumulative
-    })
+  // Calculate cumulative sum
+  const calculateCumulative = (transactions) => {
+    return transactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
   }
 
-  // Handle cell edit
-  const handleCellClick = (section, field, monthIndex) => {
-    setEditingCell({ section, field, monthIndex })
-
-    let currentValue = 0
-    if (section === 'shinhanVietnam') {
-      currentValue = yearData.shinhanVietnam[field][monthIndex] || 0
-    } else if (section === 'memos') {
-      currentValue = yearData.memos[monthIndex] || ''
-    } else {
-      currentValue = yearData[section][monthIndex] || 0
+  // Calculate cumulative sum in KRW
+  const calculateCumulativeKRW = (transactions, currency) => {
+    const sum = calculateCumulative(transactions)
+    if (currency === 'VND') {
+      return sum * exchangeRates.vndToKrw
+    } else if (currency === 'USD') {
+      return sum * exchangeRates.usdToKrw
     }
-
-    setEditValue(currentValue.toString())
-  }
-
-  // Handle cell save
-  const handleCellSave = () => {
-    if (!editingCell) return
-
-    const { section, field, monthIndex } = editingCell
-    const newData = { ...transactionData }
-
-    if (!newData[selectedYear]) {
-      newData[selectedYear] = getYearData()
-    }
-
-    if (section === 'shinhanVietnam') {
-      if (!newData[selectedYear].shinhanVietnam[field]) {
-        newData[selectedYear].shinhanVietnam[field] = Array(12).fill(0)
-      }
-      newData[selectedYear].shinhanVietnam[field][monthIndex] = section === 'memos' ? editValue : Number(editValue || 0)
-    } else if (section === 'memos') {
-      if (!Array.isArray(newData[selectedYear].memos)) {
-        newData[selectedYear].memos = Array(12).fill('')
-      }
-      newData[selectedYear].memos[monthIndex] = editValue
-    } else {
-      if (!Array.isArray(newData[selectedYear][section])) {
-        newData[selectedYear][section] = Array(12).fill(0)
-      }
-      newData[selectedYear][section][monthIndex] = Number(editValue || 0)
-    }
-
-    saveData(newData)
-    setEditingCell(null)
-    setEditValue('')
-  }
-
-  // Handle cell cancel
-  const handleCellCancel = () => {
-    setEditingCell(null)
-    setEditValue('')
+    return sum
   }
 
   // Format currency
@@ -140,93 +105,217 @@ const TransactionHistory = () => {
     if (!Number.isFinite(num)) return '-'
 
     if (currency === 'USD') {
-      return `$${num.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+      return `$${num.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
     } else if (currency === 'VND') {
       return `₫${num.toLocaleString('vi-VN', { maximumFractionDigits: 0 })}`
     }
     return `₩${num.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`
   }
 
-  // Calculate totals
-  const shinhanVietnamTotals = {
-    depositUSD: yearData.shinhanVietnam.depositUSD.reduce((sum, val) => sum + Number(val || 0), 0),
-    depositVND: yearData.shinhanVietnam.depositVND.reduce((sum, val) => sum + Number(val || 0), 0),
-    withdrawalUSD: yearData.shinhanVietnam.withdrawalUSD.reduce((sum, val) => sum + Number(val || 0), 0),
-    withdrawalVND: yearData.shinhanVietnam.withdrawalVND.reduce((sum, val) => sum + Number(val || 0), 0),
-    monthlyExpenseVND: yearData.shinhanVietnam.monthlyExpenseVND.reduce((sum, val) => sum + Number(val || 0), 0)
-  }
+  // Handle add transaction
+  const handleAddTransaction = () => {
+    if (!formData.amount || !selectedCurrency) return
 
-  const investmentIncomeTotal = yearData.investmentIncome.reduce((sum, val) => sum + Number(val || 0), 0)
-  const krwExpenseTotal = yearData.krwExpense.reduce((sum, val) => sum + Number(val || 0), 0)
-  const otherExpenseTotal = yearData.otherExpense.reduce((sum, val) => sum + Number(val || 0), 0)
-
-  // Cumulative values
-  const shinhanVietnamCumulative = {
-    monthlyExpenseVND: calculateCumulative(yearData.shinhanVietnam.monthlyExpenseVND)
-  }
-  const investmentIncomeCumulative = calculateCumulative(yearData.investmentIncome)
-  const krwExpenseCumulative = calculateCumulative(yearData.krwExpense)
-  const otherExpenseCumulative = calculateCumulative(yearData.otherExpense)
-
-  // Cell renderer
-  const renderCell = (section, field, monthIndex, currency = 'KRW') => {
-    const isEditing = editingCell?.section === section &&
-                      editingCell?.field === field &&
-                      editingCell?.monthIndex === monthIndex
-
-    let value = 0
-    if (section === 'shinhanVietnam') {
-      value = yearData.shinhanVietnam[field][monthIndex] || 0
-    } else if (section === 'memos') {
-      value = yearData.memos[monthIndex] || ''
-    } else {
-      value = yearData[section][monthIndex] || 0
+    const newTransaction = {
+      id: Date.now(),
+      amount: parseFloat(formData.amount),
+      description: formData.description,
+      date: formData.date,
+      createdAt: new Date().toISOString()
     }
 
-    if (isEditing) {
-      return (
-        <td key={monthIndex} className="py-2 px-3 bg-blue-50">
-          <div className="flex items-center gap-1">
-            <input
-              type={section === 'memos' ? 'text' : 'number'}
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCellSave()
-                if (e.key === 'Escape') handleCellCancel()
-              }}
-              className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoFocus
-            />
-            <button
-              onClick={handleCellSave}
-              className="p-1 text-green-600 hover:bg-green-100 rounded"
-            >
-              <Save className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleCellCancel}
-              className="p-1 text-red-600 hover:bg-red-100 rounded"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </td>
-      )
+    let newVnd = [...vndTransactions]
+    let newUsd = [...usdTransactions]
+    let newKrw = [...krwTransactions]
+
+    if (selectedCurrency === 'VND') {
+      newVnd = [...vndTransactions, newTransaction]
+      setVndTransactions(newVnd)
+    } else if (selectedCurrency === 'USD') {
+      newUsd = [...usdTransactions, newTransaction]
+      setUsdTransactions(newUsd)
+    } else if (selectedCurrency === 'KRW') {
+      newKrw = [...krwTransactions, newTransaction]
+      setKrwTransactions(newKrw)
     }
+
+    saveTransactions(newVnd, newUsd, newKrw)
+    handleCloseModal()
+  }
+
+  // Handle edit transaction
+  const handleEditTransaction = () => {
+    if (!formData.amount || !selectedCurrency || !editingTransaction) return
+
+    const updatedTransaction = {
+      ...editingTransaction,
+      amount: parseFloat(formData.amount),
+      description: formData.description,
+      date: formData.date,
+      updatedAt: new Date().toISOString()
+    }
+
+    let newVnd = [...vndTransactions]
+    let newUsd = [...usdTransactions]
+    let newKrw = [...krwTransactions]
+
+    if (selectedCurrency === 'VND') {
+      newVnd = vndTransactions.map(tx => tx.id === editingTransaction.id ? updatedTransaction : tx)
+      setVndTransactions(newVnd)
+    } else if (selectedCurrency === 'USD') {
+      newUsd = usdTransactions.map(tx => tx.id === editingTransaction.id ? updatedTransaction : tx)
+      setUsdTransactions(newUsd)
+    } else if (selectedCurrency === 'KRW') {
+      newKrw = krwTransactions.map(tx => tx.id === editingTransaction.id ? updatedTransaction : tx)
+      setKrwTransactions(newKrw)
+    }
+
+    saveTransactions(newVnd, newUsd, newKrw)
+    handleCloseModal()
+  }
+
+  // Handle delete transaction
+  const handleDeleteTransaction = (id, currency) => {
+    let newVnd = [...vndTransactions]
+    let newUsd = [...usdTransactions]
+    let newKrw = [...krwTransactions]
+
+    if (currency === 'VND') {
+      newVnd = vndTransactions.filter(tx => tx.id !== id)
+      setVndTransactions(newVnd)
+    } else if (currency === 'USD') {
+      newUsd = usdTransactions.filter(tx => tx.id !== id)
+      setUsdTransactions(newUsd)
+    } else if (currency === 'KRW') {
+      newKrw = krwTransactions.filter(tx => tx.id !== id)
+      setKrwTransactions(newKrw)
+    }
+
+    saveTransactions(newVnd, newUsd, newKrw)
+  }
+
+  // Open add modal
+  const handleOpenAddModal = (currency) => {
+    setSelectedCurrency(currency)
+    setEditingTransaction(null)
+    setFormData({
+      amount: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0]
+    })
+    setShowAddModal(true)
+  }
+
+  // Open edit modal
+  const handleOpenEditModal = (transaction, currency) => {
+    setSelectedCurrency(currency)
+    setEditingTransaction(transaction)
+    setFormData({
+      amount: transaction.amount.toString(),
+      description: transaction.description || '',
+      date: transaction.date
+    })
+    setShowAddModal(true)
+    setShowHistoryModal(false)
+  }
+
+  // Close modal
+  const handleCloseModal = () => {
+    setShowAddModal(false)
+    setShowHistoryModal(false)
+    setSelectedCurrency(null)
+    setEditingTransaction(null)
+    setFormData({
+      amount: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0]
+    })
+  }
+
+  // Open history modal
+  const handleOpenHistoryModal = (currency) => {
+    setSelectedCurrency(currency)
+    setShowHistoryModal(true)
+  }
+
+  // Get transactions by currency
+  const getTransactionsByCurrency = (currency) => {
+    if (currency === 'VND') return vndTransactions
+    if (currency === 'USD') return usdTransactions
+    if (currency === 'KRW') return krwTransactions
+    return []
+  }
+
+  // Currency section component
+  const CurrencySection = ({ currency, label, transactions }) => {
+    const cumulative = calculateCumulative(transactions)
+    const cumulativeKRW = calculateCumulativeKRW(transactions, currency)
 
     return (
-      <td
-        key={monthIndex}
-        onClick={() => handleCellClick(section, field, monthIndex)}
-        className="py-2 px-3 text-right text-sm cursor-pointer hover:bg-gray-100 transition-colors"
-      >
-        {section === 'memos' ? (
-          <span className="text-gray-700">{value || '-'}</span>
-        ) : (
-          formatCurrency(value, currency)
-        )}
-      </td>
+      <div className="card">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-bold text-gray-900">{label}</h3>
+          </div>
+          <button
+            onClick={() => handleOpenAddModal(currency)}
+            className="btn-primary flex items-center gap-2 text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            입력 추가
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 금액입력 */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <p className="text-sm font-medium text-blue-700 mb-2">금액입력</p>
+            <p className="text-2xl font-bold text-blue-900">
+              {formatCurrency(cumulative, currency)}
+            </p>
+            <p className="text-xs text-blue-600 mt-1">{transactions.length}건의 거래</p>
+          </div>
+
+          {/* 누적합산 */}
+          <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+            <p className="text-sm font-medium text-green-700 mb-2">누적합산</p>
+            <p className="text-2xl font-bold text-green-900">
+              {formatCurrency(cumulative, currency)}
+            </p>
+            <button
+              onClick={() => handleOpenHistoryModal(currency)}
+              className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 mt-2"
+            >
+              <Eye className="w-3 h-3" />
+              이력 보기
+            </button>
+          </div>
+
+          {/* 누적합산 (원화환율적용) */}
+          {currency !== 'KRW' && (
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+              <p className="text-sm font-medium text-purple-700 mb-2">누적합산 (원화환율적용)</p>
+              <p className="text-2xl font-bold text-purple-900">
+                {formatCurrency(cumulativeKRW, 'KRW')}
+              </p>
+              <p className="text-xs text-purple-600 mt-1">
+                환율: {currency === 'VND'
+                  ? `1₫ = ₩${exchangeRates.vndToKrw.toFixed(3)}`
+                  : `$1 = ₩${exchangeRates.usdToKrw.toLocaleString()}`
+                }
+              </p>
+            </div>
+          )}
+
+          {/* KRW는 2열만 사용 */}
+          {currency === 'KRW' && (
+            <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 flex items-center justify-center">
+              <p className="text-sm text-gray-500">원화는 환율 적용 없음</p>
+            </div>
+          )}
+        </div>
+      </div>
     )
   }
 
@@ -239,253 +328,192 @@ const TransactionHistory = () => {
             <Receipt className="w-6 h-6 text-green-600" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">입출금 이력</h2>
-            <p className="text-sm text-gray-600">월별 입출금 내역 및 누적 관리</p>
+            <h2 className="text-2xl font-bold text-gray-900">입금 및 출금 자동계산</h2>
+            <p className="text-sm text-gray-600">화폐별 입력 및 누적 관리 (환율 자동 적용)</p>
           </div>
         </div>
-
-        {/* Year Selector */}
-        <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-gray-600" />
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
-              <option key={year} value={year}>{year}년</option>
-            ))}
-          </select>
-        </div>
       </div>
 
-      {/* 1. 신한은행 베트남 자산 */}
-      <div className="card overflow-x-auto">
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
-          <Wallet className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-bold text-gray-900">신한은행 베트남 자산</h3>
+      {/* VND Section */}
+      <CurrencySection
+        currency="VND"
+        label="금액입력 (VND)"
+        transactions={vndTransactions}
+      />
+
+      {/* USD Section */}
+      <CurrencySection
+        currency="USD"
+        label="금액입력 (USD)"
+        transactions={usdTransactions}
+      />
+
+      {/* KRW Section */}
+      <CurrencySection
+        currency="KRW"
+        label="금액입력 (KRW)"
+        transactions={krwTransactions}
+      />
+
+      {/* Add/Edit Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">
+                {editingTransaction ? '거래 수정' : '거래 추가'} ({selectedCurrency})
+              </h3>
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  금액 ({selectedCurrency})
+                </label>
+                <input
+                  type="number"
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="금액을 입력하세요"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  설명 (선택)
+                </label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="거래 내역 설명"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  날짜
+                </label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCloseModal}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={editingTransaction ? handleEditTransaction : handleAddTransaction}
+                className="flex-1 btn-primary flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {editingTransaction ? '수정' : '추가'}
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left py-3 px-3 font-semibold text-gray-700">구분</th>
-              {MONTHS.map((month, idx) => (
-                <th key={idx} className="text-center py-3 px-3 font-semibold text-gray-700">{month}</th>
-              ))}
-              <th className="text-center py-3 px-3 font-semibold text-blue-700 bg-blue-50">합계</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* 입금 USD */}
-            <tr className="border-b border-gray-200">
-              <td className="py-2 px-3 font-medium text-gray-900">입금 (USD)</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('shinhanVietnam', 'depositUSD', i, 'USD'))}
-              <td className="py-2 px-3 text-right font-bold text-blue-700 bg-blue-50">
-                {formatCurrency(shinhanVietnamTotals.depositUSD, 'USD')}
-              </td>
-            </tr>
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">
+                거래 이력 ({selectedCurrency})
+              </h3>
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
-            {/* 입금 VND */}
-            <tr className="border-b border-gray-200">
-              <td className="py-2 px-3 font-medium text-gray-900">입금 (VND)</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('shinhanVietnam', 'depositVND', i, 'VND'))}
-              <td className="py-2 px-3 text-right font-bold text-blue-700 bg-blue-50">
-                {formatCurrency(shinhanVietnamTotals.depositVND, 'VND')}
-              </td>
-            </tr>
-
-            {/* 출금 USD */}
-            <tr className="border-b border-gray-200">
-              <td className="py-2 px-3 font-medium text-gray-900">출금 (USD)</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('shinhanVietnam', 'withdrawalUSD', i, 'USD'))}
-              <td className="py-2 px-3 text-right font-bold text-red-700 bg-red-50">
-                {formatCurrency(shinhanVietnamTotals.withdrawalUSD, 'USD')}
-              </td>
-            </tr>
-
-            {/* 출금 VND */}
-            <tr className="border-b border-gray-200">
-              <td className="py-2 px-3 font-medium text-gray-900">출금 (VND)</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('shinhanVietnam', 'withdrawalVND', i, 'VND'))}
-              <td className="py-2 px-3 text-right font-bold text-red-700 bg-red-50">
-                {formatCurrency(shinhanVietnamTotals.withdrawalVND, 'VND')}
-              </td>
-            </tr>
-
-            {/* 월 사용비용 VND */}
-            <tr className="border-b-2 border-gray-300 bg-yellow-50">
-              <td className="py-2 px-3 font-medium text-gray-900">월 사용비용 (VND)</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('shinhanVietnam', 'monthlyExpenseVND', i, 'VND'))}
-              <td className="py-2 px-3 text-right font-bold text-orange-700 bg-orange-50">
-                {formatCurrency(shinhanVietnamTotals.monthlyExpenseVND, 'VND')}
-              </td>
-            </tr>
-
-            {/* 월 사용비용 누적 */}
-            <tr className="bg-yellow-100">
-              <td className="py-2 px-3 font-bold text-gray-900">월 사용비용 누적 (VND)</td>
-              {shinhanVietnamCumulative.monthlyExpenseVND.map((cumVal, idx) => (
-                <td key={idx} className="py-2 px-3 text-right font-semibold text-orange-700">
-                  {formatCurrency(cumVal, 'VND')}
-                </td>
-              ))}
-              <td className="py-2 px-3 text-right font-bold text-orange-700 bg-orange-100">
-                {formatCurrency(shinhanVietnamTotals.monthlyExpenseVND, 'VND')}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {/* 2. 수익재테크 금액 */}
-      <div className="card overflow-x-auto">
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
-          <TrendingUp className="w-5 h-5 text-green-600" />
-          <h3 className="text-lg font-bold text-gray-900">수익재테크 금액</h3>
+            <div className="space-y-3">
+              {getTransactionsByCurrency(selectedCurrency).length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  등록된 거래 이력이 없습니다.
+                </div>
+              ) : (
+                getTransactionsByCurrency(selectedCurrency)
+                  .sort((a, b) => new Date(b.date) - new Date(a.date))
+                  .map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-bold text-gray-900">
+                            {formatCurrency(transaction.amount, selectedCurrency)}
+                          </p>
+                          <span className="text-xs text-gray-500">
+                            {new Date(transaction.date).toLocaleDateString('ko-KR')}
+                          </span>
+                        </div>
+                        {transaction.description && (
+                          <p className="text-sm text-gray-600 mt-1">{transaction.description}</p>
+                        )}
+                        {selectedCurrency !== 'KRW' && (
+                          <p className="text-xs text-purple-600 mt-1">
+                            ≈ {formatCurrency(
+                              selectedCurrency === 'VND'
+                                ? transaction.amount * exchangeRates.vndToKrw
+                                : transaction.amount * exchangeRates.usdToKrw,
+                              'KRW'
+                            )}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEditModal(transaction, selectedCurrency)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="수정"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTransaction(transaction.id, selectedCurrency)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
         </div>
-
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left py-3 px-3 font-semibold text-gray-700">구분</th>
-              {MONTHS.map((month, idx) => (
-                <th key={idx} className="text-center py-3 px-3 font-semibold text-gray-700">{month}</th>
-              ))}
-              <th className="text-center py-3 px-3 font-semibold text-green-700 bg-green-50">합계</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* 월별 수익 */}
-            <tr className="border-b-2 border-gray-300">
-              <td className="py-2 px-3 font-medium text-gray-900">월별 수익 (₩)</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('investmentIncome', null, i, 'KRW'))}
-              <td className="py-2 px-3 text-right font-bold text-green-700 bg-green-50">
-                {formatCurrency(investmentIncomeTotal, 'KRW')}
-              </td>
-            </tr>
-
-            {/* 누적 수익 */}
-            <tr className="bg-green-100">
-              <td className="py-2 px-3 font-bold text-gray-900">누적 수익 (₩)</td>
-              {investmentIncomeCumulative.map((cumVal, idx) => (
-                <td key={idx} className="py-2 px-3 text-right font-semibold text-green-700">
-                  {formatCurrency(cumVal, 'KRW')}
-                </td>
-              ))}
-              <td className="py-2 px-3 text-right font-bold text-green-700 bg-green-100">
-                {formatCurrency(investmentIncomeTotal, 'KRW')}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {/* 3. 원화 사용금액 지출 */}
-      <div className="card overflow-x-auto">
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
-          <DollarSign className="w-5 h-5 text-red-600" />
-          <h3 className="text-lg font-bold text-gray-900">원화 사용금액 지출</h3>
-        </div>
-
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left py-3 px-3 font-semibold text-gray-700">구분</th>
-              {MONTHS.map((month, idx) => (
-                <th key={idx} className="text-center py-3 px-3 font-semibold text-gray-700">{month}</th>
-              ))}
-              <th className="text-center py-3 px-3 font-semibold text-red-700 bg-red-50">합계</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* 월별 지출 */}
-            <tr className="border-b-2 border-gray-300">
-              <td className="py-2 px-3 font-medium text-gray-900">월별 지출 (₩)</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('krwExpense', null, i, 'KRW'))}
-              <td className="py-2 px-3 text-right font-bold text-red-700 bg-red-50">
-                {formatCurrency(krwExpenseTotal, 'KRW')}
-              </td>
-            </tr>
-
-            {/* 누적 지출 */}
-            <tr className="bg-red-100">
-              <td className="py-2 px-3 font-bold text-gray-900">누적 지출 (₩)</td>
-              {krwExpenseCumulative.map((cumVal, idx) => (
-                <td key={idx} className="py-2 px-3 text-right font-semibold text-red-700">
-                  {formatCurrency(cumVal, 'KRW')}
-                </td>
-              ))}
-              <td className="py-2 px-3 text-right font-bold text-red-700 bg-red-100">
-                {formatCurrency(krwExpenseTotal, 'KRW')}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {/* 4. 기타 사용 비용 */}
-      <div className="card overflow-x-auto">
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
-          <FileText className="w-5 h-5 text-purple-600" />
-          <h3 className="text-lg font-bold text-gray-900">기타 사용 비용</h3>
-        </div>
-
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left py-3 px-3 font-semibold text-gray-700">구분</th>
-              {MONTHS.map((month, idx) => (
-                <th key={idx} className="text-center py-3 px-3 font-semibold text-gray-700">{month}</th>
-              ))}
-              <th className="text-center py-3 px-3 font-semibold text-purple-700 bg-purple-50">합계</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* 월별 비용 */}
-            <tr className="border-b border-gray-300">
-              <td className="py-2 px-3 font-medium text-gray-900">월별 비용 (₩)</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('otherExpense', null, i, 'KRW'))}
-              <td className="py-2 px-3 text-right font-bold text-purple-700 bg-purple-50">
-                {formatCurrency(otherExpenseTotal, 'KRW')}
-              </td>
-            </tr>
-
-            {/* 누적 비용 */}
-            <tr className="border-b-2 border-gray-300 bg-purple-100">
-              <td className="py-2 px-3 font-bold text-gray-900">누적 비용 (₩)</td>
-              {otherExpenseCumulative.map((cumVal, idx) => (
-                <td key={idx} className="py-2 px-3 text-right font-semibold text-purple-700">
-                  {formatCurrency(cumVal, 'KRW')}
-                </td>
-              ))}
-              <td className="py-2 px-3 text-right font-bold text-purple-700 bg-purple-100">
-                {formatCurrency(otherExpenseTotal, 'KRW')}
-              </td>
-            </tr>
-
-            {/* 메모 */}
-            <tr className="bg-purple-50">
-              <td className="py-2 px-3 font-medium text-gray-900">메모</td>
-              {Array.from({ length: 12 }, (_, i) => renderCell('memos', null, i))}
-              <td className="py-2 px-3 text-center text-gray-500 bg-purple-50">-</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      )}
 
       {/* Usage Guide */}
       <div className="card bg-blue-50 border border-blue-200">
         <div className="flex items-start gap-3">
-          <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <Receipt className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-800">
             <p className="font-semibold mb-2">사용 방법:</p>
             <ul className="space-y-1 list-disc list-inside">
-              <li>각 셀을 클릭하여 값을 입력하거나 수정할 수 있습니다</li>
-              <li>Enter 키를 눌러 저장하고, Esc 키를 눌러 취소합니다</li>
-              <li>누적 값은 월별 입력 값을 자동으로 합산하여 표시됩니다</li>
-              <li>합계 열은 연간 총합을 보여줍니다</li>
-              <li>기타 비용 메모 항목에는 각 월의 비용 내역을 기록할 수 있습니다</li>
+              <li>"입력 추가" 버튼을 클릭하여 새로운 거래를 등록합니다</li>
+              <li>누적합산은 모든 거래 금액을 자동으로 합산합니다</li>
+              <li>VND와 USD는 현재 환율을 적용하여 원화로 환산합니다</li>
+              <li>"이력 보기"를 클릭하여 거래 내역을 확인하고 수정/삭제할 수 있습니다</li>
+              <li>환율은 5분마다 자동으로 업데이트됩니다</li>
             </ul>
           </div>
         </div>
