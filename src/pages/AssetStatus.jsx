@@ -975,7 +975,7 @@ const AssetStatus = () => {
               </span>
             </div>
             <div className="space-y-2">
-              {expenseCategories.slice(0, 5).map(category => {
+              {expenseCategories.map(category => {
                 const value = calculateMonthlyData[selectedMonthView]?.[category.id] || 0
                 const maxExpense = Math.max(...expenseCategories.map(c => calculateMonthlyData[selectedMonthView]?.[c.id] || 0))
                 const percentage = maxExpense > 0 ? (value / maxExpense) * 100 : 0
