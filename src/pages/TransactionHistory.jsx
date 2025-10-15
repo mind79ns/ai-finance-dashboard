@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Receipt,
   Plus,
@@ -7,7 +7,10 @@ import {
   Trash2,
   X,
   Save,
-  DollarSign
+  DollarSign,
+  Calendar,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import dataSync from '../utils/dataSync'
 import marketDataService from '../services/marketDataService'
@@ -20,6 +23,10 @@ const TransactionHistory = () => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedCurrency, setSelectedCurrency] = useState(null)
+
+  // 월별 필터링 상태
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1) // 1-12
 
   const [exchangeRates, setExchangeRates] = useState({
     vndToKrw: 0.055, // VND to KRW (1 VND ≈ 0.055 KRW)
@@ -280,6 +287,60 @@ const TransactionHistory = () => {
     return []
   }
 
+  // 월별로 필터링된 거래 내역
+  const getFilteredTransactions = useMemo(() => {
+    const transactions = getTransactionsByCurrency(selectedCurrency)
+    return transactions.filter(tx => {
+      const txDate = new Date(tx.date)
+      return txDate.getFullYear() === selectedYear && (txDate.getMonth() + 1) === selectedMonth
+    })
+  }, [selectedCurrency, selectedYear, selectedMonth, vndTransactions, usdTransactions, krwTransactions])
+
+  // 사용 가능한 년도 목록 (거래 내역이 있는 년도만)
+  const availableYears = useMemo(() => {
+    const allTransactions = [...vndTransactions, ...usdTransactions, ...krwTransactions]
+    const years = new Set(allTransactions.map(tx => new Date(tx.date).getFullYear()))
+    return Array.from(years).sort((a, b) => b - a)
+  }, [vndTransactions, usdTransactions, krwTransactions])
+
+  // 월별 통계
+  const getMonthlyStats = useMemo(() => {
+    const transactions = getFilteredTransactions
+    const totalAmount = transactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+    const count = transactions.length
+
+    let totalKRW = 0
+    if (selectedCurrency === 'VND') {
+      totalKRW = totalAmount * exchangeRates.vndToKrw
+    } else if (selectedCurrency === 'USD') {
+      totalKRW = totalAmount * exchangeRates.usdToKrw
+    } else {
+      totalKRW = totalAmount
+    }
+
+    return { totalAmount, count, totalKRW }
+  }, [getFilteredTransactions, selectedCurrency, exchangeRates])
+
+  // 이전 달로 이동
+  const handlePreviousMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12)
+      setSelectedYear(prev => prev - 1)
+    } else {
+      setSelectedMonth(prev => prev - 1)
+    }
+  }
+
+  // 다음 달로 이동
+  const handleNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1)
+      setSelectedYear(prev => prev + 1)
+    } else {
+      setSelectedMonth(prev => prev + 1)
+    }
+  }
+
   // Currency section component
   const CurrencySection = ({ currency, label, transactions }) => {
     const cumulative = calculateCumulative(transactions)
@@ -475,14 +536,15 @@ const TransactionHistory = () => {
       {/* History Modal */}
       {showHistoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-lg max-w-3xl w-full p-6 max-h-[85vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
                   거래 이력 ({selectedCurrency})
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  총 {getTransactionsByCurrency(selectedCurrency).length}건의 거래
+                  전체 {getTransactionsByCurrency(selectedCurrency).length}건의 거래
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -492,7 +554,7 @@ const TransactionHistory = () => {
                     className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1 text-sm"
                   >
                     <Trash2 className="w-4 h-4" />
-                    일괄삭제
+                    전체삭제
                   </button>
                 )}
                 <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
@@ -501,13 +563,91 @@ const TransactionHistory = () => {
               </div>
             </div>
 
+            {/* 월별 필터 */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <h4 className="font-semibold text-gray-900">월별 이력</h4>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePreviousMonth}
+                    className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                    title="이전 달"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-blue-600" />
+                  </button>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-300 rounded-lg">
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(Number(e.target.value))}
+                      className="font-semibold text-gray-900 bg-transparent focus:outline-none cursor-pointer"
+                    >
+                      {availableYears.length > 0 ? (
+                        availableYears.map(year => (
+                          <option key={year} value={year}>{year}년</option>
+                        ))
+                      ) : (
+                        <option value={new Date().getFullYear()}>{new Date().getFullYear()}년</option>
+                      )}
+                    </select>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                      className="font-semibold text-gray-900 bg-transparent focus:outline-none cursor-pointer"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
+                        <option key={month} value={month}>{month}월</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                    title="다음 달"
+                  >
+                    <ChevronRight className="w-5 h-5 text-blue-600" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 월별 통계 */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-lg p-3 border border-blue-200">
+                  <p className="text-xs text-gray-600 mb-1">거래 건수</p>
+                  <p className="text-lg font-bold text-blue-600">{getMonthlyStats.count}건</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-green-200">
+                  <p className="text-xs text-gray-600 mb-1">합계</p>
+                  <p className="text-lg font-bold text-green-600">
+                    {formatCurrency(getMonthlyStats.totalAmount, selectedCurrency)}
+                  </p>
+                </div>
+                {selectedCurrency !== 'KRW' && (
+                  <div className="bg-white rounded-lg p-3 border border-purple-200">
+                    <p className="text-xs text-gray-600 mb-1">원화 환산</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      {formatCurrency(getMonthlyStats.totalKRW, 'KRW')}
+                    </p>
+                  </div>
+                )}
+                {selectedCurrency === 'KRW' && (
+                  <div className="bg-white rounded-lg p-3 border border-gray-200 flex items-center justify-center">
+                    <p className="text-xs text-gray-500">환율 적용 없음</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 월별 거래 내역 리스트 */}
             <div className="space-y-3">
-              {getTransactionsByCurrency(selectedCurrency).length === 0 ? (
+              {getFilteredTransactions.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  등록된 거래 이력이 없습니다.
+                  {selectedYear}년 {selectedMonth}월에 등록된 거래 이력이 없습니다.
                 </div>
               ) : (
-                getTransactionsByCurrency(selectedCurrency)
+                getFilteredTransactions
                   .sort((a, b) => new Date(b.date) - new Date(a.date))
                   .map((transaction) => (
                     <div
