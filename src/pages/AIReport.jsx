@@ -10,6 +10,7 @@ import {
   formatCurrency,
   computeMarketInsights,
   computePortfolioInsights,
+  computeCashflowInsights,
   buildMarketReportPrompt,
   buildPortfolioAnalysisPrompt,
   buildRebalancingPrompt,
@@ -31,6 +32,7 @@ const AIReport = () => {
   const [goalsSummary, setGoalsSummary] = useState(null)
   const [analysisHistory, setAnalysisHistory] = useState([])
   const [historyViewer, setHistoryViewer] = useState({ open: false, entry: null })
+  const [cashflowInsights, setCashflowInsights] = useState(null)
 
   const marketInsights = useMemo(() => computeMarketInsights(marketData), [marketData])
   const portfolioInsights = useMemo(
@@ -131,10 +133,22 @@ const AIReport = () => {
   const loadRealData = async () => {
     try {
       // Get real market data & sync Supabase-backed datasets
-      const [market, assetsResponse, goalsResponse] = await Promise.all([
+      const [
+        market,
+        assetsResponse,
+        goalsResponse,
+        assetStatusData,
+        incomeCategoriesData,
+        expenseCategoriesData,
+        transactionHistoryData
+      ] = await Promise.all([
         marketDataService.getAllMarketData(),
         dataSync.loadPortfolioAssets(),
-        dataSync.loadGoals()
+        dataSync.loadGoals(),
+        dataSync.loadUserSetting('asset_status_data', {}),
+        dataSync.loadUserSetting('asset_income_categories', []),
+        dataSync.loadUserSetting('asset_expense_categories', []),
+        dataSync.loadUserSetting('transaction_history_v2', { vnd: [], usd: [], krw: [] })
       ])
       setMarketData(market)
 
@@ -331,6 +345,15 @@ const AIReport = () => {
       } else {
         setGoalsSummary(null)
       }
+
+      const cashflow = computeCashflowInsights({
+        statusData: assetStatusData,
+        incomeCategories: incomeCategoriesData,
+        expenseCategories: expenseCategoriesData,
+        transactionHistory: transactionHistoryData
+      })
+      const hasCashflowData = cashflow && (cashflow.hasActivity || (Number.isFinite(cashflow.totalAssets) && cashflow.totalAssets !== 0))
+      setCashflowInsights(hasCashflowData ? cashflow : null)
     } catch (error) {
       console.error('Failed to load real data:', error)
     }
@@ -568,7 +591,8 @@ const AIReport = () => {
         latestPortfolioAnalysis: portfolioAnalysis,
         latestRebalancing: rebalancingSuggestion,
         riskAnalysis,
-        goalsSummary
+        goalsSummary,
+        cashflow: cashflowInsights
       }
 
       const prompt = buildChatPrompt({
@@ -1402,6 +1426,37 @@ const AIReport = () => {
               <strong>🧠 GPT-5 사용:</strong> 투자 전문가 수준의 맞춤형 상담을 제공합니다
             </p>
           </div>
+          {cashflowInsights && (
+            <div className="card border border-green-100 bg-green-50/60">
+              <h4 className="text-sm font-semibold text-green-900 mb-2">자산 현황 요약</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-green-900">
+                <div>
+                  <p className="font-medium mb-1">누적 자산 & 연간 흐름</p>
+                  <ul className="space-y-1">
+                    <li>• 총자산: {formatCurrency(cashflowInsights.totalAssets, 'KRW')}</li>
+                    <li>• 연간 순변화: {formatCurrency(cashflowInsights.annualNetChange, 'KRW')}</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium mb-1">월평균 수입/지출</p>
+                  <ul className="space-y-1">
+                    <li>• 수입: {formatCurrency(cashflowInsights.averageMonthlyIncome, 'KRW')}</li>
+                    <li>• 지출: {formatCurrency(cashflowInsights.averageMonthlyExpense, 'KRW')}</li>
+                  </ul>
+                </div>
+              </div>
+              {cashflowInsights.latestMonth && (
+                <div className="mt-3 text-xs text-green-900">
+                  <p className="font-medium mb-1">최근 월({cashflowInsights.latestMonth.label})</p>
+                  <ul className="space-y-1">
+                    <li>- 수입: {formatCurrency(cashflowInsights.latestMonth.income, 'KRW')}</li>
+                    <li>- 지출: {formatCurrency(cashflowInsights.latestMonth.expense, 'KRW')}</li>
+                    <li>- 순변화: {formatCurrency(cashflowInsights.latestMonth.netChange, 'KRW')}</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           <div className="card">
             <div className="flex flex-col h-[600px]">
               <div className="flex-1 overflow-y-auto space-y-4 mb-4">

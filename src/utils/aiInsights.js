@@ -1,3 +1,5 @@
+const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+
 const safeNumber = (value) => {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : null
@@ -254,6 +256,205 @@ export const computePortfolioInsights = (portfolioData, goalsSummary) => {
   }
 }
 
+const normalizeCategoryList = (items, fallback = [], options = {}) => {
+  const list = Array.isArray(items) && items.length
+    ? items.map(item => ({
+        id: item?.id || item?.key || item?.name || '',
+        name: item?.name || item?.label || item?.title || item?.id || '',
+        isAccumulated: !!item?.isAccumulated,
+        color: item?.color
+      })).filter(item => item.id)
+    : fallback
+
+  if (options.ensureAccumulated) {
+    const hasAccumulated = list.some(item => item.id === 'accumulated')
+    if (!hasAccumulated) {
+      list.unshift({
+        id: 'accumulated',
+        name: '기초자산',
+        isAccumulated: true,
+        color: '#6366f1'
+      })
+    } else {
+      list.forEach(item => {
+        if (item.id === 'accumulated') {
+          item.isAccumulated = true
+        }
+      })
+    }
+  }
+
+  return list
+}
+
+const sumTransactionsByMonth = (transactions, year, month, options = {}) => {
+  const { currency, vndToKrwRate = 0.055 } = options
+  if (!Array.isArray(transactions) || !transactions.length) return 0
+
+  const total = transactions
+    .filter(tx => {
+      if (!tx?.date) return false
+      const txDate = new Date(tx.date)
+      if (Number.isNaN(txDate.getTime())) return false
+      return txDate.getFullYear() === year && (txDate.getMonth() + 1) === month
+    })
+    .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+
+  if ((currency || '').toLowerCase() === 'vnd') {
+    return total * vndToKrwRate
+  }
+
+  return total
+}
+
+export const computeCashflowInsights = ({
+  statusData = {},
+  incomeCategories = [],
+  expenseCategories = [],
+  transactionHistory = { vnd: [], usd: [], krw: [] },
+  vndToKrwRate = 0.055,
+  targetYear,
+  referenceDate = new Date()
+} = {}) => {
+  const normalizedIncome = normalizeCategoryList(incomeCategories, [], { ensureAccumulated: true })
+  const normalizedExpense = normalizeCategoryList(expenseCategories)
+
+  const availableYears = Object.keys(statusData || {})
+    .map(key => Number(key))
+    .filter(year => Number.isFinite(year))
+    .sort((a, b) => a - b)
+
+  let year = Number(targetYear)
+  if (!Number.isFinite(year)) {
+    year = availableYears.length ? availableYears[availableYears.length - 1] : referenceDate.getFullYear()
+  }
+
+  const yearKey = statusData[year] ? year : String(year)
+  const yearData = (statusData && (statusData[yearKey] || statusData[String(yearKey)])) || {}
+
+  const monthlySummaries = []
+  let accumulatedAmount = 0
+
+  for (let i = 0; i < 12; i++) {
+    const monthNumber = i + 1
+    const monthKey = yearData[monthNumber] ? monthNumber : String(monthNumber)
+    const rawMonth = (yearData && yearData[monthKey]) || {}
+    const monthData = { ...rawMonth }
+
+    const krwTotal = sumTransactionsByMonth(transactionHistory?.krw, year, monthNumber, { currency: 'krw' })
+    if (krwTotal > 0) {
+      monthData.loan = krwTotal
+    }
+
+    const vndTotal = sumTransactionsByMonth(transactionHistory?.vnd, year, monthNumber, { currency: 'vnd', vndToKrwRate })
+    if (vndTotal > 0) {
+      monthData.vnd = vndTotal
+    }
+
+    const monthIncome = normalizedIncome.reduce((sum, cat) => {
+      if (cat.isAccumulated) return sum
+      return sum + (Number(monthData[cat.id]) || 0)
+    }, 0)
+
+    const monthExpense = normalizedExpense.reduce((sum, cat) => {
+      return sum + (Number(monthData[cat.id]) || 0)
+    }, 0)
+
+    const netChange = monthIncome - monthExpense
+
+    if (i === 0) {
+      accumulatedAmount = Number(monthData.accumulated || monthData['accumulated'] || 0)
+    } else {
+      const prev = monthlySummaries[i - 1]
+      accumulatedAmount = (Number(prev?.accumulated) || 0) + (Number(prev?.netChange) || 0)
+    }
+
+    monthlySummaries.push({
+      index: i,
+      label: MONTH_LABELS[i],
+      income: monthIncome,
+      expense: monthExpense,
+      netChange,
+      accumulated: accumulatedAmount,
+      breakdown: monthData
+    })
+  }
+
+  const totalIncome = monthlySummaries.reduce((sum, month) => sum + month.income, 0)
+  const totalExpense = monthlySummaries.reduce((sum, month) => sum + month.expense, 0)
+  const annualNetChange = totalIncome - totalExpense
+
+  const monthsWithActivity = monthlySummaries.filter(month => {
+    const hasIncome = month.income > 0
+    const hasExpense = month.expense > 0
+    const hasBreakdown = Object.entries(month.breakdown || {}).some(([key, value]) => {
+      if (key === 'accumulated') return false
+      return Number(value) > 0
+    })
+    return hasIncome || hasExpense || hasBreakdown
+  })
+
+  const divisor = monthsWithActivity.length || 12
+  const averageMonthlyIncome = divisor > 0 ? totalIncome / divisor : 0
+  const averageMonthlyExpense = divisor > 0 ? totalExpense / divisor : 0
+  const averageMonthlyNet = divisor > 0 ? annualNetChange / divisor : 0
+
+  const latestActiveMonth = monthsWithActivity.length
+    ? monthsWithActivity[monthsWithActivity.length - 1]
+    : monthlySummaries[Math.min(referenceDate.getMonth(), monthlySummaries.length - 1)] || monthlySummaries[monthlySummaries.length - 1]
+
+  const incomeTotalsByCategory = normalizedIncome.reduce((acc, cat) => {
+    if (cat.isAccumulated) return acc
+    const total = monthlySummaries.reduce((sum, month) => sum + (Number(month.breakdown?.[cat.id]) || 0), 0)
+    acc.push({
+      id: cat.id,
+      name: cat.name || cat.id,
+      total
+    })
+    return acc
+  }, []).sort((a, b) => b.total - a.total)
+
+  const expenseTotalsByCategory = normalizedExpense.reduce((acc, cat) => {
+    const total = monthlySummaries.reduce((sum, month) => sum + (Number(month.breakdown?.[cat.id]) || 0), 0)
+    acc.push({
+      id: cat.id,
+      name: cat.name || cat.id,
+      total
+    })
+    return acc
+  }, []).sort((a, b) => b.total - a.total)
+
+  return {
+    year,
+    monthSummaries: monthlySummaries.map(month => ({
+      label: month.label,
+      income: month.income,
+      expense: month.expense,
+      netChange: month.netChange,
+      accumulated: month.accumulated
+    })),
+    totalIncome,
+    totalExpense,
+    annualNetChange,
+    averageMonthlyIncome,
+    averageMonthlyExpense,
+    averageMonthlyNet,
+    totalAssets: monthlySummaries.length ? monthlySummaries[monthlySummaries.length - 1].accumulated : 0,
+    latestMonth: latestActiveMonth
+      ? {
+          label: latestActiveMonth.label,
+          income: latestActiveMonth.income,
+          expense: latestActiveMonth.expense,
+          netChange: latestActiveMonth.netChange,
+          accumulated: latestActiveMonth.accumulated
+        }
+      : null,
+    topIncomeCategories: incomeTotalsByCategory.slice(0, 3),
+    topExpenseCategories: expenseTotalsByCategory.slice(0, 3),
+    hasActivity: monthsWithActivity.length > 0
+  }
+}
+
 export const buildMarketReportPrompt = (marketData, insights) => {
   if (!marketData) {
     return '시장 데이터를 수집할 수 없습니다.'
@@ -469,6 +670,18 @@ export const buildChatPrompt = ({ userMessage, context, marketInsights, portfoli
       ].join('\n')
     : '포트폴리오 인사이트 없음'
 
+  const cashflowInsights = context.cashflow
+  const cashflowSummary = cashflowInsights
+    ? [
+        `총자산: ${formatCurrency(cashflowInsights.totalAssets, 'KRW')}`,
+        `평균 월수입/지출: ${formatCurrency(cashflowInsights.averageMonthlyIncome, 'KRW')} / ${formatCurrency(cashflowInsights.averageMonthlyExpense, 'KRW')}`,
+        cashflowInsights.latestMonth
+          ? `최근 월(${cashflowInsights.latestMonth.label}) 수입/지출: ${formatCurrency(cashflowInsights.latestMonth.income, 'KRW')} / ${formatCurrency(cashflowInsights.latestMonth.expense, 'KRW')}`
+          : '최근 월 데이터 없음',
+        `연간 순변화: ${formatCurrency(cashflowInsights.annualNetChange, 'KRW')} (${cashflowInsights.averageMonthlyNet >= 0 ? '흑자' : '적자'} 경향)`
+      ].join('\n')
+    : '수입/지출 데이터 없음'
+
   const trimmedContext = {
     portfolio: portfolioInsights
       ? {
@@ -484,6 +697,18 @@ export const buildChatPrompt = ({ userMessage, context, marketInsights, portfoli
           indices: marketInsights.indices,
           crypto: marketInsights.crypto.slice(0, 4),
           usdKrw: marketInsights.usdKrw
+        }
+      : null,
+    cashflow: cashflowInsights
+      ? {
+          totalAssets: cashflowInsights.totalAssets,
+          totalIncome: cashflowInsights.totalIncome,
+          totalExpense: cashflowInsights.totalExpense,
+          averageMonthlyIncome: cashflowInsights.averageMonthlyIncome,
+          averageMonthlyExpense: cashflowInsights.averageMonthlyExpense,
+          latestMonth: cashflowInsights.latestMonth,
+          topIncomeCategories: cashflowInsights.topIncomeCategories,
+          topExpenseCategories: cashflowInsights.topExpenseCategories
         }
       : null,
     goals: context.goalsSummary || null,
@@ -502,6 +727,9 @@ ${marketSummary}
 
 포트폴리오 인사이트:
 ${portfolioSummary}
+
+현금흐름 요약:
+${cashflowSummary}
 
 참고 컨텍스트(JSON 요약):
 ${JSON.stringify(trimmedContext, null, 2)}
