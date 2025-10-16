@@ -1,17 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Sparkles, FileText, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
 import AIStrategyBadge from '../components/AIStrategyBadge'
 import dataSync from '../utils/dataSync'
-
-const formatNumber = (value, digits = 2) => {
-  if (value === null || value === undefined) return 'N/A'
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return 'N/A'
-  return numeric.toFixed(digits)
-}
+import {
+  formatNumber,
+  formatCurrency,
+  computeMarketInsights,
+  computePortfolioInsights,
+  buildMarketReportPrompt,
+  buildPortfolioAnalysisPrompt,
+  buildRebalancingPrompt,
+  buildChatPrompt
+} from '../utils/aiInsights'
 
 const AIReport = () => {
   const [loading, setLoading] = useState(false)
@@ -28,6 +31,12 @@ const AIReport = () => {
   const [goalsSummary, setGoalsSummary] = useState(null)
   const [analysisHistory, setAnalysisHistory] = useState([])
   const [historyViewer, setHistoryViewer] = useState({ open: false, entry: null })
+
+  const marketInsights = useMemo(() => computeMarketInsights(marketData), [marketData])
+  const portfolioInsights = useMemo(
+    () => computePortfolioInsights(portfolioData, goalsSummary),
+    [portfolioData, goalsSummary]
+  )
 
   // Load real market and portfolio data
   useEffect(() => {
@@ -119,48 +128,6 @@ const AIReport = () => {
       window.alert('히스토리 다운로드에 실패했습니다.')
     }
   }
-  const buildMarketHighlights = (data) => {
-    if (!data) return null
-    const lines = []
-
-    if (data.stocks) {
-      const { sp500, nasdaq, dow } = data.stocks
-      const stockLines = [sp500, nasdaq, dow]
-        .filter(Boolean)
-        .map(item => `- ${item.name}: ${formatNumber(item.price, 2)} (${item.changePercent > 0 ? '+' : ''}${formatNumber(item.changePercent, 2)}%)`)
-      if (stockLines.length) {
-        lines.push('주요 지수 ETF')
-        lines.push(...stockLines)
-      }
-    }
-
-    if (data.gold) {
-      lines.push('귀금속')
-      lines.push(`- Gold (GLD): ${formatNumber(data.gold.price, 2)} (${data.gold.changePercent > 0 ? '+' : ''}${formatNumber(data.gold.changePercent, 2)}%)`)
-    }
-
-    if (data.crypto) {
-      const cryptoLines = Object.values(data.crypto || {})
-        .slice(0, 4)
-        .map(coin => `- ${coin.name}: ${formatNumber(coin.price, 2)} USD (${coin.change24h > 0 ? '+' : ''}${formatNumber(coin.change24h, 2)}%)`)
-      if (cryptoLines.length) {
-        lines.push('암호화폐')
-        lines.push(...cryptoLines)
-      }
-    }
-
-    if (data.currency) {
-      const { usdKrw, usdEur, usdJpy } = data.currency
-      const fxLines = [usdKrw, usdEur, usdJpy].filter(Boolean).map(pair => `- ${pair.base}/${pair.target}: ${formatNumber(pair.rate, 4)}`)
-      if (fxLines.length) {
-        lines.push('환율')
-        lines.push(...fxLines)
-      }
-    }
-
-    return lines.join('\n')
-  }
-
   const loadRealData = async () => {
     try {
       // Get real market data & sync Supabase-backed datasets
@@ -378,22 +345,7 @@ const AIReport = () => {
 
     setLoading(true)
     try {
-      const highlights = buildMarketHighlights(marketData)
-      const prompt = `다음 시장 데이터를 기반으로 Markdown 형식의 고급 투자 리포트를 작성해주세요.
-
-데이터 스냅샷:
-${JSON.stringify(marketData, null, 2)}
-
-핵심 하이라이트:
-${highlights || '- 제공된 하이라이트 없음'}
-
-작성 가이드:
-1. 반드시 섹션 제목을 사용하세요: "시장 개요", "섹터 및 자산별 분석", "리스크 요인과 기회", "전략 제안", "전망 및 체크포인트".
-2. 필요한 경우 표나 불릿으로 핵심 수치를 제시하세요.
-3. 최신 환율과 금리, 암호화폐 변동성 등 다양한 자산군을 모두 언급하세요.
-4. 제공된 데이터의 시점과 한계를 명시하고, 추가 확인이 필요한 부분은 경고로 표시하세요.
-5. 실행 가능한 투자 아이디어를 제안할 때는 위험도(저/중/고)와 예상 기간을 병기하세요.`
-
+      const prompt = buildMarketReportPrompt(marketData, marketInsights)
       const report = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
@@ -423,42 +375,7 @@ ${highlights || '- 제공된 하이라이트 없음'}
 
     setLoading(true)
     try {
-      const currencySummary = (portfolioData.totals.byCurrency || [])
-        .map(item => `- ${item.currency}: 평가액 ${formatNumber(item.totalValue, 2)} (${formatNumber(item.totalValueKRW, 0)} KRW), 수익 ${formatNumber(item.totalProfit, 2)} (${formatNumber(item.totalProfitKRW, 0)} KRW), 수익률 ${formatNumber(item.profitPercent, 2)}%`)
-        .join('\n')
-
-      const assetSummary = portfolioData.assets
-        .map(asset => `- ${asset.symbol} (${asset.type}, ${asset.currency}) | 수량 ${asset.quantity} | 평가액 ${formatNumber(asset.valueOriginal, 2)} ${asset.currency} / ${formatNumber(asset.valueKRW, 0)} KRW | 수익률 ${formatNumber(asset.profitPercent, 2)}%`)
-        .join('\n')
-
-      const prompt = `다음 포트폴리오를 ${portfolioData.baseCurrency} 기준으로 깊이 있게 분석하고 개선안을 제시해주세요.
-
-총 평가액: ${formatNumber(portfolioData.totals.totalValueKRW, 0)} KRW (${formatNumber(portfolioData.totals.totalValueUSD, 2)} USD)
-총 수익금: ${formatNumber(portfolioData.totals.totalProfitKRW, 0)} KRW (${formatNumber(portfolioData.totals.totalProfitUSD, 2)} USD)
-평균 수익률: ${formatNumber(portfolioData.profitPercent, 2)}%
-
-환율 정보:
-- USD/KRW: ${portfolioData.exchangeRate.usdKrw ? formatNumber(portfolioData.exchangeRate.usdKrw, 4) : 'N/A'}
-- 기준 통화: ${portfolioData.baseCurrency}
-
-통화별 요약:
-${currencySummary || '- 데이터 없음'}
-
-자산 목록:
-${assetSummary || '- 데이터 없음'}
-
-사용자 목표 요약:
-${goalsSummary
-  ? `- 총 목표 수: ${goalsSummary.totalGoals}\n- 평균 진행률: ${goalsSummary.averageProgress ? formatNumber(goalsSummary.averageProgress, 1) : 'N/A'}%\n- 포트폴리오 연동 목표: ${goalsSummary.linkedGoals}개\n- 가장 임박한 목표: ${goalsSummary.upcomingGoal ? `${goalsSummary.upcomingGoal.name} (${goalsSummary.upcomingGoal.currency}, ${goalsSummary.upcomingGoal.targetDate})` : '없음'}`
-  : '- 등록된 목표 없음'}
-
-작성 가이드:
-1. 섹션 제목은 "포트폴리오 개요", "통화 및 환율 영향", "목표 연계 분석", "리스크 및 수익성", "개선 제안", "실행 체크리스트" 순서를 따르세요.
-2. 모든 금액은 가능하면 KRW와 USD를 함께 표기하고, 환율 변동이 성과에 미치는 영향을 설명하세요.
-3. 목표가 없는 경우에도 어떤 목표를 설정하면 좋을지 제안하고, 목표가 있을 경우 달성 가능성을 평가하세요.
-4. 개선 제안은 우선순위와 예상 영향(긍정/부정)을 명시한 불릿으로 작성하세요.
-5. 제공된 데이터의 한계(실시간성, 환율 변동 가능성 등)를 마지막에 Disclaimer 섹션으로 정리하세요.`
-
+      const prompt = buildPortfolioAnalysisPrompt(portfolioData, portfolioInsights, goalsSummary)
       const analysis = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
@@ -488,39 +405,114 @@ ${goalsSummary
 
     setLoading(true)
     try {
-      // Calculate risk metrics
-      const profitPercentages = portfolioData.assets
-        .map(a => a.profitPercent)
-        .filter(p => Number.isFinite(p))
-      const avgReturn = profitPercentages.length > 0
-        ? profitPercentages.reduce((sum, p) => sum + p, 0) / profitPercentages.length
-        : 0
+      const assets = Array.isArray(portfolioData.assets) ? portfolioData.assets : []
+      if (!assets.length) {
+        setRiskAnalysis({ error: '포트폴리오 자산 데이터가 부족합니다.' })
+        return
+      }
 
-      // Standard deviation (volatility)
-      const variance = profitPercentages.length > 0
-        ? profitPercentages.reduce((sum, p) => sum + Math.pow(p - avgReturn, 2), 0) / profitPercentages.length
-        : 0
-      const volatility = Math.sqrt(variance)
+      const totalValue = assets.reduce((sum, asset) => {
+        const valueKRW = Number(asset.valueKRW) || 0
+        return sum + valueKRW
+      }, 0)
 
-      // Sharpe ratio (simplified, assuming 0% risk-free rate)
-      const sharpeRatio = volatility > 0 ? avgReturn / volatility : 0
+      if (totalValue <= 0) {
+        setRiskAnalysis({ error: '총 평가액이 0원입니다. 자산 데이터를 확인해주세요.' })
+        return
+      }
 
-      // Concentration risk (Herfindahl index)
-      const totalValue = portfolioData.totalValue
-      const concentrationIndex = totalValue > 0
-        ? portfolioData.assets.reduce((sum, a) => {
-            const weight = (a.valueKRW || 0) / totalValue
-            return sum + (weight * weight)
-          }, 0)
-        : 0
+      const assetMetrics = assets.map(asset => {
+        const valueKRW = Number(asset.valueKRW) || 0
+        const profitPercent = Number(asset.profitPercent)
+        const weight = valueKRW / totalValue
+        return {
+          symbol: asset.symbol,
+          name: asset.name,
+          type: asset.type,
+          valueKRW,
+          profitPercent: Number.isFinite(profitPercent) ? profitPercent : 0,
+          weight
+        }
+      })
+
+      const weightedReturn = assetMetrics.reduce(
+        (sum, asset) => sum + asset.weight * asset.profitPercent,
+        0
+      )
+      const weightedVariance = assetMetrics.reduce(
+        (sum, asset) => sum + asset.weight * Math.pow(asset.profitPercent - weightedReturn, 2),
+        0
+      )
+      const volatility = Math.sqrt(Math.max(weightedVariance, 0))
+      const sharpeRatio = volatility > 0 ? weightedReturn / volatility : 0
+      const concentrationIndex = assetMetrics.reduce(
+        (sum, asset) => sum + Math.pow(asset.weight, 2),
+        0
+      )
+
+      const valueAtRisk = totalValue * (Math.max(volatility, 0) / 100) * 1.65
+      const expectedDrawdown = totalValue * (Math.max(volatility - Math.max(weightedReturn, 0), 0) / 100)
+
+      const sortedByWeight = [...assetMetrics].sort((a, b) => b.weight - a.weight)
+      const largestPosition = sortedByWeight[0]
+      const worstAsset = [...assetMetrics].sort((a, b) => a.profitPercent - b.profitPercent)[0]
+
+      const currencyExposure = portfolioInsights?.currencyExposure
+        ? portfolioInsights.currencyExposure
+        : (portfolioData.totals?.byCurrency || []).map(item => {
+            const totalValueKRW = Number(item.totalValueKRW || item.totalValue) || 0
+            const percent = totalValue > 0 ? (totalValueKRW / totalValue) * 100 : 0
+            return {
+              currency: item.currency,
+              percent,
+              totalValueKRW
+            }
+          }).sort((a, b) => b.percent - a.percent)
+
+      const topCurrency = currencyExposure && currencyExposure.length ? currencyExposure[0] : null
+
+      const riskLevel = volatility > 18 ? 'High' : volatility > 10 ? 'Medium' : 'Low'
+      const diversificationScore = concentrationIndex < 0.2
+        ? 'Excellent'
+        : concentrationIndex < 0.35
+          ? 'Good'
+          : concentrationIndex < 0.5
+            ? 'Fair'
+            : 'Poor'
+
+      const insights = []
+      if (largestPosition && largestPosition.weight * 100 >= 35) {
+        insights.push(`최대 보유 자산 ${largestPosition.symbol} 비중이 ${formatNumber(largestPosition.weight * 100, 1)}%로 높습니다.`)
+      }
+      if (topCurrency && topCurrency.percent >= 65) {
+        insights.push(`${topCurrency.currency} 통화 노출이 ${formatNumber(topCurrency.percent, 1)}%로 집중되어 있습니다.`)
+      }
+      if (worstAsset && worstAsset.profitPercent <= -5) {
+        insights.push(`부진한 자산 ${worstAsset.symbol} 수익률이 ${formatNumber(worstAsset.profitPercent, 1)}%입니다.`)
+      }
+      if (sharpeRatio < 0.5) {
+        insights.push('샤프 비율이 0.5 미만으로 위험 대비 수익성이 낮습니다.')
+      }
+      if (expectedDrawdown > totalValue * 0.08) {
+        insights.push(`1σ 기준 예상 하락폭이 약 ${formatCurrency(expectedDrawdown, 'KRW')}로 추정됩니다.`)
+      }
 
       setRiskAnalysis({
-        avgReturn: avgReturn.toFixed(2),
-        volatility: volatility.toFixed(2),
-        sharpeRatio: sharpeRatio.toFixed(2),
-        concentrationIndex: concentrationIndex.toFixed(3),
-        riskLevel: volatility > 15 ? 'High' : volatility > 8 ? 'Medium' : 'Low',
-        diversificationScore: concentrationIndex < 0.25 ? 'Good' : concentrationIndex < 0.5 ? 'Fair' : 'Poor'
+        avgReturn: weightedReturn,
+        volatility,
+        sharpeRatio,
+        concentrationIndex,
+        riskLevel,
+        diversificationScore,
+        valueAtRisk,
+        expectedDrawdown,
+        largestPosition,
+        weakestAsset: worstAsset,
+        currencyExposure,
+        insights,
+        totalValue,
+        totalProfit: portfolioData.totalProfit,
+        generatedAt: new Date().toISOString()
       })
     } catch (error) {
       setRiskAnalysis({ error: '리스크 분석 중 오류가 발생했습니다.' })
@@ -537,37 +529,7 @@ ${goalsSummary
 
     setLoading(true)
     try {
-      const allocationSummary = Object.entries(portfolioData.allocation || {})
-        .map(([type, percent]) => `- ${type}: ${formatNumber(percent, 2)}%`)
-        .join('\n') || '- 데이터 없음'
-
-      const assetLines = portfolioData.assets
-        .map(a => `- ${a.symbol} (${a.type}, ${a.currency}) | 평가액 ${formatNumber(a.valueKRW, 0)} KRW (${formatNumber(a.valueUSD, 2)} USD) | 수익률 ${formatNumber(a.profitPercent, 2)}%`)
-        .join('\n') || '- 데이터 없음'
-
-      const prompt = `다음 포트폴리오의 리밸런싱 전략을 제안해주세요.
-
-총 평가액: ${formatNumber(portfolioData.totals.totalValueKRW, 0)} KRW (${formatNumber(portfolioData.totals.totalValueUSD, 2)} USD)
-총 수익금: ${formatNumber(portfolioData.totals.totalProfitKRW, 0)} KRW (${formatNumber(portfolioData.totals.totalProfitUSD, 2)} USD)
-평균 수익률: ${formatNumber(portfolioData.profitPercent, 2)}%
-
-현재 환율: USD/KRW = ${portfolioData.exchangeRate.usdKrw ? formatNumber(portfolioData.exchangeRate.usdKrw, 4) : 'N/A'}
-
-현재 자산 배분:
-${allocationSummary}
-
-자산 목록(원화/달러 기준 병기):
-${assetLines}
-
-분석 지침:
-1. 현재 배분과 통화별 비중을 평가하고, 리스크 요인을 짚어주세요.
-2. 목표 위험 수준과 환율 변동 가능성을 고려한 최적 배분 비율을 제안해주세요.
-3. 매수/매도 또는 환헤지 등 실행 가능한 리밸런싱 조치를 구체적으로 제안해주세요.
-4. 리밸런싱 주기, 모니터링 포인트, 체크리스트를 알려주세요.
-5. 실행 우선순위를 번호로 정렬하고, 각 조치별 예상 영향(긍정/부정)을 기재하세요.
-
-원화와 달러 금액을 명확히 구분하고, 데이터의 한계나 추가 검증 필요사항은 Disclaimer로 정리해주세요.`
-
+      const prompt = buildRebalancingPrompt(portfolioData, portfolioInsights, riskAnalysis)
       const suggestion = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
@@ -609,13 +571,12 @@ ${assetLines}
         goalsSummary
       }
 
-      const prompt = `사용자 질문: ${userMessage}
-
-컨텍스트 정보:
-${JSON.stringify(context, null, 2)}
-
-전문가 관점에서 상세하고 실용적인 답변을 제공해주세요.`
-
+      const prompt = buildChatPrompt({
+        userMessage,
+        context,
+        marketInsights,
+        portfolioInsights
+      })
       const response = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
@@ -857,6 +818,29 @@ ${JSON.stringify(context, null, 2)}
               <strong>🧠 GPT-5 사용:</strong> 상세한 시장 분석 및 투자 전략을 제공합니다 (고급 분석)
             </p>
           </div>
+          {marketInsights && (
+            <div className="card border border-blue-100 bg-blue-50/60">
+              <h4 className="text-sm font-semibold text-blue-900 mb-2">데이터 기반 시장 요약</h4>
+              <ul className="space-y-1 text-xs text-blue-800">
+                {marketInsights.quickHighlights.slice(0, 4).map((item, idx) => (
+                  <li key={idx}>• {item}</li>
+                ))}
+              </ul>
+              {marketInsights.riskSignals.length > 0 && (
+                <div className="mt-3 text-xs text-orange-800 bg-white/80 rounded-lg p-3 border border-orange-200">
+                  <p className="font-medium mb-1">⚠️ 감지된 리스크</p>
+                  <ul className="space-y-1">
+                    {marketInsights.riskSignals.slice(0, 3).map((signal, idx) => (
+                      <li key={idx}>- {signal}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="text-[11px] text-blue-700 mt-3">
+                실시간 데이터 기반 자동 요약입니다. 추가적인 경제 지표와 뉴스 확인을 권장합니다.
+              </p>
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <button
               onClick={generateMarketReport}
@@ -926,6 +910,42 @@ ${JSON.stringify(context, null, 2)}
               <strong>🧠 GPT-5 사용:</strong> 심층 포트폴리오 분석 및 최적화 전략을 제공합니다 (전문가급 분석)
             </p>
           </div>
+          {portfolioInsights && (
+            <div className="card border border-purple-100 bg-purple-50/60">
+              <h4 className="text-sm font-semibold text-purple-900 mb-2">핵심 포트폴리오 인사이트</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-purple-800">
+                <div>
+                  <p className="font-medium mb-1">성과 요약</p>
+                  <ul className="space-y-1">
+                    {portfolioInsights.quickHighlights.slice(0, 3).map((item, idx) => (
+                      <li key={idx}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium mb-1">리스크 포인트</p>
+                  <ul className="space-y-1">
+                    {portfolioInsights.riskAlerts.length
+                      ? portfolioInsights.riskAlerts.slice(0, 3).map((item, idx) => (
+                          <li key={idx}>• {item}</li>
+                        ))
+                      : <li>• 특이 리스크 없음</li>
+                    }
+                  </ul>
+                </div>
+              </div>
+              {portfolioInsights.goalHighlights.length > 0 && (
+                <div className="mt-3 text-xs text-purple-800 bg-white/70 rounded-lg p-3 border border-purple-100">
+                  <p className="font-medium mb-1">목표 진행</p>
+                  <ul className="space-y-1">
+                    {portfolioInsights.goalHighlights.slice(0, 2).map((item, idx) => (
+                      <li key={idx}>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <button
               onClick={generatePortfolioAnalysis}
@@ -1014,51 +1034,151 @@ ${JSON.stringify(context, null, 2)}
           </button>
 
           {riskAnalysis && !riskAnalysis.error && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="card">
-                <h4 className="text-sm font-medium text-gray-600 mb-3">수익률 지표</h4>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500">평균 수익률</p>
-                    <p className="text-2xl font-bold text-gray-900">{riskAnalysis.avgReturn}%</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="card">
+                  <h4 className="text-sm font-medium text-gray-600 mb-3">수익률 지표</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500">가중 평균 수익률</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {Number.isFinite(riskAnalysis.avgReturn)
+                          ? `${riskAnalysis.avgReturn >= 0 ? '+' : ''}${formatNumber(riskAnalysis.avgReturn, 2)}%`
+                          : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">샤프 비율 (Sharpe Ratio)</p>
+                      <p className="text-2xl font-bold text-primary-600">
+                        {formatNumber(riskAnalysis.sharpeRatio, 2)}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {Number(riskAnalysis.sharpeRatio) > 1
+                          ? '우수'
+                          : Number(riskAnalysis.sharpeRatio) > 0.5
+                            ? '양호'
+                            : '개선 필요'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">샤프 비율 (Sharpe Ratio)</p>
-                    <p className="text-2xl font-bold text-primary-600">{riskAnalysis.sharpeRatio}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {parseFloat(riskAnalysis.sharpeRatio) > 1 ? '우수' : parseFloat(riskAnalysis.sharpeRatio) > 0.5 ? '양호' : '개선 필요'}
-                    </p>
+                </div>
+
+                <div className="card">
+                  <h4 className="text-sm font-medium text-gray-600 mb-3">리스크 지표</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500">변동성 (Volatility)</p>
+                      <p
+                        className={`text-2xl font-bold ${
+                          riskAnalysis.riskLevel === 'High'
+                            ? 'text-danger'
+                            : riskAnalysis.riskLevel === 'Medium'
+                              ? 'text-warning'
+                              : 'text-success'
+                        }`}
+                      >
+                        {Number.isFinite(riskAnalysis.volatility)
+                          ? `${formatNumber(riskAnalysis.volatility, 2)}%`
+                          : 'N/A'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">위험도: {riskAnalysis.riskLevel}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">분산 점수</p>
+                      <p
+                        className={`text-lg font-bold ${
+                          riskAnalysis.diversificationScore === 'Excellent'
+                            ? 'text-success'
+                            : riskAnalysis.diversificationScore === 'Good'
+                              ? 'text-success'
+                              : riskAnalysis.diversificationScore === 'Fair'
+                                ? 'text-warning'
+                                : 'text-danger'
+                        }`}
+                      >
+                        {riskAnalysis.diversificationScore}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        집중도 지수: {formatNumber(riskAnalysis.concentrationIndex, 3)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="card">
-                <h4 className="text-sm font-medium text-gray-600 mb-3">리스크 지표</h4>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-gray-500">변동성 (Volatility)</p>
-                    <p className={`text-2xl font-bold ${
-                      riskAnalysis.riskLevel === 'High' ? 'text-danger' :
-                      riskAnalysis.riskLevel === 'Medium' ? 'text-warning' : 'text-success'
-                    }`}>
-                      {riskAnalysis.volatility}%
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">위험도: {riskAnalysis.riskLevel}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="card">
+                  <h4 className="text-sm font-medium text-gray-600 mb-3">잠재 손실 추정</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500">1σ 기준 예상 하락폭</p>
+                      <p className="text-xl font-semibold text-gray-900">
+                        {formatCurrency(riskAnalysis.expectedDrawdown, 'KRW')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">95% VaR (단순 추정)</p>
+                      <p className="text-xl font-semibold text-gray-900">
+                        {formatCurrency(riskAnalysis.valueAtRisk, 'KRW')}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        통계적 추정치이며 실제 시장 변동과 차이가 있을 수 있습니다.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">분산 점수</p>
-                    <p className={`text-lg font-bold ${
-                      riskAnalysis.diversificationScore === 'Good' ? 'text-success' :
-                      riskAnalysis.diversificationScore === 'Fair' ? 'text-warning' : 'text-danger'
-                    }`}>
-                      {riskAnalysis.diversificationScore}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      집중도 지수: {riskAnalysis.concentrationIndex}
-                    </p>
+                </div>
+
+                <div className="card">
+                  <h4 className="text-sm font-medium text-gray-600 mb-3">집중도 & 노출</h4>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    {riskAnalysis.largestPosition ? (
+                      <p>
+                        최대 보유 자산: <strong>{riskAnalysis.largestPosition.symbol}</strong>{' '}
+                        ({formatNumber(riskAnalysis.largestPosition.weight * 100, 1)}% 비중,
+                        수익률 {formatNumber(riskAnalysis.largestPosition.profitPercent, 1)}%)
+                      </p>
+                    ) : (
+                      <p>최대 보유 자산 정보 없음</p>
+                    )}
+                    {riskAnalysis.weakestAsset ? (
+                      <p>
+                        부진 자산: <strong>{riskAnalysis.weakestAsset.symbol}</strong>{' '}
+                        ({formatNumber(riskAnalysis.weakestAsset.profitPercent, 1)}%)
+                      </p>
+                    ) : (
+                      <p>부진 자산 정보 없음</p>
+                    )}
+                    {riskAnalysis.currencyExposure && riskAnalysis.currencyExposure.length ? (
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-500 mb-1">상위 통화 노출</p>
+                        <ul className="space-y-1">
+                          {riskAnalysis.currencyExposure.slice(0, 3).map(item => (
+                            <li key={item.currency} className="text-xs text-gray-600">
+                              {item.currency}: {formatNumber(item.percent, 1)}%
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500">통화 노출 데이터 없음</p>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {riskAnalysis.insights && riskAnalysis.insights.length > 0 && (
+                <div className="card border-l-4 border-orange-300 bg-orange-50">
+                  <h4 className="text-sm font-semibold text-orange-900 mb-2">리스크 주요 포인트</h4>
+                  <ul className="space-y-1 text-xs text-orange-800">
+                    {riskAnalysis.insights.map((item, idx) => (
+                      <li key={idx}>• {item}</li>
+                    ))}
+                  </ul>
+                  <p className="text-[11px] text-orange-700 mt-3">
+                    자동 계산 지표는 참고용이며, 실제 의사결정 시 추가 데이터 확인과 전문가 상담이 필요합니다.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1086,6 +1206,45 @@ ${JSON.stringify(context, null, 2)}
               <strong>🧠 GPT-5 사용:</strong> AI가 최적 자산 배분 및 리밸런싱 전략을 제안합니다
             </p>
           </div>
+          {portfolioInsights && (
+            <div className="card border border-indigo-100 bg-indigo-50/60">
+              <h4 className="text-sm font-semibold text-indigo-900 mb-2">리밸런싱 참고 지표</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-indigo-900">
+                <div>
+                  <p className="font-medium mb-1">과도 비중</p>
+                  <ul className="space-y-1">
+                    {portfolioInsights.overweightTypes.length
+                      ? portfolioInsights.overweightTypes.map((item, idx) => (
+                          <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
+                        ))
+                      : <li>• 과도 비중 섹터 없음</li>
+                    }
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium mb-1">부족 비중</p>
+                  <ul className="space-y-1">
+                    {portfolioInsights.underweightTypes.length
+                      ? portfolioInsights.underweightTypes.map((item, idx) => (
+                          <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
+                        ))
+                      : <li>• 부족 비중 섹터 없음</li>
+                    }
+                  </ul>
+                </div>
+              </div>
+              {portfolioInsights.currencyExposure.length > 0 && (
+                <div className="mt-3 text-xs text-indigo-900">
+                  <p className="font-medium mb-1">통화 노출 상위</p>
+                  <ul className="space-y-1">
+                    {portfolioInsights.currencyExposure.slice(0, 3).map((item, idx) => (
+                      <li key={idx}>- {item.currency}: {formatNumber(item.percent, 1)}%</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           <button
             onClick={generateRebalancingSuggestion}
             disabled={loading || !portfolioData}
