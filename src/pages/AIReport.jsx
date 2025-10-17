@@ -33,6 +33,8 @@ const AIReport = () => {
   const [analysisHistory, setAnalysisHistory] = useState([])
   const [historyViewer, setHistoryViewer] = useState({ open: false, entry: null })
   const [cashflowInsights, setCashflowInsights] = useState(null)
+  const [selectedStock, setSelectedStock] = useState(null) // 종목 분석용
+  const [stockAnalysis, setStockAnalysis] = useState('') // AI 종목 분석 결과
 
   const marketInsights = useMemo(() => computeMarketInsights(marketData), [marketData])
   const portfolioInsights = useMemo(
@@ -781,10 +783,10 @@ const AIReport = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => setActiveTab('market')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
             activeTab === 'market'
               ? 'text-primary-600 border-b-2 border-primary-600'
               : 'text-gray-600 hover:text-gray-900'
@@ -794,7 +796,7 @@ const AIReport = () => {
         </button>
         <button
           onClick={() => setActiveTab('portfolio')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
             activeTab === 'portfolio'
               ? 'text-primary-600 border-b-2 border-primary-600'
               : 'text-gray-600 hover:text-gray-900'
@@ -803,8 +805,18 @@ const AIReport = () => {
           포트폴리오 진단
         </button>
         <button
+          onClick={() => setActiveTab('stock')}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
+            activeTab === 'stock'
+              ? 'text-primary-600 border-b-2 border-primary-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          📊 종목 분석
+        </button>
+        <button
           onClick={() => setActiveTab('risk')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
             activeTab === 'risk'
               ? 'text-primary-600 border-b-2 border-primary-600'
               : 'text-gray-600 hover:text-gray-900'
@@ -814,7 +826,7 @@ const AIReport = () => {
         </button>
         <button
           onClick={() => setActiveTab('rebalancing')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
             activeTab === 'rebalancing'
               ? 'text-primary-600 border-b-2 border-primary-600'
               : 'text-gray-600 hover:text-gray-900'
@@ -824,7 +836,7 @@ const AIReport = () => {
         </button>
         <button
           onClick={() => setActiveTab('chat')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
             activeTab === 'chat'
               ? 'text-primary-600 border-b-2 border-primary-600'
               : 'text-gray-600 hover:text-gray-900'
@@ -1026,6 +1038,231 @@ const AIReport = () => {
             <div className="card text-center py-12">
               <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">AI 포트폴리오 진단을 시작하려면 버튼을 클릭하세요</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Stock Analysis Tab */}
+      {activeTab === 'stock' && (
+        <div className="space-y-4">
+          <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-teal-800">
+              <strong>🔍 종목 심층 분석:</strong> AI로 기본 분석 제공 + Perplexity에서 최신 실시간 정보 검색
+            </p>
+          </div>
+
+          {/* 종목 선택 */}
+          <div className="card">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">📊 분석할 종목 선택</h4>
+            {portfolioData && portfolioData.assets && portfolioData.assets.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {portfolioData.assets.map((asset) => (
+                  <button
+                    key={asset.symbol}
+                    onClick={() => setSelectedStock(asset)}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      selectedStock?.symbol === asset.symbol
+                        ? 'border-teal-500 bg-teal-50'
+                        : 'border-gray-200 bg-white hover:border-teal-300'
+                    }`}
+                  >
+                    <p className="font-semibold text-sm text-gray-900">{asset.symbol}</p>
+                    <p className="text-xs text-gray-600 mt-1 truncate">{asset.name}</p>
+                    <p className={`text-xs mt-1 font-medium ${
+                      asset.profitPercent >= 0 ? 'text-success' : 'text-danger'
+                    }`}>
+                      {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(1)}%
+                    </p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p className="text-sm">포트폴리오에 자산이 없습니다.</p>
+                <p className="text-xs mt-1">Portfolio 페이지에서 자산을 추가해주세요.</p>
+              </div>
+            )}
+          </div>
+
+          {/* 선택된 종목 정보 및 분석 버튼 */}
+          {selectedStock && (
+            <>
+              <div className="card bg-gradient-to-br from-teal-50 to-blue-50 border-teal-200">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900">{selectedStock.symbol}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{selectedStock.name}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-500">현재가</p>
+                        <p className="font-semibold text-gray-900">
+                          {selectedStock.currency === 'KRW'
+                            ? `₩${selectedStock.currentPrice.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`
+                            : `$${selectedStock.currentPrice.toFixed(2)}`
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">수익률</p>
+                        <p className={`font-semibold ${selectedStock.profitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                          {selectedStock.profitPercent >= 0 ? '+' : ''}{selectedStock.profitPercent.toFixed(2)}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">보유 수량</p>
+                        <p className="font-semibold text-gray-900">{selectedStock.quantity}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">자산 유형</p>
+                        <p className="font-semibold text-gray-900">{selectedStock.type}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI 분석 + Perplexity 검색 버튼 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  onClick={async () => {
+                    setLoading(true)
+                    setStockAnalysis('')
+                    try {
+                      const prompt = `다음 종목에 대해 투자자 관점에서 심층 분석해주세요:
+
+**종목 정보:**
+- 티커: ${selectedStock.symbol}
+- 종목명: ${selectedStock.name}
+- 현재가: ${selectedStock.currency === 'KRW' ? `₩${selectedStock.currentPrice.toLocaleString()}` : `$${selectedStock.currentPrice.toFixed(2)}`}
+- 보유 수익률: ${selectedStock.profitPercent.toFixed(2)}%
+- 자산 유형: ${selectedStock.type}
+
+**분석 요청 사항:**
+1. 기업 개요 및 사업 모델
+2. 최근 재무 상태 평가 (2023년까지 데이터 기준)
+3. 산업 트렌드 및 경쟁 우위
+4. 투자 리스크 요인
+5. 중장기 투자 전망 및 추천 의견
+
+**출력 형식:**
+- 명확한 섹션별 구분
+- 핵심 내용 위주로 간결하게
+- 투자자 관점의 실용적인 분석`
+
+                      const analysis = await aiService.routeAIRequest(
+                        prompt,
+                        aiService.TASK_LEVEL.ADVANCED,
+                        '당신은 20년 경력의 증권 애널리스트입니다. 기업의 펀더멘털과 투자 가치를 정밀하게 분석합니다.',
+                        selectedAI
+                      )
+                      setStockAnalysis(analysis)
+                      appendHistory({
+                        id: Date.now(),
+                        type: 'stock',
+                        createdAt: new Date().toISOString(),
+                        summary: `종목 분석: ${selectedStock.symbol}`,
+                        content: analysis
+                      })
+                    } catch (error) {
+                      setStockAnalysis('AI 분석 생성 중 오류가 발생했습니다. API 키를 확인해주세요.')
+                    } finally {
+                      setLoading(false)
+                    }
+                  }}
+                  disabled={loading}
+                  className="btn-primary flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      AI 분석 중...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      {selectedAI === 'gpt' ? '🧠 GPT' : selectedAI === 'gemini' ? '⚡ Gemini' : '🤖 AI'} 기본 분석 생성
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    const searchQuery = `${selectedStock.symbol} ${selectedStock.name} stock analysis fundamental earnings forecast 2025`
+                    const perplexityUrl = `https://www.perplexity.ai/search/new?q=${encodeURIComponent(searchQuery)}`
+                    window.open(perplexityUrl, '_blank', 'noopener,noreferrer')
+                  }}
+                  className="btn-secondary flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 hover:from-purple-700 hover:to-blue-700"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
+                  🔍 Perplexity에서 최신 정보 검색
+                </button>
+              </div>
+
+              {/* AI 분석 결과 */}
+              {stockAnalysis && (
+                <div className="card">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-teal-600" />
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        AI 종목 분석: {selectedStock.symbol}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(stockAnalysis)}
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        복사
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadReport(`stock_analysis_${selectedStock.symbol}`, stockAnalysis)}
+                        className="px-3 py-1.5 text-xs font-medium text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+                      >
+                        다운로드
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                    <p className="text-xs text-amber-800">
+                      ⚠️ <strong>참고:</strong> 이 분석은 AI가 2023년까지의 학습 데이터를 기반으로 작성되었습니다.
+                      최신 실적, 뉴스, 전망은 위 "Perplexity에서 최신 정보 검색" 버튼을 클릭하여 확인하세요.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
+                    <ReactMarkdown className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500">
+                      {stockAnalysis}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )}
+
+              {!stockAnalysis && !loading && (
+                <div className="card text-center py-12 border-2 border-dashed border-gray-300">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 font-medium">
+                    "{selectedStock.symbol}" 종목 분석을 시작하세요
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    AI 기본 분석 또는 Perplexity 최신 검색 중 선택하세요
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {!selectedStock && (
+            <div className="card text-center py-12 border-2 border-dashed border-teal-200">
+              <TrendingUp className="w-12 h-12 text-teal-400 mx-auto mb-4" />
+              <p className="text-gray-600 font-medium">분석할 종목을 선택해주세요</p>
+              <p className="text-sm text-gray-500 mt-2">
+                위 목록에서 종목을 클릭하면 심층 분석을 시작할 수 있습니다
+              </p>
             </div>
           )}
         </div>
