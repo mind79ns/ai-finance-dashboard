@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Sparkles, FileText, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
@@ -923,7 +924,10 @@ const AIReport = () => {
                 <h3 className="text-lg font-semibold text-gray-900">시장 분석 리포트</h3>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
-                <ReactMarkdown className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500">
+                <ReactMarkdown
+                  className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500"
+                  remarkPlugins={[remarkGfm]}
+                >
                   {marketReport}
                 </ReactMarkdown>
               </div>
@@ -1028,7 +1032,10 @@ const AIReport = () => {
                 <h3 className="text-lg font-semibold text-gray-900">포트폴리오 진단 결과</h3>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
-                <ReactMarkdown className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500">
+                <ReactMarkdown
+                  className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500"
+                  remarkPlugins={[remarkGfm]}
+                >
                   {portfolioAnalysis}
                 </ReactMarkdown>
               </div>
@@ -1513,7 +1520,10 @@ const AIReport = () => {
                 <h3 className="text-lg font-semibold text-gray-900">리밸런싱 전략 제안</h3>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
-                <ReactMarkdown className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500">
+                <ReactMarkdown
+                  className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500"
+                  remarkPlugins={[remarkGfm]}
+                >
                   {rebalancingSuggestion}
                 </ReactMarkdown>
               </div>
@@ -1572,7 +1582,7 @@ const AIReport = () => {
         </div>
         <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
           <div className="markdown-body text-sm text-gray-800">
-            <ReactMarkdown>{historyViewer.entry.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{historyViewer.entry.content}</ReactMarkdown>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
