@@ -197,7 +197,33 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
 
   if (!asset) return null
 
-  const holdingDays = 45 // 실제로는 계산 필요
+  // 실제 보유 일수 계산 (투자일지에서 가장 오래된 매수 날짜 기준)
+  const calculateHoldingDays = () => {
+    if (transactionHistory.length === 0) {
+      return 1 // 거래 내역이 없으면 최소 1일
+    }
+
+    // 매수 거래만 필터링
+    const buyTransactions = transactionHistory.filter(tx => tx.type === 'buy')
+    if (buyTransactions.length === 0) {
+      return 1
+    }
+
+    // 가장 오래된 매수 날짜 찾기
+    const oldestBuyDate = buyTransactions.reduce((oldest, tx) => {
+      const txDate = new Date(tx.date)
+      return txDate < oldest ? txDate : oldest
+    }, new Date(buyTransactions[0].date))
+
+    // 현재 날짜와의 차이 계산
+    const today = new Date()
+    const diffTime = Math.abs(today - oldestBuyDate)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    return diffDays > 0 ? diffDays : 1
+  }
+
+  const holdingDays = calculateHoldingDays()
   const displayCurrency = asset.currency === 'USD' ? '$' : '₩'
   const isProfit = asset.profit >= 0
 
