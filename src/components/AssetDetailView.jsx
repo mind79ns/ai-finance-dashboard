@@ -405,8 +405,8 @@ const AssetDetailView = ({ asset, exchangeRate }) => {
             <p className="text-xs text-gray-600 mt-1">보유 일수</p>
           </div>
           <div>
-            <p className={`text-2xl font-bold ${isProfit ? 'text-success' : 'text-danger'}`}>
-              {isProfit ? '+' : ''}{asset.profitPercent.toFixed(2)}%
+            <p className={`text-2xl font-bold ${asset.dailyChangePercent >= 0 ? 'text-success' : 'text-danger'}`}>
+              {asset.dailyChangePercent >= 0 ? '+' : ''}{(asset.dailyChangePercent || 0).toFixed(2)}%
             </p>
             <p className="text-xs text-gray-600 mt-1">당일 수익률</p>
           </div>

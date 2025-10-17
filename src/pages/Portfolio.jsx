@@ -137,12 +137,17 @@ const Portfolio = () => {
         // Update all asset prices
         const updatedAssets = assets.map(asset => {
           let currentPrice = asset.currentPrice
+          let dailyChangePercent = asset.dailyChangePercent || 0 // 당일 변동률
 
           // Update USD stock/ETF prices from Finnhub
           if ((asset.type === '주식' || asset.type === 'ETF') &&
               asset.currency === 'USD' &&
               usdStockPrices[asset.symbol]) {
             currentPrice = usdStockPrices[asset.symbol].price
+            // Finnhub도 changePercent 제공하면 저장
+            if (usdStockPrices[asset.symbol].changePercent !== undefined) {
+              dailyChangePercent = usdStockPrices[asset.symbol].changePercent
+            }
             console.log(`📊 Finnhub: ${asset.symbol} = $${currentPrice}`)
           }
           // Update KRW stock/ETF prices from 한국투자증권
@@ -150,20 +155,25 @@ const Portfolio = () => {
                    asset.currency === 'KRW' &&
                    krwStockPrices[asset.symbol]) {
             currentPrice = krwStockPrices[asset.symbol].price
-            console.log(`📊 KIS: ${asset.symbol} = ₩${currentPrice}`)
+            dailyChangePercent = krwStockPrices[asset.symbol].changePercent || 0
+            console.log(`📊 KIS: ${asset.symbol} = ₩${currentPrice} (${dailyChangePercent > 0 ? '+' : ''}${dailyChangePercent.toFixed(2)}%)`)
           }
           // Update crypto prices from CoinGecko
           else if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
             currentPrice = marketData.crypto.bitcoin.price
+            dailyChangePercent = marketData.crypto.bitcoin.change24h || 0
           }
           else if (asset.symbol === 'ETH' && marketData.crypto?.ethereum) {
             currentPrice = marketData.crypto.ethereum.price
+            dailyChangePercent = marketData.crypto.ethereum.change24h || 0
           }
           else if (asset.symbol === 'BNB' && marketData.crypto?.binancecoin) {
             currentPrice = marketData.crypto.binancecoin.price
+            dailyChangePercent = marketData.crypto.binancecoin.change24h || 0
           }
           else if (asset.symbol === 'SOL' && marketData.crypto?.solana) {
             currentPrice = marketData.crypto.solana.price
+            dailyChangePercent = marketData.crypto.solana.change24h || 0
           }
 
           // Recalculate values based on real-time current price
@@ -176,7 +186,8 @@ const Portfolio = () => {
             currentPrice,
             totalValue,
             profit,
-            profitPercent
+            profitPercent,
+            dailyChangePercent // 당일 변동률 저장
           }
         })
 
