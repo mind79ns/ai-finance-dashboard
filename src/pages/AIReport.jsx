@@ -1188,7 +1188,7 @@ const AIReport = () => {
 
                 <button
                   onClick={() => {
-                    const searchQuery = `${selectedStock.symbol} ${selectedStock.name} stock analysis fundamental earnings forecast 2025`
+                    const searchQuery = `${selectedStock.symbol} ${selectedStock.name} 주식 종목 분석 실적 전망 2025 한국어로 답변`
                     const perplexityUrl = `https://www.perplexity.ai/search/new?q=${encodeURIComponent(searchQuery)}`
                     window.open(perplexityUrl, '_blank', 'noopener,noreferrer')
                   }}
