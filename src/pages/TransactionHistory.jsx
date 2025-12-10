@@ -10,7 +10,10 @@ import {
   DollarSign,
   Calendar,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Calculator,
+  ArrowRightLeft,
+  RefreshCw
 } from 'lucide-react'
 import dataSync from '../utils/dataSync'
 import marketDataService from '../services/marketDataService'
@@ -40,6 +43,10 @@ const TransactionHistory = () => {
   })
 
   const [editingTransaction, setEditingTransaction] = useState(null)
+
+  // 환율 계산기 상태
+  const [calcFromCurrency, setCalcFromCurrency] = useState('KRW')
+  const [calcAmount, setCalcAmount] = useState('')
 
   // Load exchange rates
   useEffect(() => {
@@ -347,6 +354,35 @@ const TransactionHistory = () => {
     return { totalAmount, count, totalKRW }
   }, [getFilteredTransactions, selectedCurrency, exchangeRates])
 
+  // 환율 계산기 - 환산 결과 계산
+  const calculatedRates = useMemo(() => {
+    const amount = parseFloat(calcAmount) || 0
+    if (amount === 0) {
+      return { krw: 0, usd: 0, vnd: 0 }
+    }
+
+    let krwValue = 0
+    let usdValue = 0
+    let vndValue = 0
+
+    // 입력 통화에 따라 KRW 기준값 계산
+    if (calcFromCurrency === 'KRW') {
+      krwValue = amount
+      usdValue = amount / exchangeRates.usdToKrw
+      vndValue = amount / exchangeRates.vndToKrw
+    } else if (calcFromCurrency === 'USD') {
+      krwValue = amount * exchangeRates.usdToKrw
+      usdValue = amount
+      vndValue = (amount * exchangeRates.usdToKrw) / exchangeRates.vndToKrw
+    } else if (calcFromCurrency === 'VND') {
+      krwValue = amount * exchangeRates.vndToKrw
+      usdValue = (amount * exchangeRates.vndToKrw) / exchangeRates.usdToKrw
+      vndValue = amount
+    }
+
+    return { krw: krwValue, usd: usdValue, vnd: vndValue }
+  }, [calcAmount, calcFromCurrency, exchangeRates])
+
   // 이전 달로 이동
   const handlePreviousMonth = () => {
     if (selectedMonth === 1) {
@@ -457,6 +493,142 @@ const TransactionHistory = () => {
           <div>
             <h2 className="text-2xl font-bold text-gray-900">입금 및 출금 자동계산</h2>
             <p className="text-sm text-gray-600">화폐별 입력 및 누적 관리 (환율 자동 적용)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 환율 계산기 */}
+      <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200">
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-indigo-200">
+          <Calculator className="w-5 h-5 text-indigo-600" />
+          <h3 className="text-lg font-bold text-gray-900">환율 계산기</h3>
+          <span className="text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full ml-2">
+            실시간 환율 적용
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 입력 영역 */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                기준 통화 선택
+              </label>
+              <div className="flex gap-2">
+                {['KRW', 'USD', 'VND'].map(currency => (
+                  <button
+                    key={currency}
+                    onClick={() => setCalcFromCurrency(currency)}
+                    className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition-all ${
+                      calcFromCurrency === currency
+                        ? 'bg-indigo-600 text-white shadow-lg'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:border-indigo-400'
+                    }`}
+                  >
+                    {currency === 'KRW' && '₩ 원화'}
+                    {currency === 'USD' && '$ 달러'}
+                    {currency === 'VND' && '₫ 동'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                금액 입력
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={calcAmount}
+                  onChange={(e) => setCalcAmount(e.target.value)}
+                  placeholder="금액을 입력하세요"
+                  className="w-full px-4 py-3 text-lg font-semibold border-2 border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                  {calcFromCurrency === 'KRW' && '₩'}
+                  {calcFromCurrency === 'USD' && '$'}
+                  {calcFromCurrency === 'VND' && '₫'}
+                </span>
+              </div>
+            </div>
+
+            {/* 현재 환율 정보 */}
+            <div className="bg-white rounded-xl p-4 border border-indigo-100">
+              <div className="flex items-center gap-2 mb-3">
+                <RefreshCw className="w-4 h-4 text-indigo-500" />
+                <span className="text-sm font-medium text-gray-700">현재 적용 환율</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">USD/KRW:</span>
+                  <span className="font-semibold text-gray-900">₩{exchangeRates.usdToKrw.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">VND/KRW:</span>
+                  <span className="font-semibold text-gray-900">₩{exchangeRates.vndToKrw.toFixed(4)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 환산 결과 영역 */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <ArrowRightLeft className="w-4 h-4 text-indigo-500" />
+              <span className="text-sm font-medium text-gray-700">환산 결과</span>
+            </div>
+
+            {/* KRW 결과 */}
+            <div className={`p-4 rounded-xl border-2 transition-all ${
+              calcFromCurrency === 'KRW'
+                ? 'bg-indigo-100 border-indigo-300'
+                : 'bg-white border-gray-200 hover:border-indigo-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🇰🇷</span>
+                  <span className="font-medium text-gray-700">원화 (KRW)</span>
+                </div>
+                <span className={`text-xl font-bold ${calcFromCurrency === 'KRW' ? 'text-indigo-700' : 'text-gray-900'}`}>
+                  ₩{calculatedRates.krw.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+
+            {/* USD 결과 */}
+            <div className={`p-4 rounded-xl border-2 transition-all ${
+              calcFromCurrency === 'USD'
+                ? 'bg-green-100 border-green-300'
+                : 'bg-white border-gray-200 hover:border-green-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🇺🇸</span>
+                  <span className="font-medium text-gray-700">달러 (USD)</span>
+                </div>
+                <span className={`text-xl font-bold ${calcFromCurrency === 'USD' ? 'text-green-700' : 'text-gray-900'}`}>
+                  ${calculatedRates.usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            {/* VND 결과 */}
+            <div className={`p-4 rounded-xl border-2 transition-all ${
+              calcFromCurrency === 'VND'
+                ? 'bg-red-100 border-red-300'
+                : 'bg-white border-gray-200 hover:border-red-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🇻🇳</span>
+                  <span className="font-medium text-gray-700">동 (VND)</span>
+                </div>
+                <span className={`text-xl font-bold ${calcFromCurrency === 'VND' ? 'text-red-700' : 'text-gray-900'}`}>
+                  ₫{calculatedRates.vnd.toLocaleString('vi-VN', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
