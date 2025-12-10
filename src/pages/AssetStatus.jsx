@@ -119,6 +119,7 @@ const AssetStatus = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingMonth, setEditingMonth] = useState(null)
   const [editingYear, setEditingYear] = useState(null)
+  const [showAddYearModal, setShowAddYearModal] = useState(false)
   const [accountData, setAccountData] = useState({}) // { year: { accountType: value } }
   const [editingCategoryId, setEditingCategoryId] = useState(null)
   const [editingCategoryName, setEditingCategoryName] = useState('')
@@ -708,6 +709,16 @@ const AssetStatus = () => {
     })
   }
 
+  // 신규 연도 추가 핸들러
+  const handleAddYear = (year) => {
+    if (!availableYears.includes(year)) {
+      setStatusData(prev => ({ ...prev, [year]: {} }))
+      setAccountData(prev => ({ ...prev, [year]: {} }))
+    }
+    setSelectedYear(year)
+    setShowAddYearModal(false)
+  }
+
   const handleLinkPortfolioValue = useCallback((year, accountId, categoryId, linkInfo) => {
     if (!year || !accountId || !categoryId || !linkInfo) return
 
@@ -909,14 +920,7 @@ const AssetStatus = () => {
           </div>
 
           <button
-            onClick={() => {
-              const newYear = new Date().getFullYear()
-              if (!availableYears.includes(newYear)) {
-                setStatusData(prev => ({ ...prev, [newYear]: {} }))
-                setAccountData(prev => ({ ...prev, [newYear]: {} }))
-              }
-              setSelectedYear(newYear)
-            }}
+            onClick={() => setShowAddYearModal(true)}
             className="btn-primary flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -1806,6 +1810,90 @@ const AssetStatus = () => {
           onClose={handleCloseEditModal}
         />
       )}
+
+      {/* Add Year Modal */}
+      {showAddYearModal && (
+        <AddYearModal
+          availableYears={availableYears}
+          onAdd={handleAddYear}
+          onClose={() => setShowAddYearModal(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+// Add Year Modal Component
+const AddYearModal = ({ availableYears, onAdd, onClose }) => {
+  const currentYear = new Date().getFullYear()
+  // 현재 연도 기준 -2년 ~ +3년 범위 제공 (예: 2023~2028)
+  const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - 2 + i)
+  const [selectedYear, setSelectedYear] = useState(currentYear + 1) // 기본값: 내년
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onAdd(selectedYear)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+        <div className="border-b border-gray-200 px-6 py-4 rounded-t-2xl">
+          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-primary-600" />
+            신규 연도 추가
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            자산 현황을 관리할 연도를 선택하세요
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              연도 선택
+            </label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-lg font-medium"
+            >
+              {yearOptions.map(year => (
+                <option
+                  key={year}
+                  value={year}
+                  disabled={availableYears.includes(year)}
+                >
+                  {year}년 {availableYears.includes(year) ? '(이미 존재)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {availableYears.includes(selectedYear) ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                ⚠️ {selectedYear}년은 이미 존재합니다. 해당 연도로 이동합니다.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                ✨ {selectedYear}년의 새로운 자산 현황 데이터가 생성됩니다.
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <button type="submit" className="btn-primary flex-1 py-3">
+              {availableYears.includes(selectedYear) ? '이동하기' : '추가하기'}
+            </button>
+            <button type="button" onClick={onClose} className="btn-secondary flex-1 py-3">
+              취소
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
