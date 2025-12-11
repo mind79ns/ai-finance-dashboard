@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Pie,
@@ -9,7 +11,8 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
+  Legend
 } from 'recharts'
 import {
   Wallet,
@@ -22,7 +25,16 @@ import {
   ArrowDown,
   RefreshCw,
   Building2,
-  Info
+  Info,
+  Bell,
+  BellRing,
+  Calculator,
+  Banknote,
+  Calendar,
+  PiggyBank,
+  AlertTriangle,
+  X,
+  Plus
 } from 'lucide-react'
 import { format, startOfMonth, subMonths } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -58,6 +70,13 @@ const Dashboard = () => {
   })
   const [recentTransactions, setRecentTransactions] = useState([])
   const [assetPerformance, setAssetPerformance] = useState([])
+
+  // New features state
+  const [dividendSummary, setDividendSummary] = useState({ totalAnnual: 0, monthlyAvg: 0, assets: [] })
+  const [priceAlerts, setPriceAlerts] = useState([])
+  const [monthlyReturns, setMonthlyReturns] = useState([])
+  const [showAlertModal, setShowAlertModal] = useState(false)
+  const [newAlert, setNewAlert] = useState({ symbol: '', targetPrice: '', direction: 'above' })
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
@@ -112,12 +131,24 @@ const Dashboard = () => {
       setAllocationData(allocation)
       setAssetPerformance(performance)
 
+      // Calculate dividend summary
+      const dividends = calculateDividendSummary(assetsRaw, usdToKrw)
+      setDividendSummary(dividends)
+
       const history = buildPortfolioHistory(logsRaw, usdToKrw, assetsMap, totals.totalValueKRW)
       setPortfolioHistory(history)
       setMonthlyContribution({
         current: history.length ? history[history.length - 1].net : 0,
         previous: history.length > 1 ? history[history.length - 2].net : 0
       })
+
+      // Calculate monthly returns from history
+      const returns = calculateMonthlyReturns(history)
+      setMonthlyReturns(returns)
+
+      // Load price alerts from localStorage
+      const savedAlerts = safeParseLocalStorage('price_alerts', [])
+      setPriceAlerts(savedAlerts)
 
       const goals = summarizeGoals(goalsRaw)
       setGoalSummary(goals)
@@ -376,6 +407,88 @@ const Dashboard = () => {
           )}
         </ChartCard>
       </div>
+
+      {/* New Features Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Dividend Tracker */}
+        <ChartCard
+          title="배당금 추적기"
+          subtitle="연간 예상 배당 수익"
+          icon={<PiggyBank className="w-5 h-5 text-emerald-500" />}
+        >
+          <DividendTracker dividendSummary={dividendSummary} />
+        </ChartCard>
+
+        {/* Tax Calculator */}
+        <ChartCard
+          title="세금 계산기"
+          subtitle="양도소득세 예상 (해외주식 22%)"
+          icon={<Calculator className="w-5 h-5 text-amber-500" />}
+        >
+          <TaxCalculator
+            totalProfitKRW={portfolioSummary.totalProfitKRW}
+            assets={assetPerformance}
+          />
+        </ChartCard>
+
+        {/* Price Alerts */}
+        <ChartCard
+          title="가격 알림"
+          subtitle="목표가 도달 알림 설정"
+          icon={<Bell className="w-5 h-5 text-blue-500" />}
+          action={
+            <button
+              onClick={() => setShowAlertModal(true)}
+              className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> 추가
+            </button>
+          }
+        >
+          <PriceAlertsList
+            alerts={priceAlerts}
+            onDelete={(id) => {
+              const updated = priceAlerts.filter(a => a.id !== id)
+              setPriceAlerts(updated)
+              localStorage.setItem('price_alerts', JSON.stringify(updated))
+            }}
+          />
+        </ChartCard>
+      </div>
+
+      {/* Monthly Returns Chart */}
+      <ChartCard
+        title="월별 수익률 히스토리"
+        subtitle="최근 6개월 수익률 추이"
+        icon={<Calendar className="w-5 h-5 text-purple-500" />}
+      >
+        <MonthlyReturnsChart data={monthlyReturns} />
+      </ChartCard>
+
+      {/* Price Alert Modal */}
+      {showAlertModal && (
+        <PriceAlertModal
+          newAlert={newAlert}
+          setNewAlert={setNewAlert}
+          onClose={() => setShowAlertModal(false)}
+          onSave={() => {
+            if (newAlert.symbol && newAlert.targetPrice) {
+              const alert = {
+                id: Date.now(),
+                symbol: newAlert.symbol.toUpperCase(),
+                targetPrice: parseFloat(newAlert.targetPrice),
+                direction: newAlert.direction,
+                createdAt: new Date().toISOString()
+              }
+              const updated = [...priceAlerts, alert]
+              setPriceAlerts(updated)
+              localStorage.setItem('price_alerts', JSON.stringify(updated))
+              setNewAlert({ symbol: '', targetPrice: '', direction: 'above' })
+              setShowAlertModal(false)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -563,9 +676,8 @@ const AssetPerformanceTable = ({ data }) => {
                   <p className="text-sm font-semibold text-gray-900 truncate">{row.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{row.symbol} · {row.type}</p>
                 </div>
-                <div className={`flex items-center gap-1 text-lg font-bold ${
-                  positive ? 'text-emerald-600' : 'text-rose-600'
-                }`}>
+                <div className={`flex items-center gap-1 text-lg font-bold ${positive ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
                   <Icon className="w-4 h-4" />
                   <span>{row.profitPercent >= 0 ? '+' : ''}{row.profitPercent.toFixed(1)}%</span>
                 </div>
@@ -608,9 +720,8 @@ const AssetPerformanceTable = ({ data }) => {
                       </div>
                     </td>
                     <td className="px-4 py-2 text-right">
-                      <div className={`inline-flex items-center gap-1 text-sm font-semibold ${
-                        positive ? 'text-emerald-600' : 'text-rose-600'
-                      }`}>
+                      <div className={`inline-flex items-center gap-1 text-sm font-semibold ${positive ? 'text-emerald-600' : 'text-rose-600'
+                        }`}>
                         <Icon className="w-3.5 h-3.5" />
                         <span>{formatCurrency(row.profitKRW, 'KRW')}</span>
                       </div>
@@ -629,12 +740,319 @@ const AssetPerformanceTable = ({ data }) => {
   )
 }
 
+// Dividend Tracker Component
+const DividendTracker = ({ dividendSummary }) => {
+  const { totalAnnual, monthlyAvg, assets } = dividendSummary
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+          <p className="text-xs text-emerald-600 font-medium">연간 예상 배당</p>
+          <p className="text-lg font-bold text-emerald-700">
+            {formatCurrency(totalAnnual, 'KRW')}
+          </p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-xs text-blue-600 font-medium">월 평균 배당</p>
+          <p className="text-lg font-bold text-blue-700">
+            {formatCurrency(monthlyAvg, 'KRW')}
+          </p>
+        </div>
+      </div>
+      {assets.length > 0 ? (
+        <div className="space-y-2 max-h-32 overflow-y-auto">
+          {assets.slice(0, 5).map(asset => (
+            <div key={asset.symbol} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+              <div>
+                <span className="font-medium text-gray-900">{asset.symbol}</span>
+                <span className="text-xs text-gray-500 ml-2">{asset.dividendYield.toFixed(2)}%</span>
+              </div>
+              <span className="text-emerald-600 font-medium">
+                {formatCurrency(asset.annualDividend, 'KRW')}/년
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-sm text-gray-500 py-4">배당 정보가 없습니다</p>
+      )}
+    </div>
+  )
+}
+
+// Tax Calculator Component
+const TaxCalculator = ({ totalProfitKRW, assets }) => {
+  // 해외주식 양도소득세: 수익금의 22% (지방세 포함)
+  // 기본공제: 연 250만원
+  const BASIC_DEDUCTION = 2500000
+  const TAX_RATE = 0.22
+
+  const taxableProfit = Math.max(totalProfitKRW - BASIC_DEDUCTION, 0)
+  const estimatedTax = taxableProfit * TAX_RATE
+  const netProfit = totalProfitKRW - estimatedTax
+
+  // Top gainers for tax
+  const topGainers = (assets || []).filter(a => a.profitKRW > 0).slice(0, 3)
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">총 수익금</span>
+          <span className={`font-medium ${totalProfitKRW >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {formatCurrency(totalProfitKRW, 'KRW')}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">기본공제</span>
+          <span className="text-gray-900">-{formatCurrency(BASIC_DEDUCTION, 'KRW')}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">과세대상</span>
+          <span className="text-gray-900">{formatCurrency(taxableProfit, 'KRW')}</span>
+        </div>
+        <div className="border-t border-gray-200 pt-2 flex justify-between">
+          <span className="text-gray-700 font-medium">예상 세금 (22%)</span>
+          <span className="text-amber-600 font-bold">{formatCurrency(estimatedTax, 'KRW')}</span>
+        </div>
+        <div className="flex justify-between bg-emerald-50 rounded-lg p-2">
+          <span className="text-emerald-700 font-medium">세후 순수익</span>
+          <span className="text-emerald-700 font-bold">{formatCurrency(netProfit, 'KRW')}</span>
+        </div>
+      </div>
+      {topGainers.length > 0 && (
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-500 mb-2">세금 발생 주요 종목</p>
+          <div className="space-y-1">
+            {topGainers.map(asset => (
+              <div key={asset.id} className="flex justify-between text-xs">
+                <span className="text-gray-600">{asset.symbol}</span>
+                <span className="text-amber-600">
+                  세금 약 {formatCurrency(Math.max(asset.profitKRW - (BASIC_DEDUCTION / 3), 0) * TAX_RATE, 'KRW')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Price Alerts List Component
+const PriceAlertsList = ({ alerts, onDelete }) => {
+  if (!alerts || alerts.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <BellRing className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+        <p className="text-sm text-gray-500">설정된 알림이 없습니다</p>
+        <p className="text-xs text-gray-400 mt-1">+ 추가 버튼으로 가격 알림을 설정하세요</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2 max-h-40 overflow-y-auto">
+      {alerts.map(alert => (
+        <div key={alert.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2">
+            {alert.direction === 'above' ? (
+              <ArrowUp className="w-4 h-4 text-emerald-500" />
+            ) : (
+              <ArrowDown className="w-4 h-4 text-rose-500" />
+            )}
+            <div>
+              <span className="font-medium text-gray-900 text-sm">{alert.symbol}</span>
+              <p className="text-xs text-gray-500">
+                {alert.direction === 'above' ? '이상' : '이하'} ${alert.targetPrice.toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onDelete(alert.id)}
+            className="text-gray-400 hover:text-rose-500 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Price Alert Modal
+const PriceAlertModal = ({ newAlert, setNewAlert, onClose, onSave }) => {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">가격 알림 추가</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">종목 심볼</label>
+            <input
+              type="text"
+              value={newAlert.symbol}
+              onChange={(e) => setNewAlert({ ...newAlert, symbol: e.target.value })}
+              placeholder="예: AAPL, TSLA"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">목표가 (USD)</label>
+            <input
+              type="number"
+              value={newAlert.targetPrice}
+              onChange={(e) => setNewAlert({ ...newAlert, targetPrice: e.target.value })}
+              placeholder="예: 200.00"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">조건</label>
+            <select
+              value={newAlert.direction}
+              onChange={(e) => setNewAlert({ ...newAlert, direction: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="above">이상 도달 시</option>
+              <option value="below">이하 하락 시</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            취소
+          </button>
+          <button
+            onClick={onSave}
+            className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Monthly Returns Chart Component
+const MonthlyReturnsChart = ({ data }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <p className="text-sm text-gray-500">수익률 데이터가 없습니다</p>
+      </div>
+    )
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <XAxis dataKey="month" stroke="#94a3b8" />
+        <YAxis
+          stroke="#94a3b8"
+          tickFormatter={(value) => `${value.toFixed(0)}%`}
+        />
+        <Tooltip
+          formatter={(value) => [`${value.toFixed(2)}%`, '수익률']}
+          labelFormatter={(label) => `${label}`}
+        />
+        <Bar
+          dataKey="returnPercent"
+          fill="#10b981"
+          radius={[4, 4, 0, 0]}
+        >
+          {data.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={entry.returnPercent >= 0 ? '#10b981' : '#ef4444'}
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+// Calculate Dividend Summary
+const calculateDividendSummary = (assets, usdToKrw) => {
+  // 배당률 추정 (실제 API 연동 시 대체)
+  const DIVIDEND_ESTIMATES = {
+    'AAPL': 0.5, 'MSFT': 0.7, 'GOOGL': 0, 'AMZN': 0, 'META': 0,
+    'TSLA': 0, 'NVDA': 0.03, 'JPM': 2.5, 'V': 0.7, 'JNJ': 2.8,
+    'PG': 2.4, 'KO': 3.0, 'PEP': 2.6, 'VZ': 6.5, 'T': 6.8,
+    'IBM': 4.5, 'XOM': 3.3, 'CVX': 3.8, 'SPY': 1.3, 'QQQ': 0.5,
+    'VTI': 1.4, 'VOO': 1.3, 'SCHD': 3.5, 'VYM': 2.9, 'DVY': 3.6
+  }
+
+  let totalAnnual = 0
+  const dividendAssets = []
+
+  assets.forEach(asset => {
+    const symbol = asset.symbol?.toUpperCase() || ''
+    const estimatedYield = DIVIDEND_ESTIMATES[symbol] || 0
+
+    if (estimatedYield > 0) {
+      const totalValue = (asset.quantity || 0) * (asset.currentPrice || asset.avgPrice || 0)
+      const valueKRW = asset.currency === 'USD' ? totalValue * usdToKrw : totalValue
+      const annualDividend = valueKRW * (estimatedYield / 100)
+
+      totalAnnual += annualDividend
+      dividendAssets.push({
+        symbol,
+        dividendYield: estimatedYield,
+        annualDividend
+      })
+    }
+  })
+
+  return {
+    totalAnnual,
+    monthlyAvg: totalAnnual / 12,
+    assets: dividendAssets.sort((a, b) => b.annualDividend - a.annualDividend)
+  }
+}
+
+// Calculate Monthly Returns
+const calculateMonthlyReturns = (portfolioHistory) => {
+  if (!portfolioHistory || portfolioHistory.length < 2) {
+    return []
+  }
+
+  return portfolioHistory.map((month, index) => {
+    if (index === 0) {
+      return {
+        month: month.month,
+        returnPercent: 0
+      }
+    }
+    const prevValue = portfolioHistory[index - 1].value || 1
+    const currentValue = month.value || 0
+    const returnPercent = prevValue > 0 ? ((currentValue - prevValue) / prevValue) * 100 : 0
+
+    return {
+      month: month.month,
+      returnPercent: Number(returnPercent.toFixed(2))
+    }
+  })
+}
+
+
 const TypeBadge = ({ type }) => {
   const isBuy = type === 'buy' || type === '매수'
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${
-      isBuy ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-rose-50 text-rose-500 border border-rose-200'
-    }`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${isBuy ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-rose-50 text-rose-500 border border-rose-200'
+      }`}>
       {isBuy ? '매수' : '매도'}
     </span>
   )
