@@ -131,9 +131,11 @@ const Dashboard = () => {
       setAllocationData(allocation)
       setAssetPerformance(performance)
 
-      // Calculate dividend summary
-      const dividends = calculateDividendSummary(assetsRaw, usdToKrw)
+      // Load actual dividend transactions (from TransactionHistory input)
+      const dividendData = await dataSync.loadUserSetting('dividend_transactions')
+      const dividends = calculateDividendFromTransactions(dividendData || [], usdToKrw)
       setDividendSummary(dividends)
+
 
       const history = buildPortfolioHistory(logsRaw, usdToKrw, assetsMap, totals.totalValueKRW)
       setPortfolioHistory(history)
@@ -984,91 +986,51 @@ const MonthlyReturnsChart = ({ data }) => {
   )
 }
 
-// Calculate Dividend Summary
-const calculateDividendSummary = (assets, usdToKrw) => {
-  // 배당률 추정 데이터 (실제 API 연동 시 대체)
-  // 해외주식, 해외ETF, 국내주식, 국내ETF 포함
-  const DIVIDEND_ESTIMATES = {
-    // 해외주식 (US Stocks)
-    'AAPL': 0.5, 'MSFT': 0.7, 'GOOGL': 0, 'AMZN': 0, 'META': 0.4,
-    'TSLA': 0, 'NVDA': 0.03, 'JPM': 2.5, 'V': 0.7, 'JNJ': 2.8,
-    'PG': 2.4, 'KO': 3.0, 'PEP': 2.6, 'VZ': 6.5, 'T': 6.8,
-    'IBM': 4.5, 'XOM': 3.3, 'CVX': 3.8, 'WMT': 1.4, 'HD': 2.3,
-    'MCD': 2.1, 'NKE': 1.3, 'DIS': 0, 'INTC': 1.5, 'AMD': 0,
-
-    // 해외 ETF (US ETFs)
-    'SPY': 1.3, 'QQQ': 0.5, 'VTI': 1.4, 'VOO': 1.3, 'IVV': 1.4,
-    'SCHD': 3.5, 'VYM': 2.9, 'DVY': 3.6, 'HDV': 3.8, 'VIG': 1.8,
-    'DGRO': 2.2, 'NOBL': 2.0, 'SDY': 2.5, 'SPYD': 4.5, 'VTV': 2.4,
-    'JEPI': 7.5, 'JEPQ': 9.0, 'QYLD': 11.0, 'XYLD': 10.5,
-    'VNQ': 3.8, 'XLRE': 3.2, 'IYR': 2.8,
-    'BND': 3.5, 'AGG': 3.8, 'TLT': 3.9, 'LQD': 4.5,
-
-    // 국내주식 (Korean Stocks) - KRX 종목코드 또는 심볼
-    '삼성전자': 2.5, 'SAMSUNG': 2.5, '005930': 2.5,
-    'SK하이닉스': 1.0, 'SKHYNIX': 1.0, '000660': 1.0,
-    'NAVER': 0.5, '035420': 0.5,
-    'KAKAO': 0.3, '035720': 0.3,
-    '현대차': 3.5, 'HYUNDAI': 3.5, '005380': 3.5,
-    'KB금융': 5.5, '105560': 5.5,
-    '신한지주': 5.0, '055550': 5.0,
-    '하나금융': 6.0, '086790': 6.0,
-    'POSCO홀딩스': 3.2, '005490': 3.2,
-    'LG화학': 1.5, '051910': 1.5,
-    '삼성SDI': 0.5, '006400': 0.5,
-    'LG전자': 2.0, '066570': 2.0,
-    '현대모비스': 2.8, '012330': 2.8,
-    '기아': 4.5, '000270': 4.5,
-    'SK텔레콤': 4.0, '017670': 4.0,
-    'KT': 5.5, '030200': 5.5,
-    'KT&G': 5.0, '033780': 5.0,
-    '고려아연': 1.2, '010130': 1.2,
-
-    // 국내 ETF (Korean ETFs)
-    'KODEX200': 1.8, '069500': 1.8,
-    'TIGER200': 1.8, '102110': 1.8,
-    'KODEX배당성장': 3.5, '290080': 3.5,
-    'TIGER배당성장': 3.2, '287310': 3.2,
-    'KODEX고배당': 4.5, '279530': 4.5,
-    'ARIRANG고배당': 5.0, '161510': 5.0,
-    'KODEX미국S&P500': 1.3, 'TIGER미국S&P500': 1.3,
-    'KODEX나스닥100': 0.5, 'TIGER나스닥100': 0.5,
-    'KODEX200TR': 0, '278530': 0,
-    'KBSTAR200': 1.8, '148020': 1.8,
-    'KOSEF200': 1.8, '069660': 1.8,
-
-    // 코인 (Crypto) - 배당 없음
-    'BTC': 0, 'ETH': 0, 'XRP': 0, 'SOL': 0, 'ADA': 0, 'DOGE': 0
+// Calculate Dividend Summary from actual user-entered transactions
+const calculateDividendFromTransactions = (dividendTransactions, usdToKrw) => {
+  if (!dividendTransactions || dividendTransactions.length === 0) {
+    return { totalAnnual: 0, monthlyAvg: 0, assets: [] }
   }
 
+  const currentYear = new Date().getFullYear()
 
+  // Filter by current year
+  const yearlyDividends = dividendTransactions.filter(d =>
+    new Date(d.date).getFullYear() === currentYear
+  )
+
+  // Calculate total annual dividend in KRW
   let totalAnnual = 0
-  const dividendAssets = []
+  const bySymbol = {}
 
-  assets.forEach(asset => {
-    const symbol = asset.symbol?.toUpperCase() || ''
-    const estimatedYield = DIVIDEND_ESTIMATES[symbol] || 0
+  yearlyDividends.forEach(d => {
+    const amountKRW = d.currency === 'USD' ? d.amount * usdToKrw : d.amount
+    totalAnnual += amountKRW
 
-    if (estimatedYield > 0) {
-      const totalValue = (asset.quantity || 0) * (asset.currentPrice || asset.avgPrice || 0)
-      const valueKRW = asset.currency === 'USD' ? totalValue * usdToKrw : totalValue
-      const annualDividend = valueKRW * (estimatedYield / 100)
-
-      totalAnnual += annualDividend
-      dividendAssets.push({
-        symbol,
-        dividendYield: estimatedYield,
-        annualDividend
-      })
+    if (!bySymbol[d.symbol]) {
+      bySymbol[d.symbol] = { symbol: d.symbol, annualDividend: 0, count: 0 }
     }
+    bySymbol[d.symbol].annualDividend += amountKRW
+    bySymbol[d.symbol].count += 1
   })
+
+  // Calculate average yield (estimate based on data)
+  const assets = Object.values(bySymbol)
+    .map(item => ({
+      symbol: item.symbol,
+      dividendYield: 0, // Will be calculated if portfolio data available
+      annualDividend: item.annualDividend,
+      count: item.count
+    }))
+    .sort((a, b) => b.annualDividend - a.annualDividend)
 
   return {
     totalAnnual,
     monthlyAvg: totalAnnual / 12,
-    assets: dividendAssets.sort((a, b) => b.annualDividend - a.annualDividend)
+    assets
   }
 }
+
 
 // Calculate Monthly Returns
 const calculateMonthlyReturns = (portfolioHistory) => {
