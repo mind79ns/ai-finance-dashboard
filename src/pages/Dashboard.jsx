@@ -424,13 +424,10 @@ const Dashboard = () => {
         {/* Tax Calculator */}
         <ChartCard
           title="세금 계산기"
-          subtitle="양도소득세 예상 (해외주식 22%)"
+          subtitle="국내/해외 매도 수익 세금 계산"
           icon={<Calculator className="w-5 h-5 text-amber-500" />}
         >
-          <TaxCalculator
-            totalProfitKRW={portfolioSummary.totalProfitKRW}
-            assets={assetPerformance}
-          />
+          <TaxCalculator />
         </ChartCard>
 
         {/* Price Alerts */}
@@ -783,64 +780,123 @@ const DividendTracker = ({ dividendSummary }) => {
   )
 }
 
-// Tax Calculator Component
-const TaxCalculator = ({ totalProfitKRW, assets }) => {
-  // 해외주식 양도소득세: 수익금의 22% (지방세 포함)
-  // 기본공제: 연 250만원
-  const BASIC_DEDUCTION = 2500000
-  const TAX_RATE = 0.22
+// Tax Calculator Component - Interactive version
+const TaxCalculator = () => {
+  const [accountType, setAccountType] = useState('overseas') // overseas / domestic
+  const [profitAmount, setProfitAmount] = useState('')
 
-  const taxableProfit = Math.max(totalProfitKRW - BASIC_DEDUCTION, 0)
-  const estimatedTax = taxableProfit * TAX_RATE
-  const netProfit = totalProfitKRW - estimatedTax
+  // 세금 계산 로직
+  // 해외주식: 양도소득세 22% (지방세 포함), 기본공제 250만원
+  // 국내주식: 대주주만 과세 (일반 투자자 비과세), 금융소득종합과세 대상자 별도
+  const OVERSEAS_BASIC_DEDUCTION = 2500000
+  const OVERSEAS_TAX_RATE = 0.22
+  const DOMESTIC_TAX_RATE = 0 // 일반 투자자 비과세 (대주주 아닌 경우)
+  const DOMESTIC_LARGE_TAX_RATE = 0.22 // 대주주인 경우
 
-  // Top gainers for tax
-  const topGainers = (assets || []).filter(a => a.profitKRW > 0).slice(0, 3)
+  const profit = parseFloat(profitAmount) || 0
+
+  let taxableProfit = 0
+  let estimatedTax = 0
+  let deduction = 0
+  let taxRate = 0
+  let taxRateLabel = ''
+
+  if (accountType === 'overseas') {
+    deduction = OVERSEAS_BASIC_DEDUCTION
+    taxableProfit = Math.max(profit - deduction, 0)
+    taxRate = OVERSEAS_TAX_RATE
+    taxRateLabel = '22%'
+    estimatedTax = taxableProfit * taxRate
+  } else {
+    // 국내주식 - 일반투자자는 비과세
+    deduction = 0
+    taxableProfit = profit
+    taxRate = DOMESTIC_TAX_RATE
+    taxRateLabel = '0% (일반투자자)'
+    estimatedTax = 0
+  }
+
+  const netProfit = profit - estimatedTax
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">총 수익금</span>
-          <span className={`font-medium ${totalProfitKRW >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {formatCurrency(totalProfitKRW, 'KRW')}
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">기본공제</span>
-          <span className="text-gray-900">-{formatCurrency(BASIC_DEDUCTION, 'KRW')}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">과세대상</span>
-          <span className="text-gray-900">{formatCurrency(taxableProfit, 'KRW')}</span>
-        </div>
-        <div className="border-t border-gray-200 pt-2 flex justify-between">
-          <span className="text-gray-700 font-medium">예상 세금 (22%)</span>
-          <span className="text-amber-600 font-bold">{formatCurrency(estimatedTax, 'KRW')}</span>
-        </div>
-        <div className="flex justify-between bg-emerald-50 rounded-lg p-2">
-          <span className="text-emerald-700 font-medium">세후 순수익</span>
-          <span className="text-emerald-700 font-bold">{formatCurrency(netProfit, 'KRW')}</span>
+      {/* 계좌 유형 선택 */}
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-2">계좌 유형</label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setAccountType('overseas')}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${accountType === 'overseas'
+              ? 'bg-amber-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+          >
+            🌍 해외주식
+          </button>
+          <button
+            onClick={() => setAccountType('domestic')}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${accountType === 'domestic'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+          >
+            🇰🇷 국내주식
+          </button>
         </div>
       </div>
-      {topGainers.length > 0 && (
-        <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs text-gray-500 mb-2">세금 발생 주요 종목</p>
-          <div className="space-y-1">
-            {topGainers.map(asset => (
-              <div key={asset.id} className="flex justify-between text-xs">
-                <span className="text-gray-600">{asset.symbol}</span>
-                <span className="text-amber-600">
-                  세금 약 {formatCurrency(Math.max(asset.profitKRW - (BASIC_DEDUCTION / 3), 0) * TAX_RATE, 'KRW')}
-                </span>
-              </div>
-            ))}
+
+      {/* 매도 수익금 입력 */}
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-2">매도 수익금 (원)</label>
+        <input
+          type="number"
+          value={profitAmount}
+          onChange={(e) => setProfitAmount(e.target.value)}
+          placeholder="예: 5000000"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
+        />
+      </div>
+
+      {/* 계산 결과 */}
+      {profit > 0 && (
+        <div className="space-y-2 pt-2 border-t border-gray-200">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">매도 수익금</span>
+            <span className="text-gray-900 font-medium">₩{profit.toLocaleString()}</span>
+          </div>
+          {accountType === 'overseas' && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">기본공제</span>
+              <span className="text-gray-900">-₩{deduction.toLocaleString()}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">과세대상</span>
+            <span className="text-gray-900">₩{taxableProfit.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-sm border-t border-gray-100 pt-2">
+            <span className="text-gray-700 font-medium">세율 ({taxRateLabel})</span>
+            <span className="text-amber-600 font-bold">₩{estimatedTax.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between bg-emerald-50 rounded-lg p-2">
+            <span className="text-emerald-700 font-medium">세후 순수익</span>
+            <span className="text-emerald-700 font-bold">₩{netProfit.toLocaleString()}</span>
           </div>
         </div>
       )}
+
+      {/* 안내 문구 */}
+      <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+        {accountType === 'overseas' ? (
+          <p>💡 해외주식: 연 250만원 기본공제 후 22% 과세 (지방세 포함)</p>
+        ) : (
+          <p>💡 국내주식: 일반 투자자는 비과세 (대주주·금융소득종합과세 대상자 별도)</p>
+        )}
+      </div>
     </div>
   )
 }
+
 
 // Price Alerts List Component
 const PriceAlertsList = ({ alerts, onDelete }) => {
