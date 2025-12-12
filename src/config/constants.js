@@ -1,8 +1,9 @@
 export const API_CONFIG = {
   OPENAI_API_KEY: import.meta.env.VITE_OPENAI_API_KEY || '',
-  OPENAI_MODEL: import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o',  // Updated to latest
+  OPENAI_MODEL: import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.2',  // Latest: Dec 11, 2025
   GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY || '',
-  GEMINI_MODEL: import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.0-flash-exp',  // Updated to latest
+  GEMINI_MODEL: import.meta.env.VITE_GEMINI_MODEL || 'gemini-3-pro-preview',  // Latest: Nov 2025 (Deep Think)
+  GEMINI_FLASH_MODEL: 'gemini-2.5-flash',  // Stable fast model: Jun 2025
   AI_PROVIDER: import.meta.env.VITE_AI_PROVIDER || 'openai',
   FRED_API_KEY: import.meta.env.VITE_FRED_API_KEY || '',
 

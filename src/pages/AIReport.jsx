@@ -874,9 +874,9 @@ ${assetsList}
                     }`}
                 >
                   <div className="text-left">
-                    <p className="font-semibold text-sm text-gray-900">🧠 GPT-4.1</p>
+                    <p className="font-semibold text-sm text-gray-900">🧠 GPT-5.2</p>
                     <p className="text-xs text-gray-600 mt-1">
-                      고급 분석 및 전략 수립
+                      최신 플래그십 (Dec 2025)
                     </p>
                     <p className="text-xs text-green-600 mt-1">⭐ 최고 성능</p>
                   </div>
@@ -890,11 +890,11 @@ ${assetsList}
                     }`}
                 >
                   <div className="text-left">
-                    <p className="font-semibold text-sm text-gray-900">⚡ Gemini 2.5 Flash</p>
+                    <p className="font-semibold text-sm text-gray-900">⚡ Gemini 3 Pro</p>
                     <p className="text-xs text-gray-600 mt-1">
-                      빠른 요약 및 기본 분석
+                      Deep Think 지원 (Nov 2025)
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">🚀 빠른 속도</p>
+                    <p className="text-xs text-blue-600 mt-1">🚀 추론 강화</p>
                   </div>
                 </button>
               </div>
@@ -902,8 +902,8 @@ ${assetsList}
               <div className="text-xs text-gray-600 bg-white p-2 rounded">
                 <strong>현재 선택:</strong> {
                   selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
-                    selectedAI === 'gpt' ? '🧠 GPT-4.1 (모든 작업)' :
-                      '⚡ Gemini 2.5 Flash (모든 작업)'
+                    selectedAI === 'gpt' ? '🧠 GPT-5.2 (최신 플래그십)' :
+                      '⚡ Gemini 3 Pro Preview (Deep Think)'
                 }
               </div>
             </div>

@@ -27,7 +27,7 @@ class AIService {
         if (!API_CONFIG.OPENAI_API_KEY) {
           throw new Error('GPT API key not configured')
         }
-        console.log('🧠 Forced GPT-4.1 usage')
+        console.log('🧠 Using GPT-5.2 (Latest Flagship)')
         return await this.callOpenAI(prompt, systemPrompt)
       }
 
@@ -36,14 +36,14 @@ class AIService {
         if (!API_CONFIG.GEMINI_API_KEY) {
           throw new Error('Gemini API key not configured')
         }
-        console.log('⚡ Forced Gemini 2.5 Flash usage')
+        console.log('⚡ Using Gemini 3 Pro Preview (Deep Think)')
         return await this.callGemini(prompt, systemPrompt)
       }
 
       // Auto selection (original logic)
-      // Advanced tasks → GPT-5 (if available)
+      // Advanced tasks → GPT-5.2 (if available)
       if (taskLevel === this.TASK_LEVEL.ADVANCED && API_CONFIG.OPENAI_API_KEY) {
-        console.log('🧠 Using GPT-5 for advanced analysis')
+        console.log('🧠 Using GPT-5.2 for advanced analysis')
         return await this.callOpenAI(prompt, systemPrompt)
       }
 
@@ -265,10 +265,10 @@ ${JSON.stringify(context, null, 2)}
       strategy: API_CONFIG.GEMINI_API_KEY && API_CONFIG.OPENAI_API_KEY
         ? 'dual' // Both available - optimal
         : API_CONFIG.GEMINI_API_KEY
-        ? 'gemini-only'
-        : API_CONFIG.OPENAI_API_KEY
-        ? 'openai-only'
-        : 'none'
+          ? 'gemini-only'
+          : API_CONFIG.OPENAI_API_KEY
+            ? 'openai-only'
+            : 'none'
     }
   }
 
