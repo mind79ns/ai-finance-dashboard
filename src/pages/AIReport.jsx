@@ -55,7 +55,32 @@ const AIReport = () => {
   useEffect(() => {
     loadRealData()
     loadHistory()
+    // 채팅 히스토리 불러오기
+    try {
+      const savedChat = localStorage.getItem('ai_chat_history')
+      if (savedChat) {
+        const parsed = JSON.parse(savedChat)
+        if (Array.isArray(parsed)) {
+          setChatMessages(parsed)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load chat history:', e)
+    }
   }, [])
+
+  // 채팅 히스토리 자동 저장
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      try {
+        // 최근 50개 메시지만 저장
+        const toSave = chatMessages.slice(-50)
+        localStorage.setItem('ai_chat_history', JSON.stringify(toSave))
+      } catch (e) {
+        console.error('Failed to save chat history:', e)
+      }
+    }
+  }, [chatMessages])
 
   const loadHistory = () => {
     try {
@@ -531,7 +556,7 @@ const AIReport = () => {
         insights.push(`1σ 기준 예상 하락폭이 약 ${formatCurrency(expectedDrawdown, 'KRW')}로 추정됩니다.`)
       }
 
-      setRiskAnalysis({
+      const riskData = {
         avgReturn: weightedReturn,
         volatility,
         sharpeRatio,
@@ -547,7 +572,77 @@ const AIReport = () => {
         totalValue,
         totalProfit: portfolioData.totalProfit,
         generatedAt: new Date().toISOString()
-      })
+      }
+
+      // AI 해석 생성
+      const riskDataForAI = {
+        riskLevel,
+        volatility: volatility.toFixed(2),
+        sharpeRatio: sharpeRatio.toFixed(2),
+        diversificationScore,
+        valueAtRisk: formatCurrency(valueAtRisk, 'KRW'),
+        concentrationIndex: (concentrationIndex * 100).toFixed(1) + '%',
+        largestAsset: largestPosition?.symbol,
+        largestWeight: (largestPosition?.weight * 100).toFixed(1) + '%',
+        weakestAsset: worstAsset?.symbol,
+        weakestReturn: worstAsset?.profitPercent?.toFixed(1) + '%',
+        insights
+      }
+
+      const aiPrompt = `당신은 포트폴리오 리스크 관리 전문가입니다. 다음 리스크 분석 결과를 해석하고 구체적인 조언을 제공해주세요.
+
+[리스크 분석 데이터]
+- 리스크 등급: ${riskDataForAI.riskLevel}
+- 변동성: ${riskDataForAI.volatility}%
+- 샤프 비율: ${riskDataForAI.sharpeRatio}
+- 분산투자 점수: ${riskDataForAI.diversificationScore}
+- VaR (95%): ${riskDataForAI.valueAtRisk}
+- 집중도 지수: ${riskDataForAI.concentrationIndex}
+- 최대 비중 자산: ${riskDataForAI.largestAsset} (${riskDataForAI.largestWeight})
+- 최저 수익 자산: ${riskDataForAI.weakestAsset} (${riskDataForAI.weakestReturn})
+
+[자동 생성된 인사이트]
+${insights.map(i => '- ' + i).join('\n')}
+
+다음 형식으로 분석해주세요:
+
+## 📊 리스크 요약
+(현재 포트폴리오의 리스크 수준을 2-3문장으로 요약)
+
+## ⚠️ 주요 위험 요인
+(가장 중요한 리스크 요인 2-3가지)
+
+## 💡 개선 권고사항
+(구체적이고 실행 가능한 조언 3가지)
+
+## 🎯 목표 리스크 수준
+(이 포트폴리오에 적합한 리스크 관리 목표)`
+
+      try {
+        const aiInterpretation = await aiService.routeAIRequest(
+          aiPrompt,
+          aiService.TASK_LEVEL.ADVANCED,
+          '당신은 포트폴리오 리스크 관리 전문가입니다. 수치를 이해하기 쉽게 해석하고 실용적인 조언을 제공합니다.',
+          selectedAI
+        )
+        riskData.aiInterpretation = aiInterpretation
+      } catch (aiError) {
+        console.error('AI interpretation failed:', aiError)
+        riskData.aiInterpretation = null
+      }
+
+      setRiskAnalysis(riskData)
+
+      // 히스토리에 추가
+      if (riskData.aiInterpretation) {
+        appendHistory({
+          id: Date.now(),
+          type: 'risk',
+          createdAt: new Date().toISOString(),
+          summary: '리스크 분석 AI 해석',
+          content: riskData.aiInterpretation
+        })
+      }
     } catch (error) {
       setRiskAnalysis({ error: '리스크 분석 중 오류가 발생했습니다.' })
     } finally {
@@ -1566,6 +1661,40 @@ ${assetsList}
                   </p>
                 </div>
               )}
+
+              {/* AI 해석 */}
+              {riskAnalysis.aiInterpretation && (
+                <div className="card bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      🧠 AI 리스크 해석
+                    </h4>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => copyToClipboard(riskAnalysis.aiInterpretation)}
+                        className="text-xs text-indigo-600 hover:underline"
+                      >
+                        복사
+                      </button>
+                      <button
+                        onClick={() => downloadReport('risk_analysis_ai', riskAnalysis.aiInterpretation)}
+                        className="text-xs text-indigo-600 hover:underline"
+                      >
+                        다운로드
+                      </button>
+                    </div>
+                  </div>
+                  <div className="markdown-body">
+                    <ReactMarkdown
+                      className="prose prose-slate max-w-none leading-relaxed marker:text-indigo-500"
+                      remarkPlugins={[remarkGfm]}
+                    >
+                      {riskAnalysis.aiInterpretation}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1716,8 +1845,8 @@ ${assetsList}
                     <label
                       key={asset.symbol}
                       className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
-                          ? 'bg-purple-100 border-purple-300 border'
-                          : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                        ? 'bg-purple-100 border-purple-300 border'
+                        : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
                         }`}
                     >
                       <input
