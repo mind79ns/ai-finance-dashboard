@@ -647,7 +647,11 @@ const AIReport = () => {
 - Fear & Greed: ${marketData?.sentiment?.fearGreed?.value || 'N/A'}
 ` : ''
 
-      const prompt = `당신은 기술적 분석 전문가입니다. 포트폴리오 보유 종목에 대해 매매 타이밍 분석을 제공해주세요.
+      const currentDate = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+
+      const prompt = `[현재 날짜: ${currentDate}]
+
+당신은 기술적 분석 전문가입니다. 포트폴리오 보유 종목에 대해 2025년 12월 현재 시점 기준으로 매매 타이밍 분석을 제공해주세요.
 
 ${marketContext}
 
@@ -661,7 +665,7 @@ ${assetsList}
 4. **단기(1-2주) 전망**
 5. **추천 행동** (구체적 조언)
 
-실제 차트 데이터 없이 종목 특성과 시장 상황 기반으로 추정하되, 투자 결정은 사용자가 직접 해야 함을 명시해주세요.`
+⚠️ 중요: 2025년 12월 현재 시장 상황을 기준으로 분석해주세요. 실제 차트 데이터 없이 종목 특성과 시장 상황 기반으로 추정하되, 투자 결정은 사용자가 직접 해야 함을 명시해주세요.`
 
       const analysis = await aiService.routeAIRequest(
         prompt,
@@ -698,21 +702,25 @@ ${assetsList}
         .map(a => a.symbol)
         .join(', ')
 
-      const prompt = `당신은 금융 뉴스 분석 전문가입니다. 다음 보유 종목들에 대한 최신 동향과 뉴스 분석을 제공해주세요.
+      const currentDate = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+
+      const prompt = `[현재 날짜: ${currentDate}]
+
+당신은 금융 뉴스 분석 전문가입니다. 다음 보유 종목들에 대한 2025년 12월 기준 최신 동향과 뉴스 분석을 제공해주세요.
 
 보유 종목: ${symbols}
 
 다음 내용을 포함해 분석해주세요:
 
-## 📰 종목별 주요 동향
+## 📰 종목별 주요 동향 (2025년 기준)
 각 종목에 대해:
-- 최근 주요 뉴스/이벤트 (실적발표, 신제품, M&A 등)
+- 2025년 주요 뉴스/이벤트 (실적발표, 신제품, M&A 등)
 - 업계 동향
 - 투자자 관심 포인트
 
 ## 🔍 섹터별 분석
 - 관련 섹터 전반적인 흐름
-- 규제/정책 영향
+- 2025년 규제/정책 영향
 
 ## ⚠️ 리스크 요인
 - 주의해야 할 뉴스/이슈
@@ -721,7 +729,7 @@ ${assetsList}
 ## 💡 투자 시사점
 - 종합적인 뉴스 기반 투자 시사점
 
-실시간 뉴스 접근이 불가하므로, 일반적인 각 종목의 특성과 최근 트렌드를 기반으로 분석해주세요.`
+⚠️ 중요: 2025년 12월 현재 시점을 기준으로 분석해주세요. 실시간 뉴스 접근이 불가하므로, 각 종목의 일반적인 특성과 2025년 트렌드를 기반으로 분석해주세요.`
 
       const summary = await aiService.routeAIRequest(
         prompt,
