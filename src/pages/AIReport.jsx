@@ -41,6 +41,9 @@ const AIReport = () => {
   // AI Features Expansion
   const [timingAnalysis, setTimingAnalysis] = useState('')  // AI 매매 타이밍
   const [newsSummary, setNewsSummary] = useState('')        // 뉴스 요약
+  const [selectedStocksForAI, setSelectedStocksForAI] = useState([])  // 선택된 종목 목록
+  const [customAISymbol, setCustomAISymbol] = useState('')  // 직접 입력 종목 심볼
+
 
   const marketInsights = useMemo(() => computeMarketInsights(marketData), [marketData])
   const portfolioInsights = useMemo(
@@ -628,16 +631,29 @@ const AIReport = () => {
 
   // AI 매매 타이밍 분석
   const generateTimingAnalysis = async () => {
-    if (!portfolioData || !portfolioData.assets?.length) {
-      setTimingAnalysis('포트폴리오에 자산이 없습니다. Portfolio 페이지에서 자산을 추가해주세요.')
+    // 선택된 종목이 없고 포트폴리오도 없는 경우
+    if (selectedStocksForAI.length === 0 && (!portfolioData || !portfolioData.assets?.length)) {
+      setTimingAnalysis('분석할 종목을 선택하거나 Portfolio 페이지에서 자산을 추가해주세요.')
       return
     }
 
     setLoading(true)
     try {
-      const assetsList = portfolioData.assets
-        .slice(0, 10)
-        .map(a => `${a.symbol} (${a.name || a.type}): 현재가 ${a.currentPrice?.toLocaleString()}, 수익률 ${a.profitPercent?.toFixed(1)}%`)
+      // 선택된 종목이 있으면 선택된 종목 사용, 없으면 포트폴리오 전체
+      let analysisAssets = []
+      if (selectedStocksForAI.length > 0) {
+        analysisAssets = selectedStocksForAI
+      } else if (portfolioData?.assets) {
+        analysisAssets = portfolioData.assets.slice(0, 10).map(a => ({
+          symbol: a.symbol,
+          name: a.name || a.type,
+          currentPrice: a.currentPrice,
+          profitPercent: a.profitPercent
+        }))
+      }
+
+      const assetsList = analysisAssets
+        .map(a => `${a.symbol} (${a.name || ''}): 현재가 ${a.currentPrice?.toLocaleString() || 'N/A'}, 수익률 ${a.profitPercent?.toFixed?.(1) || 'N/A'}%`)
         .join('\n')
 
       const marketContext = marketData ? `
@@ -690,17 +706,21 @@ ${assetsList}
 
   // AI 뉴스 요약
   const generateNewsSummary = async () => {
-    if (!portfolioData || !portfolioData.assets?.length) {
-      setNewsSummary('포트폴리오에 자산이 없습니다. Portfolio 페이지에서 자산을 추가해주세요.')
+    // 선택된 종목이 없고 포트폴리오도 없는 경우
+    if (selectedStocksForAI.length === 0 && (!portfolioData || !portfolioData.assets?.length)) {
+      setNewsSummary('분석할 종목을 선택하거나 Portfolio 페이지에서 자산을 추가해주세요.')
       return
     }
 
     setLoading(true)
     try {
-      const symbols = portfolioData.assets
-        .slice(0, 8)
-        .map(a => a.symbol)
-        .join(', ')
+      // 선택된 종목이 있으면 선택된 종목 사용, 없으면 포트폴리오 전체
+      let symbols = ''
+      if (selectedStocksForAI.length > 0) {
+        symbols = selectedStocksForAI.map(a => a.symbol).join(', ')
+      } else if (portfolioData?.assets) {
+        symbols = portfolioData.assets.slice(0, 8).map(a => a.symbol).join(', ')
+      }
 
       const currentDate = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
 
@@ -1679,8 +1699,101 @@ ${assetsList}
         <div className="space-y-4">
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
             <p className="text-sm text-purple-800">
-              <strong>🔮 AI 매매 타이밍:</strong> 보유 종목에 대한 기술적 분석 기반 매수/매도 신호를 AI가 분석합니다.
+              <strong>🔮 AI 매매 타이밍:</strong> 원하는 종목을 선택하여 기술적 분석 기반 매수/매도 신호를 AI가 분석합니다.
             </p>
+          </div>
+
+          {/* 종목 선택 UI */}
+          <div className="card bg-white border border-gray-200 mb-4">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">📋 분석할 종목 선택</h4>
+
+            {/* 보유 종목에서 선택 */}
+            {portfolioData?.assets?.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs text-gray-600 mb-2">보유 종목에서 선택:</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                  {portfolioData.assets.map(asset => (
+                    <label
+                      key={asset.symbol}
+                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
+                          ? 'bg-purple-100 border-purple-300 border'
+                          : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                        }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedStocksForAI.some(s => s.symbol === asset.symbol)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStocksForAI(prev => [...prev, {
+                              symbol: asset.symbol,
+                              name: asset.name || asset.type,
+                              currentPrice: asset.currentPrice,
+                              profitPercent: asset.profitPercent
+                            }])
+                          } else {
+                            setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== asset.symbol))
+                          }
+                        }}
+                        className="w-4 h-4 text-purple-600"
+                      />
+                      <span className="text-xs font-medium text-gray-800">{asset.symbol}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 직접 입력 */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customAISymbol}
+                onChange={(e) => setCustomAISymbol(e.target.value.toUpperCase())}
+                placeholder="종목 심볼 입력 (예: AAPL)"
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              />
+              <button
+                onClick={() => {
+                  if (customAISymbol.trim() && !selectedStocksForAI.some(s => s.symbol === customAISymbol.trim())) {
+                    setSelectedStocksForAI(prev => [...prev, {
+                      symbol: customAISymbol.trim(),
+                      name: customAISymbol.trim()
+                    }])
+                    setCustomAISymbol('')
+                  }
+                }}
+                className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                추가
+              </button>
+            </div>
+
+            {/* 선택된 종목 표시 */}
+            {selectedStocksForAI.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-gray-600 mb-2">선택된 종목 ({selectedStocksForAI.length}개):</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedStocksForAI.map(stock => (
+                    <span key={stock.symbol} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                      {stock.symbol}
+                      <button
+                        onClick={() => setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== stock.symbol))}
+                        className="text-purple-600 hover:text-purple-900"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  <button
+                    onClick={() => setSelectedStocksForAI([])}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    전체 해제
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <button
@@ -1693,7 +1806,7 @@ ${assetsList}
             ) : (
               <Sparkles className="w-4 h-4" />
             )}
-            {loading ? '분석 중...' : '매매 타이밍 분석 생성'}
+            {loading ? '분석 중...' : selectedStocksForAI.length > 0 ? `${selectedStocksForAI.length}개 종목 분석 생성` : '전체 포트폴리오 분석 생성'}
           </button>
 
           {timingAnalysis && (
