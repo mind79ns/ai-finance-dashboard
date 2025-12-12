@@ -38,6 +38,10 @@ const AIReport = () => {
   const [customStockCode, setCustomStockCode] = useState('') // 직접 입력 종목코드
   const [customStockName, setCustomStockName] = useState('') // 직접 입력 종목명
 
+  // AI Features Expansion
+  const [timingAnalysis, setTimingAnalysis] = useState('')  // AI 매매 타이밍
+  const [newsSummary, setNewsSummary] = useState('')        // 뉴스 요약
+
   const marketInsights = useMemo(() => computeMarketInsights(marketData), [marketData])
   const portfolioInsights = useMemo(
     () => computePortfolioInsights(portfolioData, goalsSummary),
@@ -328,13 +332,13 @@ const AIReport = () => {
           averageProgress: Number.isFinite(averageProgress) ? averageProgress : null,
           upcomingGoal: upcomingGoal
             ? {
-                name: upcomingGoal.name,
-                targetDate: upcomingGoal.targetDate,
-                progress: upcomingGoal.targetAmount
-                  ? Math.min((Number(upcomingGoal.currentAmount || 0) / Number(upcomingGoal.targetAmount)) * 100, 100)
-                  : null,
-                currency: upcomingGoal.currency || 'USD'
-              }
+              name: upcomingGoal.name,
+              targetDate: upcomingGoal.targetDate,
+              progress: upcomingGoal.targetAmount
+                ? Math.min((Number(upcomingGoal.currentAmount || 0) / Number(upcomingGoal.targetAmount)) * 100, 100)
+                : null,
+              currency: upcomingGoal.currency || 'USD'
+            }
             : null,
           goals: goals.slice(0, 5).map(goal => ({
             name: goal.name,
@@ -487,14 +491,14 @@ const AIReport = () => {
       const currencyExposure = portfolioInsights?.currencyExposure
         ? portfolioInsights.currencyExposure
         : (portfolioData.totals?.byCurrency || []).map(item => {
-            const totalValueKRW = Number(item.totalValueKRW || item.totalValue) || 0
-            const percent = totalValue > 0 ? (totalValueKRW / totalValue) * 100 : 0
-            return {
-              currency: item.currency,
-              percent,
-              totalValueKRW
-            }
-          }).sort((a, b) => b.percent - a.percent)
+          const totalValueKRW = Number(item.totalValueKRW || item.totalValue) || 0
+          const percent = totalValue > 0 ? (totalValueKRW / totalValue) * 100 : 0
+          return {
+            currency: item.currency,
+            percent,
+            totalValueKRW
+          }
+        }).sort((a, b) => b.percent - a.percent)
 
       const topCurrency = currencyExposure && currencyExposure.length ? currencyExposure[0] : null
 
@@ -622,6 +626,124 @@ const AIReport = () => {
     }
   }
 
+  // AI 매매 타이밍 분석
+  const generateTimingAnalysis = async () => {
+    if (!portfolioData || !portfolioData.assets?.length) {
+      setTimingAnalysis('포트폴리오에 자산이 없습니다. Portfolio 페이지에서 자산을 추가해주세요.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const assetsList = portfolioData.assets
+        .slice(0, 10)
+        .map(a => `${a.symbol} (${a.name || a.type}): 현재가 ${a.currentPrice?.toLocaleString()}, 수익률 ${a.profitPercent?.toFixed(1)}%`)
+        .join('\n')
+
+      const marketContext = marketData ? `
+시장 현황:
+- 원/달러 환율: ${marketData?.currency?.usdKrw?.rate?.toLocaleString()}원
+- VIX 변동성: ${marketData?.volatility?.vix?.value || 'N/A'}
+- Fear & Greed: ${marketData?.sentiment?.fearGreed?.value || 'N/A'}
+` : ''
+
+      const prompt = `당신은 기술적 분석 전문가입니다. 포트폴리오 보유 종목에 대해 매매 타이밍 분석을 제공해주세요.
+
+${marketContext}
+
+보유 종목:
+${assetsList}
+
+다음 내용을 포함해 분석해주세요:
+1. **종목별 기술적 분석** (RSI, 이동평균선 등 추정 상태)
+2. **매수/매도/홀드 신호** (🟢 매수, 🔴 매도, 🟡 홀드)
+3. **주요 지지선/저항선** 추정
+4. **단기(1-2주) 전망**
+5. **추천 행동** (구체적 조언)
+
+실제 차트 데이터 없이 종목 특성과 시장 상황 기반으로 추정하되, 투자 결정은 사용자가 직접 해야 함을 명시해주세요.`
+
+      const analysis = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 기술적 분석 전문가입니다. 매매 타이밍과 기술적 지표 분석을 전문으로 합니다.',
+        selectedAI
+      )
+      setTimingAnalysis(analysis)
+      appendHistory({
+        id: Date.now(),
+        type: 'timing',
+        createdAt: new Date().toISOString(),
+        summary: 'AI 매매 타이밍 분석',
+        content: analysis
+      })
+    } catch (error) {
+      setTimingAnalysis('매매 타이밍 분석 생성 중 오류가 발생했습니다. API 키를 확인해주세요.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // AI 뉴스 요약
+  const generateNewsSummary = async () => {
+    if (!portfolioData || !portfolioData.assets?.length) {
+      setNewsSummary('포트폴리오에 자산이 없습니다. Portfolio 페이지에서 자산을 추가해주세요.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const symbols = portfolioData.assets
+        .slice(0, 8)
+        .map(a => a.symbol)
+        .join(', ')
+
+      const prompt = `당신은 금융 뉴스 분석 전문가입니다. 다음 보유 종목들에 대한 최신 동향과 뉴스 분석을 제공해주세요.
+
+보유 종목: ${symbols}
+
+다음 내용을 포함해 분석해주세요:
+
+## 📰 종목별 주요 동향
+각 종목에 대해:
+- 최근 주요 뉴스/이벤트 (실적발표, 신제품, M&A 등)
+- 업계 동향
+- 투자자 관심 포인트
+
+## 🔍 섹터별 분석
+- 관련 섹터 전반적인 흐름
+- 규제/정책 영향
+
+## ⚠️ 리스크 요인
+- 주의해야 할 뉴스/이슈
+- 잠재적 위험 요소
+
+## 💡 투자 시사점
+- 종합적인 뉴스 기반 투자 시사점
+
+실시간 뉴스 접근이 불가하므로, 일반적인 각 종목의 특성과 최근 트렌드를 기반으로 분석해주세요.`
+
+      const summary = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 금융 뉴스 분석가입니다. 투자자 관점에서 뉴스와 시장 동향을 분석합니다.',
+        selectedAI
+      )
+      setNewsSummary(summary)
+      appendHistory({
+        id: Date.now(),
+        type: 'news',
+        createdAt: new Date().toISOString(),
+        summary: 'AI 뉴스 요약',
+        content: summary
+      })
+    } catch (error) {
+      setNewsSummary('뉴스 요약 생성 중 오류가 발생했습니다. API 키를 확인해주세요.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const renderHistory = () => {
     if (!analysisHistory.length) {
       return (
@@ -722,11 +844,10 @@ const AIReport = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button
                   onClick={() => setSelectedAI('auto')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedAI === 'auto'
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 bg-white hover:border-purple-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'auto'
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 bg-white hover:border-purple-300'
+                    }`}
                 >
                   <div className="text-left">
                     <p className="font-semibold text-sm text-gray-900">🤖 자동 선택</p>
@@ -739,11 +860,10 @@ const AIReport = () => {
 
                 <button
                   onClick={() => setSelectedAI('gpt')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedAI === 'gpt'
-                      ? 'border-green-500 bg-green-50'
-                      : 'border-gray-200 bg-white hover:border-green-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'gpt'
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 bg-white hover:border-green-300'
+                    }`}
                 >
                   <div className="text-left">
                     <p className="font-semibold text-sm text-gray-900">🧠 GPT-4.1</p>
@@ -756,11 +876,10 @@ const AIReport = () => {
 
                 <button
                   onClick={() => setSelectedAI('gemini')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedAI === 'gemini'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:border-blue-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'gemini'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 bg-white hover:border-blue-300'
+                    }`}
                 >
                   <div className="text-left">
                     <p className="font-semibold text-sm text-gray-900">⚡ Gemini 2.5 Flash</p>
@@ -775,8 +894,8 @@ const AIReport = () => {
               <div className="text-xs text-gray-600 bg-white p-2 rounded">
                 <strong>현재 선택:</strong> {
                   selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
-                  selectedAI === 'gpt' ? '🧠 GPT-4.1 (모든 작업)' :
-                  '⚡ Gemini 2.5 Flash (모든 작업)'
+                    selectedAI === 'gpt' ? '🧠 GPT-4.1 (모든 작업)' :
+                      '⚡ Gemini 2.5 Flash (모든 작업)'
                 }
               </div>
             </div>
@@ -788,63 +907,75 @@ const AIReport = () => {
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => setActiveTab('market')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'market'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'market'
+            ? 'text-primary-600 border-b-2 border-primary-600'
+            : 'text-gray-600 hover:text-gray-900'
+            }`}
         >
           시장 리포트
         </button>
         <button
           onClick={() => setActiveTab('portfolio')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'portfolio'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'portfolio'
+            ? 'text-primary-600 border-b-2 border-primary-600'
+            : 'text-gray-600 hover:text-gray-900'
+            }`}
         >
           포트폴리오 진단
         </button>
         <button
           onClick={() => setActiveTab('stock')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'stock'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'stock'
+            ? 'text-primary-600 border-b-2 border-primary-600'
+            : 'text-gray-600 hover:text-gray-900'
+            }`}
         >
           📊 종목 분석
         </button>
         <button
           onClick={() => setActiveTab('risk')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'risk'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'risk'
+            ? 'text-primary-600 border-b-2 border-primary-600'
+            : 'text-gray-600 hover:text-gray-900'
+            }`}
         >
           리스크 진단
         </button>
         <button
           onClick={() => setActiveTab('rebalancing')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'rebalancing'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'rebalancing'
+            ? 'text-primary-600 border-b-2 border-primary-600'
+            : 'text-gray-600 hover:text-gray-900'
+            }`}
         >
           리밸런싱 제안
         </button>
         <button
           onClick={() => setActiveTab('chat')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'chat'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'chat'
+            ? 'text-primary-600 border-b-2 border-primary-600'
+            : 'text-gray-600 hover:text-gray-900'
+            }`}
         >
           AI 상담
+        </button>
+        <button
+          onClick={() => setActiveTab('timing')}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'timing'
+            ? 'text-primary-600 border-b-2 border-primary-600'
+            : 'text-gray-600 hover:text-gray-900'
+            }`}
+        >
+          🔮 매매 타이밍
+        </button>
+        <button
+          onClick={() => setActiveTab('news')}
+          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'news'
+            ? 'text-primary-600 border-b-2 border-primary-600'
+            : 'text-gray-600 hover:text-gray-900'
+            }`}
+        >
+          📰 뉴스 요약
         </button>
       </div>
 
@@ -968,8 +1099,8 @@ const AIReport = () => {
                   <ul className="space-y-1">
                     {portfolioInsights.riskAlerts.length
                       ? portfolioInsights.riskAlerts.slice(0, 3).map((item, idx) => (
-                          <li key={idx}>• {item}</li>
-                        ))
+                        <li key={idx}>• {item}</li>
+                      ))
                       : <li>• 특이 리스크 없음</li>
                     }
                   </ul>
@@ -1073,17 +1204,15 @@ const AIReport = () => {
                       setCustomStockCode('')
                       setCustomStockName('')
                     }}
-                    className={`p-3 rounded-lg border-2 transition-all text-left ${
-                      selectedStock?.symbol === asset.symbol
-                        ? 'border-teal-500 bg-teal-50'
-                        : 'border-gray-200 bg-white hover:border-teal-300'
-                    }`}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${selectedStock?.symbol === asset.symbol
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-gray-200 bg-white hover:border-teal-300'
+                      }`}
                   >
                     <p className="font-semibold text-sm text-gray-900">{asset.symbol}</p>
                     <p className="text-xs text-gray-600 mt-1 truncate">{asset.name}</p>
-                    <p className={`text-xs mt-1 font-medium ${
-                      asset.profitPercent >= 0 ? 'text-success' : 'text-danger'
-                    }`}>
+                    <p className={`text-xs mt-1 font-medium ${asset.profitPercent >= 0 ? 'text-success' : 'text-danger'
+                      }`}>
                       {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(1)}%
                     </p>
                   </button>
@@ -1206,7 +1335,7 @@ const AIReport = () => {
                   className="btn-primary flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 px-8 py-3"
                 >
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                   </svg>
                   🔍 Perplexity에서 최신 정보 검색
                 </button>
@@ -1301,13 +1430,12 @@ const AIReport = () => {
                     <div>
                       <p className="text-xs text-gray-500">변동성 (Volatility)</p>
                       <p
-                        className={`text-2xl font-bold ${
-                          riskAnalysis.riskLevel === 'High'
-                            ? 'text-danger'
-                            : riskAnalysis.riskLevel === 'Medium'
-                              ? 'text-warning'
-                              : 'text-success'
-                        }`}
+                        className={`text-2xl font-bold ${riskAnalysis.riskLevel === 'High'
+                          ? 'text-danger'
+                          : riskAnalysis.riskLevel === 'Medium'
+                            ? 'text-warning'
+                            : 'text-success'
+                          }`}
                       >
                         {Number.isFinite(riskAnalysis.volatility)
                           ? `${formatNumber(riskAnalysis.volatility, 2)}%`
@@ -1318,15 +1446,14 @@ const AIReport = () => {
                     <div>
                       <p className="text-xs text-gray-500">분산 점수</p>
                       <p
-                        className={`text-lg font-bold ${
-                          riskAnalysis.diversificationScore === 'Excellent'
+                        className={`text-lg font-bold ${riskAnalysis.diversificationScore === 'Excellent'
+                          ? 'text-success'
+                          : riskAnalysis.diversificationScore === 'Good'
                             ? 'text-success'
-                            : riskAnalysis.diversificationScore === 'Good'
-                              ? 'text-success'
-                              : riskAnalysis.diversificationScore === 'Fair'
-                                ? 'text-warning'
-                                : 'text-danger'
-                        }`}
+                            : riskAnalysis.diversificationScore === 'Fair'
+                              ? 'text-warning'
+                              : 'text-danger'
+                          }`}
                       >
                         {riskAnalysis.diversificationScore}
                       </p>
@@ -1447,8 +1574,8 @@ const AIReport = () => {
                   <ul className="space-y-1">
                     {portfolioInsights.overweightTypes.length
                       ? portfolioInsights.overweightTypes.map((item, idx) => (
-                          <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
-                        ))
+                        <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
+                      ))
                       : <li>• 과도 비중 섹터 없음</li>
                     }
                   </ul>
@@ -1458,8 +1585,8 @@ const AIReport = () => {
                   <ul className="space-y-1">
                     {portfolioInsights.underweightTypes.length
                       ? portfolioInsights.underweightTypes.map((item, idx) => (
-                          <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
-                        ))
+                        <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
+                      ))
                       : <li>• 부족 비중 섹터 없음</li>
                     }
                   </ul>
@@ -1530,110 +1657,234 @@ const AIReport = () => {
             </div>
           )}
 
-      {!rebalancingSuggestion && !loading && (
-        <div className="card text-center py-12">
-          <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">리밸런싱 제안을 생성하려면 버튼을 클릭하세요</p>
+          {!rebalancingSuggestion && !loading && (
+            <div className="card text-center py-12">
+              <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">리밸런싱 제안을 생성하려면 버튼을 클릭하세요</p>
+            </div>
+          )}
         </div>
       )}
-    </div>
-  )}
 
-  {/* Report History */}
-  <div className="card">
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2">
-        <Archive className="w-5 h-5 text-primary-600" />
-        <h3 className="text-lg font-semibold text-gray-900">최근 생성된 AI 리포트</h3>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-gray-500">
-          최대 20개의 기록을 저장하며, 최신 5개만 표시합니다.
-        </span>
-        <button
-          type="button"
-          className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
-          onClick={downloadHistory}
-        >
-          전체 히스토리 다운로드
-        </button>
-      </div>
-    </div>
-    {renderHistory()}
-  </div>
-
-  {historyViewer.open && historyViewer.entry && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{historyViewer.entry.summary}</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              {new Date(historyViewer.entry.createdAt).toLocaleString('ko-KR')} · {historyViewer.entry.type}
+      {/* AI Timing Analysis Tab */}
+      {activeTab === 'timing' && (
+        <div className="space-y-4">
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-purple-800">
+              <strong>🔮 AI 매매 타이밍:</strong> 보유 종목에 대한 기술적 분석 기반 매수/매도 신호를 AI가 분석합니다.
             </p>
           </div>
+
           <button
-            type="button"
-            className="text-gray-500 hover:text-gray-700"
-            onClick={() => setHistoryViewer({ open: false, entry: null })}
+            onClick={generateTimingAnalysis}
+            disabled={loading}
+            className="btn-primary flex items-center gap-2"
           >
-            ✖
+            {loading ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            {loading ? '분석 중...' : '매매 타이밍 분석 생성'}
           </button>
+
+          {timingAnalysis && (
+            <div className="card bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-500">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-purple-900">🔮 AI 매매 타이밍 분석</h4>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => copyToClipboard(timingAnalysis)}
+                    className="text-xs text-purple-600 hover:underline"
+                  >
+                    복사
+                  </button>
+                  <button
+                    onClick={() => downloadReport('timing_analysis', timingAnalysis)}
+                    className="text-xs text-purple-600 hover:underline"
+                  >
+                    다운로드
+                  </button>
+                </div>
+              </div>
+              <div className="markdown-body">
+                <ReactMarkdown
+                  className="prose prose-slate max-w-none leading-relaxed marker:text-purple-500"
+                  remarkPlugins={[remarkGfm]}
+                >
+                  {timingAnalysis}
+                </ReactMarkdown>
+              </div>
+            </div>
+          )}
+
+          {!timingAnalysis && !loading && (
+            <div className="card text-center py-12">
+              <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">AI 매매 타이밍 분석을 생성하려면 버튼을 클릭하세요</p>
+              <p className="text-xs text-gray-500 mt-2">보유 종목의 기술적 분석 및 매수/매도 신호를 AI가 제공합니다</p>
+            </div>
+          )}
         </div>
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
-          <div className="markdown-body text-sm text-gray-800">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{historyViewer.entry.content}</ReactMarkdown>
+      )}
+
+      {/* AI News Summary Tab */}
+      {activeTab === 'news' && (
+        <div className="space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-amber-800">
+              <strong>📰 AI 뉴스 요약:</strong> 보유 종목 관련 최신 동향과 뉴스를 AI가 분석 및 요약합니다.
+            </p>
+          </div>
+
+          <button
+            onClick={generateNewsSummary}
+            disabled={loading}
+            className="btn-primary flex items-center gap-2"
+          >
+            {loading ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            {loading ? '요약 중...' : '뉴스 요약 생성'}
+          </button>
+
+          {newsSummary && (
+            <div className="card bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-amber-900">📰 AI 뉴스 요약</h4>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => copyToClipboard(newsSummary)}
+                    className="text-xs text-amber-600 hover:underline"
+                  >
+                    복사
+                  </button>
+                  <button
+                    onClick={() => downloadReport('news_summary', newsSummary)}
+                    className="text-xs text-amber-600 hover:underline"
+                  >
+                    다운로드
+                  </button>
+                </div>
+              </div>
+              <div className="markdown-body">
+                <ReactMarkdown
+                  className="prose prose-slate max-w-none leading-relaxed marker:text-amber-500"
+                  remarkPlugins={[remarkGfm]}
+                >
+                  {newsSummary}
+                </ReactMarkdown>
+              </div>
+            </div>
+          )}
+
+          {!newsSummary && !loading && (
+            <div className="card text-center py-12">
+              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">AI 뉴스 요약을 생성하려면 버튼을 클릭하세요</p>
+              <p className="text-xs text-gray-500 mt-2">보유 종목 관련 최신 동향 및 뉴스를 AI가 분석합니다</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Report History */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Archive className="w-5 h-5 text-primary-600" />
+            <h3 className="text-lg font-semibold text-gray-900">최근 생성된 AI 리포트</h3>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">
+              최대 20개의 기록을 저장하며, 최신 5개만 표시합니다.
+            </span>
+            <button
+              type="button"
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+              onClick={downloadHistory}
+            >
+              전체 히스토리 다운로드
+            </button>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => copyToClipboard(historyViewer.entry.content)}
-          >
-            복사
-          </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => {
-              try {
-                const baseName = (historyViewer.entry.summary || 'ai_report').replace(/\s+/g, '_')
-                const filename = `${baseName}_${new Date(historyViewer.entry.createdAt).toISOString().slice(0, 10)}.md`
-                const blob = new Blob([historyViewer.entry.content], { type: 'text/markdown;charset=utf-8;' })
-                const url = URL.createObjectURL(blob)
-                const link = document.createElement('a')
-                link.href = url
-                link.download = filename
-                document.body.appendChild(link)
-                link.click()
-                document.body.removeChild(link)
-                URL.revokeObjectURL(url)
-              } catch (err) {
-                console.error('Download failed:', err)
-                window.alert('다운로드 생성에 실패했습니다.')
-              }
-            }}
-          >
-            다운로드
-          </button>
-          <button
-            type="button"
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
-            onClick={() => setHistoryViewer({ open: false, entry: null })}
-          >
-            닫기
-          </button>
-        </div>
+        {renderHistory()}
       </div>
-    </div>
-  )}
 
-  {/* AI Chat Tab */}
-  {activeTab === 'chat' && (
-    <div className="space-y-4">
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <p className="text-sm text-green-800">
+      {historyViewer.open && historyViewer.entry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{historyViewer.entry.summary}</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {new Date(historyViewer.entry.createdAt).toLocaleString('ko-KR')} · {historyViewer.entry.type}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-gray-500 hover:text-gray-700"
+                onClick={() => setHistoryViewer({ open: false, entry: null })}
+              >
+                ✖
+              </button>
+            </div>
+            <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
+              <div className="markdown-body text-sm text-gray-800">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{historyViewer.entry.content}</ReactMarkdown>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => copyToClipboard(historyViewer.entry.content)}
+              >
+                복사
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  try {
+                    const baseName = (historyViewer.entry.summary || 'ai_report').replace(/\s+/g, '_')
+                    const filename = `${baseName}_${new Date(historyViewer.entry.createdAt).toISOString().slice(0, 10)}.md`
+                    const blob = new Blob([historyViewer.entry.content], { type: 'text/markdown;charset=utf-8;' })
+                    const url = URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.href = url
+                    link.download = filename
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                    URL.revokeObjectURL(url)
+                  } catch (err) {
+                    console.error('Download failed:', err)
+                    window.alert('다운로드 생성에 실패했습니다.')
+                  }
+                }}
+              >
+                다운로드
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+                onClick={() => setHistoryViewer({ open: false, entry: null })}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Chat Tab */}
+      {activeTab === 'chat' && (
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-green-800">
               <strong>🧠 GPT-5 사용:</strong> 투자 전문가 수준의 맞춤형 상담을 제공합니다
             </p>
           </div>
@@ -1677,54 +1928,53 @@ const AIReport = () => {
                     <p className="text-gray-600">AI에게 투자 관련 질문을 해보세요</p>
                     <p className="text-sm text-gray-500 mt-2">예: &quot;지금 S&amp;P 500에 투자하는 것이 좋을까요?&quot;</p>
                   </div>
-              ) : (
-                chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+                ) : (
+                  chatMessages.map((msg, idx) => (
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                        msg.role === 'user'
+                      key={idx}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg px-4 py-3 ${msg.role === 'user'
                           ? 'bg-primary-600 text-white'
                           : 'bg-gray-100 text-gray-900'
-                      }`}
-                    >
-                      <pre className="whitespace-pre-wrap text-sm font-sans">
-                        {msg.content}
-                      </pre>
+                          }`}
+                      >
+                        <pre className="whitespace-pre-wrap text-sm font-sans">
+                          {msg.content}
+                        </pre>
+                      </div>
+                    </div>
+                  ))
+                )}
+                {loading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 rounded-lg px-4 py-3">
+                      <RefreshCw className="w-5 h-5 animate-spin text-gray-600" />
                     </div>
                   </div>
-                ))
-              )}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-lg px-4 py-3">
-                    <RefreshCw className="w-5 h-5 animate-spin text-gray-600" />
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <form onSubmit={handleChatSubmit} className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="질문을 입력하세요..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                disabled={loading}
-              />
-              <button
-                type="submit"
-                disabled={loading || !chatInput.trim()}
-                className="btn-primary px-6"
-              >
-                전송
-              </button>
-            </form>
+              <form onSubmit={handleChatSubmit} className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="질문을 입력하세요..."
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !chatInput.trim()}
+                  className="btn-primary px-6"
+                >
+                  전송
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
         </div>
       )}
     </div>
