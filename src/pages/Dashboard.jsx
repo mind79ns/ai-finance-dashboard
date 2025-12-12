@@ -17,6 +17,7 @@ import {
 import {
   Wallet,
   TrendingUp,
+  TrendingDown,
   DollarSign,
   Target,
   ArrowUpRight,
@@ -77,6 +78,16 @@ const Dashboard = () => {
   const [monthlyReturns, setMonthlyReturns] = useState([])
   const [showAlertModal, setShowAlertModal] = useState(false)
   const [newAlert, setNewAlert] = useState({ symbol: '', targetPrice: '', direction: 'above' })
+
+  // Net Worth Tracker state
+  const [debts, setDebts] = useState([])
+  const [showDebtModal, setShowDebtModal] = useState(false)
+  const [debtForm, setDebtForm] = useState({ name: '', amount: '', interestRate: '', type: 'loan' })
+  const [editingDebt, setEditingDebt] = useState(null)
+
+  // Stress Test state
+  const [stressTestRate, setStressTestRate] = useState(20)
+
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
@@ -151,6 +162,10 @@ const Dashboard = () => {
       // Load price alerts from localStorage
       const savedAlerts = safeParseLocalStorage('price_alerts', [])
       setPriceAlerts(savedAlerts)
+
+      // Load debts for net worth tracker
+      const savedDebts = await dataSync.loadUserSetting('user_debts')
+      setDebts(Array.isArray(savedDebts) ? savedDebts : [])
 
       const goals = summarizeGoals(goalsRaw)
       setGoalSummary(goals)
@@ -453,6 +468,41 @@ const Dashboard = () => {
             }}
           />
         </ChartCard>
+
+        {/* Net Worth Tracker */}
+        <ChartCard
+          title="순자산 트래커"
+          subtitle="자산 - 부채 = 순자산"
+          icon={<Wallet className="w-5 h-5 text-indigo-500" />}
+        >
+          <NetWorthTracker
+            totalAssets={portfolioSummary.totalValueKRW}
+            debts={debts}
+            onAddDebt={() => {
+              setEditingDebt(null)
+              setDebtForm({ name: '', amount: '', interestRate: '', type: 'loan' })
+              setShowDebtModal(true)
+            }}
+            onDeleteDebt={(id) => {
+              const updated = debts.filter(d => d.id !== id)
+              setDebts(updated)
+              dataSync.saveUserSetting('user_debts', updated)
+            }}
+          />
+        </ChartCard>
+
+        {/* Stress Test */}
+        <ChartCard
+          title="하락 시뮬레이션"
+          subtitle="시장 폭락 시 자산 변화"
+          icon={<TrendingDown className="w-5 h-5 text-rose-500" />}
+        >
+          <StressTest
+            totalAssets={portfolioSummary.totalValueKRW}
+            rate={stressTestRate}
+            onRateChange={setStressTestRate}
+          />
+        </ChartCard>
       </div>
 
       {/* Monthly Returns Chart */}
@@ -487,6 +537,93 @@ const Dashboard = () => {
             }
           }}
         />
+      )}
+
+      {/* Debt Modal */}
+      {showDebtModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">부채 추가</h3>
+              <button onClick={() => setShowDebtModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">부채명</label>
+                <input
+                  type="text"
+                  value={debtForm.name}
+                  onChange={(e) => setDebtForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="예: 주택담보대출"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">금액 (원)</label>
+                <input
+                  type="number"
+                  value={debtForm.amount}
+                  onChange={(e) => setDebtForm(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="예: 100000000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">이자율 % (선택)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={debtForm.interestRate}
+                  onChange={(e) => setDebtForm(prev => ({ ...prev, interestRate: e.target.value }))}
+                  placeholder="예: 3.5"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">유형</label>
+                <select
+                  value={debtForm.type}
+                  onChange={(e) => setDebtForm(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="loan">대출</option>
+                  <option value="mortgage">주택담보</option>
+                  <option value="credit">신용카드</option>
+                  <option value="other">기타</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowDebtModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  if (debtForm.name && debtForm.amount) {
+                    const newDebt = {
+                      id: Date.now(),
+                      ...debtForm,
+                      createdAt: new Date().toISOString()
+                    }
+                    const updated = [...debts, newDebt]
+                    setDebts(updated)
+                    dataSync.saveUserSetting('user_debts', updated)
+                    setShowDebtModal(false)
+                    setDebtForm({ name: '', amount: '', interestRate: '', type: 'loan' })
+                  }
+                }}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -891,12 +1028,151 @@ const TaxCalculator = () => {
           <p>💡 해외주식: 연 250만원 기본공제 후 22% 과세 (지방세 포함)</p>
         ) : (
           <p>💡 국내주식: 일반 투자자는 비과세 (대주주·금융소득종합과세 대상자 별도)</p>
-        )}
+        )}\r
       </div>
     </div>
   )
 }
 
+// Net Worth Tracker Component
+const NetWorthTracker = ({ totalAssets, debts, onAddDebt, onDeleteDebt }) => {
+  const totalDebt = debts.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0)
+  const netWorth = totalAssets - totalDebt
+  const debtRatio = totalAssets > 0 ? (totalDebt / totalAssets * 100) : 0
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-blue-50 rounded-lg p-3 text-center">
+          <p className="text-xs text-blue-600 mb-1">총 자산</p>
+          <p className="text-sm font-bold text-blue-900">₩{(totalAssets / 10000).toFixed(0)}만</p>
+        </div>
+        <div className="bg-rose-50 rounded-lg p-3 text-center">
+          <p className="text-xs text-rose-600 mb-1">총 부채</p>
+          <p className="text-sm font-bold text-rose-900">₩{(totalDebt / 10000).toFixed(0)}만</p>
+        </div>
+        <div className={`rounded-lg p-3 text-center ${netWorth >= 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+          <p className={`text-xs mb-1 ${netWorth >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>순자산</p>
+          <p className={`text-sm font-bold ${netWorth >= 0 ? 'text-emerald-900' : 'text-amber-900'}`}>
+            ₩{(netWorth / 10000).toFixed(0)}만
+          </p>
+        </div>
+      </div>
+
+      {/* Debt Ratio Bar */}
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="text-gray-600">부채비율</span>
+          <span className={`font-medium ${debtRatio > 50 ? 'text-rose-600' : 'text-gray-900'}`}>
+            {debtRatio.toFixed(1)}%
+          </span>
+        </div>
+        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-all ${debtRatio > 50 ? 'bg-rose-500' : debtRatio > 30 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+            style={{ width: `${Math.min(debtRatio, 100)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Debt List */}
+      {debts.length > 0 && (
+        <div className="space-y-1 max-h-24 overflow-y-auto">
+          {debts.map(debt => (
+            <div key={debt.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+              <div>
+                <span className="font-medium text-gray-900">{debt.name}</span>
+                <span className="text-gray-500 text-xs ml-2">
+                  {debt.interestRate ? `${debt.interestRate}%` : ''}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-rose-600 font-medium">₩{parseInt(debt.amount).toLocaleString()}</span>
+                <button onClick={() => onDeleteDebt(debt.id)} className="text-gray-400 hover:text-rose-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Debt Button */}
+      <button
+        onClick={onAddDebt}
+        className="w-full py-2 px-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 text-sm hover:border-gray-400 hover:text-gray-700 transition-colors flex items-center justify-center gap-2"
+      >
+        <Plus className="w-4 h-4" />
+        부채 추가
+      </button>
+    </div>
+  )
+}
+
+// Stress Test Component
+const StressTest = ({ totalAssets, rate, onRateChange }) => {
+  const dropAmount = totalAssets * (rate / 100)
+  const afterDrop = totalAssets - dropAmount
+
+  const presetRates = [10, 20, 30, 50]
+
+  return (
+    <div className="space-y-4">
+      {/* Rate Selector */}
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-2">하락률 선택</label>
+        <div className="flex gap-2">
+          {presetRates.map(r => (
+            <button
+              key={r}
+              onClick={() => onRateChange(r)}
+              className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium transition-all ${rate === r
+                ? 'bg-rose-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+            >
+              -{r}%
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom Input */}
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-2">직접 입력 (%)</label>
+        <input
+          type="number"
+          value={rate}
+          onChange={(e) => onRateChange(parseInt(e.target.value) || 0)}
+          min="0"
+          max="100"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+        />
+      </div>
+
+      {/* Result */}
+      <div className="bg-rose-50 rounded-lg p-4 space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">현재 자산</span>
+          <span className="text-gray-900 font-medium">₩{totalAssets.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-rose-600">하락 금액 (-{rate}%)</span>
+          <span className="text-rose-600 font-medium">-₩{dropAmount.toLocaleString()}</span>
+        </div>
+        <div className="border-t border-rose-200 pt-2 flex justify-between">
+          <span className="text-gray-700 font-medium">예상 자산</span>
+          <span className="text-rose-700 font-bold">₩{afterDrop.toLocaleString()}</span>
+        </div>
+      </div>
+
+      <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+        <p>💡 시장 폭락 시 포트폴리오 영향을 미리 확인해보세요</p>
+      </div>
+    </div>
+  )
+}
 
 // Price Alerts List Component
 const PriceAlertsList = ({ alerts, onDelete }) => {
