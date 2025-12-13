@@ -44,6 +44,10 @@ const AIReport = () => {
   const [selectedStocksForAI, setSelectedStocksForAI] = useState([])  // 선택된 종목 목록
   const [customAISymbol, setCustomAISymbol] = useState('')  // 직접 입력 종목 심볼
 
+  // Rebalancing target allocation
+  const [targetAllocation, setTargetAllocation] = useState({})  // { symbol: targetPercent }
+  const [showRebalanceCalc, setShowRebalanceCalc] = useState(false)
+
 
   const marketInsights = useMemo(() => computeMarketInsights(marketData), [marketData])
   const portfolioInsights = useMemo(
@@ -678,6 +682,43 @@ ${insights.map(i => '- ' + i).join('\n')}
     } finally {
       setLoading(false)
     }
+  }
+
+  // 리밸런싱 매매 금액 계산
+  const calculateRebalanceTrades = useMemo(() => {
+    if (!portfolioData?.assets?.length) return []
+
+    const totalValue = portfolioData.assets.reduce((sum, a) => sum + (a.valueKRW || 0), 0)
+    if (totalValue <= 0) return []
+
+    return portfolioData.assets.map(asset => {
+      const currentPercent = ((asset.valueKRW || 0) / totalValue) * 100
+      const targetPercent = targetAllocation[asset.symbol] ?? currentPercent
+      const diff = targetPercent - currentPercent
+      const tradeAmount = (totalValue * diff) / 100
+
+      return {
+        symbol: asset.symbol,
+        name: asset.name || asset.type,
+        currentValue: asset.valueKRW || 0,
+        currentPercent,
+        targetPercent,
+        diff,
+        tradeAmount,
+        action: tradeAmount > 1000 ? 'BUY' : tradeAmount < -1000 ? 'SELL' : 'HOLD'
+      }
+    }).filter(t => Math.abs(t.tradeAmount) > 1000)
+  }, [portfolioData, targetAllocation])
+
+  // 목표 비율 초기화 (현재 비율로)
+  const initTargetAllocation = () => {
+    if (!portfolioData?.assets?.length) return
+    const totalValue = portfolioData.assets.reduce((sum, a) => sum + (a.valueKRW || 0), 0)
+    const initial = {}
+    portfolioData.assets.forEach(asset => {
+      initial[asset.symbol] = Math.round(((asset.valueKRW || 0) / totalValue) * 100 * 10) / 10
+    })
+    setTargetAllocation(initial)
   }
 
   const handleChatSubmit = async (e) => {
@@ -1719,9 +1760,137 @@ ${assetsList}
         <div className="space-y-4">
           <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
             <p className="text-sm text-indigo-800">
-              <strong>🧠 GPT-5 사용:</strong> AI가 최적 자산 배분 및 리밸런싱 전략을 제안합니다
+              <strong>🧠 GPT-5.2 + 자동 계산:</strong> 목표 비율을 설정하면 AI가 리밸런싱 전략을 제안하고, 매매 금액을 자동으로 계산합니다
             </p>
           </div>
+
+          {/* 목표 비율 설정 UI */}
+          {portfolioData?.assets?.length > 0 && (
+            <div className="card bg-white border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-semibold text-gray-900">🎯 목표 자산 배분 설정</h4>
+                <div className="flex gap-2">
+                  <button
+                    onClick={initTargetAllocation}
+                    className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                  >
+                    현재 비율로 초기화
+                  </button>
+                  <button
+                    onClick={() => setShowRebalanceCalc(!showRebalanceCalc)}
+                    className="text-xs px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200"
+                  >
+                    {showRebalanceCalc ? '계산 숨기기' : '매매 금액 계산'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {portfolioData.assets.map(asset => {
+                  const totalValue = portfolioData.assets.reduce((sum, a) => sum + (a.valueKRW || 0), 0)
+                  const currentPercent = ((asset.valueKRW || 0) / totalValue) * 100
+                  const targetPercent = targetAllocation[asset.symbol] ?? currentPercent
+
+                  return (
+                    <div key={asset.symbol} className="flex items-center gap-4 p-2 bg-gray-50 rounded-lg">
+                      <div className="w-24 flex-shrink-0">
+                        <p className="text-sm font-medium text-gray-900">{asset.symbol}</p>
+                        <p className="text-xs text-gray-500">{formatCurrency(asset.valueKRW || 0, 'KRW')}</p>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 w-16">현재 {currentPercent.toFixed(1)}%</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            value={targetPercent}
+                            onChange={(e) => setTargetAllocation(prev => ({
+                              ...prev,
+                              [asset.symbol]: parseFloat(e.target.value)
+                            }))}
+                            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            value={targetPercent}
+                            onChange={(e) => setTargetAllocation(prev => ({
+                              ...prev,
+                              [asset.symbol]: parseFloat(e.target.value) || 0
+                            }))}
+                            className="w-16 px-2 py-1 text-sm border border-gray-300 rounded text-center"
+                          />
+                          <span className="text-xs text-gray-500">%</span>
+                        </div>
+                      </div>
+                      <div className="w-20 text-right">
+                        {targetPercent !== currentPercent && (
+                          <span className={`text-xs font-medium ${targetPercent > currentPercent ? 'text-green-600' : 'text-red-600'}`}>
+                            {targetPercent > currentPercent ? '▲' : '▼'} {Math.abs(targetPercent - currentPercent).toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* 목표 비율 합계 */}
+              <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">목표 비율 합계:</span>
+                  <span className={`font-semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
+                      ? 'text-green-600' : 'text-orange-600'
+                    }`}>
+                    {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
+                    {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 1 &&
+                      ' (100%로 맞춰주세요)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 매매 금액 계산 결과 */}
+          {showRebalanceCalc && calculateRebalanceTrades.length > 0 && (
+            <div className="card bg-gradient-to-r from-green-50 to-blue-50 border-l-4 border-green-500">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">💰 리밸런싱 매매 금액</h4>
+              <div className="space-y-2">
+                {calculateRebalanceTrades.map(trade => (
+                  <div key={trade.symbol} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                    <div>
+                      <span className="font-medium text-gray-900">{trade.symbol}</span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        {trade.currentPercent.toFixed(1)}% → {trade.targetPercent.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className={`font-semibold ${trade.action === 'BUY' ? 'text-green-600' : 'text-red-600'}`}>
+                        {trade.action === 'BUY' ? '📈 매수' : '📉 매도'}
+                      </span>
+                      <p className={`text-sm font-bold ${trade.action === 'BUY' ? 'text-green-700' : 'text-red-700'}`}>
+                        {formatCurrency(Math.abs(trade.tradeAmount), 'KRW')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between text-sm">
+                <span className="text-gray-600">총 매수 금액:</span>
+                <span className="font-semibold text-green-600">
+                  {formatCurrency(
+                    calculateRebalanceTrades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.tradeAmount, 0),
+                    'KRW'
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+
           {portfolioInsights && (
             <div className="card border border-indigo-100 bg-indigo-50/60">
               <h4 className="text-sm font-semibold text-indigo-900 mb-2">리밸런싱 참고 지표</h4>
