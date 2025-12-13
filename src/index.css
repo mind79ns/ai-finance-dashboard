@@ -7,13 +7,11 @@
     @apply bg-gray-50 text-gray-900 antialiased;
   }
 
-  /* Dark mode base */
   .dark body,
   .dark {
     @apply bg-gray-900 text-gray-100;
   }
 
-  /* Dark mode text colors */
   .dark h1,
   .dark h2,
   .dark h3,
@@ -29,17 +27,10 @@
     @apply text-gray-300;
   }
 
-  /* Dark mode inputs */
   .dark input,
   .dark select,
   .dark textarea {
     @apply bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400;
-  }
-
-  .dark input:focus,
-  .dark select:focus,
-  .dark textarea:focus {
-    @apply ring-primary-500 border-primary-500;
   }
 }
 
@@ -50,14 +41,6 @@
 
   .dark .card {
     @apply bg-gray-800 border-gray-700 text-gray-100;
-  }
-
-  /* Dark mode for gradient backgrounds */
-  .dark [class*="bg-gradient"],
-  .dark [class*="from-"],
-  .dark [class*="to-"] {
-    --tw-gradient-from: #1f2937;
-    --tw-gradient-to: #111827;
   }
 
   .btn-primary {
@@ -76,7 +59,6 @@
     @apply bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed min-h-[44px] touch-manipulation;
   }
 
-  /* Markdown body */
   .markdown-body {
     @apply space-y-4 leading-relaxed;
   }
@@ -122,27 +104,6 @@
     @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto text-xs leading-6;
   }
 
-  /* Dark mode markdown */
-  .dark .markdown-body h1,
-  .dark .markdown-body h2,
-  .dark .markdown-body h3 {
-    @apply text-gray-100;
-  }
-
-  .dark .markdown-body p,
-  .dark .markdown-body li {
-    @apply text-gray-300;
-  }
-
-  .dark .markdown-body blockquote {
-    @apply border-primary-600 text-gray-400;
-  }
-
-  .dark .markdown-body code {
-    @apply bg-gray-700 text-gray-200;
-  }
-
-  /* Markdown Table Styles */
   .markdown-body table {
     @apply w-full border-collapse mb-4;
   }
@@ -167,7 +128,25 @@
     @apply bg-blue-50;
   }
 
-  /* Dark mode markdown tables */
+  .dark .markdown-body h1,
+  .dark .markdown-body h2,
+  .dark .markdown-body h3 {
+    @apply text-gray-100;
+  }
+
+  .dark .markdown-body p,
+  .dark .markdown-body li {
+    @apply text-gray-300;
+  }
+
+  .dark .markdown-body blockquote {
+    @apply border-primary-600 text-gray-400;
+  }
+
+  .dark .markdown-body code {
+    @apply bg-gray-700 text-gray-200;
+  }
+
   .dark .markdown-body thead {
     @apply bg-gray-700;
   }
@@ -181,14 +160,13 @@
   }
 
   .dark .markdown-body tr:nth-child(even) {
-    @apply bg-gray-750;
+    background-color: #2d3748;
   }
 
   .dark .markdown-body tr:hover {
     @apply bg-gray-700;
   }
 
-  /* Prose-specific table styles for ReactMarkdown */
   .prose table {
     @apply w-full border-collapse my-4 text-sm;
   }
@@ -217,7 +195,11 @@
     @apply bg-blue-50 transition-colors;
   }
 
-  /* Dark mode prose tables */
+  .prose th,
+  .prose td {
+    @apply break-words;
+  }
+
   .dark .prose thead {
     @apply bg-gray-700;
   }
@@ -235,79 +217,338 @@
   }
 
   .dark .prose tbody tr:nth-child(even) {
-    @apply bg-gray-750;
+    background-color: #2d3748;
   }
 
   .dark .prose tbody tr:hover {
     @apply bg-gray-700;
   }
-
-  /* Ensure proper text wrapping in table cells */
-  .prose th,
-  .prose td {
-    @apply break-words;
-  }
-
-  /* Dark mode for common UI elements */
-  .dark .bg-white {
-    background-color: #1f2937 !important;
-  }
-
-  .dark .bg-gray-50 {
-    background-color: #111827 !important;
-  }
-
-  .dark .bg-gray-100 {
-    background-color: #1f2937 !important;
-  }
-
-  .dark .text-gray-900 {
-    color: #f3f4f6 !important;
-  }
-
-  .dark .text-gray-800 {
-    color: #e5e7eb !important;
-  }
-
-  .dark .text-gray-700 {
-    color: #d1d5db !important;
-  }
-
-  .dark .text-gray-600 {
-    color: #9ca3af !important;
-  }
-
-  .dark .border-gray-200 {
-    border-color: #374151 !important;
-  }
-
-  .dark .border-gray-300 {
-    border-color: #4b5563 !important;
-  }
-
-  /* Recharts dark mode */
-  .dark .recharts-cartesian-grid-horizontal line,
-  .dark .recharts-cartesian-grid-vertical line {
-    stroke: #374151;
-  }
-
-  .dark .recharts-text {
-    fill: #9ca3af;
-  }
-
-  .dark .recharts-legend-item-text {
-    color: #d1d5db !important;
-  }
-
-  .dark .recharts-tooltip-wrapper .recharts-default-tooltip {
-    background-color: #1f2937 !important;
-    border-color: #374151 !important;
-  }
 }
 
-/* Custom bg-gray-750 for dark mode alternating rows */
-@layer utilities {
-  .bg-gray-750 {
-    background-color: #2d3748;
-  }
+/* ========== COMPREHENSIVE DARK MODE OVERRIDES ========== */
+
+/* Background colors */
+.dark .bg-white {
+  background-color: #1f2937 !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: #111827 !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #1f2937 !important;
+}
+
+.dark .bg-gray-200 {
+  background-color: #374151 !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+/* Colored backgrounds - info boxes, cards */
+.dark .bg-indigo-50 {
+  background-color: #312e81 !important;
+}
+
+.dark .bg-indigo-100 {
+  background-color: #3730a3 !important;
+}
+
+.dark .bg-blue-50 {
+  background-color: #1e3a5f !important;
+}
+
+.dark .bg-blue-100 {
+  background-color: #1e40af !important;
+}
+
+.dark .bg-green-50 {
+  background-color: #064e3b !important;
+}
+
+.dark .bg-green-100 {
+  background-color: #065f46 !important;
+}
+
+.dark .bg-red-50 {
+  background-color: #450a0a !important;
+}
+
+.dark .bg-red-100 {
+  background-color: #7f1d1d !important;
+}
+
+.dark .bg-yellow-50 {
+  background-color: #422006 !important;
+}
+
+.dark .bg-yellow-100 {
+  background-color: #713f12 !important;
+}
+
+.dark .bg-orange-50 {
+  background-color: #431407 !important;
+}
+
+.dark .bg-orange-100 {
+  background-color: #7c2d12 !important;
+}
+
+.dark .bg-purple-50 {
+  background-color: #3b0764 !important;
+}
+
+.dark .bg-purple-100 {
+  background-color: #581c87 !important;
+}
+
+.dark .bg-pink-50 {
+  background-color: #500724 !important;
+}
+
+.dark .bg-emerald-50 {
+  background-color: #022c22 !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: #451a03 !important;
+}
+
+.dark .bg-cyan-50 {
+  background-color: #083344 !important;
+}
+
+.dark .bg-teal-50 {
+  background-color: #042f2e !important;
+}
+
+/* Text colors */
+.dark .text-gray-900 {
+  color: #f3f4f6 !important;
+}
+
+.dark .text-gray-800 {
+  color: #e5e7eb !important;
+}
+
+.dark .text-gray-700 {
+  color: #d1d5db !important;
+}
+
+.dark .text-gray-600 {
+  color: #9ca3af !important;
+}
+
+.dark .text-gray-500 {
+  color: #9ca3af !important;
+}
+
+.dark .text-slate-900 {
+  color: #f1f5f9 !important;
+}
+
+.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-indigo-900 {
+  color: #c7d2fe !important;
+}
+
+.dark .text-indigo-800 {
+  color: #a5b4fc !important;
+}
+
+.dark .text-indigo-700 {
+  color: #818cf8 !important;
+}
+
+.dark .text-blue-900 {
+  color: #bfdbfe !important;
+}
+
+.dark .text-blue-800 {
+  color: #93c5fd !important;
+}
+
+.dark .text-green-900 {
+  color: #bbf7d0 !important;
+}
+
+.dark .text-green-800 {
+  color: #86efac !important;
+}
+
+.dark .text-red-900 {
+  color: #fecaca !important;
+}
+
+.dark .text-red-800 {
+  color: #fca5a5 !important;
+}
+
+/* Border colors */
+.dark .border-gray-200 {
+  border-color: #374151 !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #4b5563 !important;
+}
+
+.dark .border-gray-100 {
+  border-color: #374151 !important;
+}
+
+.dark .border-indigo-200 {
+  border-color: #4338ca !important;
+}
+
+.dark .border-indigo-100 {
+  border-color: #4338ca !important;
+}
+
+.dark .border-blue-200 {
+  border-color: #1d4ed8 !important;
+}
+
+.dark .border-green-200 {
+  border-color: #059669 !important;
+}
+
+.dark .border-red-200 {
+  border-color: #dc2626 !important;
+}
+
+/* Table - global overrides */
+.dark table {
+  background-color: #1f2937 !important;
+}
+
+.dark thead {
+  background-color: #374151 !important;
+}
+
+.dark th {
+  background-color: #374151 !important;
+  color: #f3f4f6 !important;
+  border-color: #4b5563 !important;
+}
+
+.dark td {
+  background-color: #1f2937 !important;
+  color: #d1d5db !important;
+  border-color: #4b5563 !important;
+}
+
+.dark tbody tr:nth-child(even) td {
+  background-color: #111827 !important;
+}
+
+.dark tbody tr:hover td {
+  background-color: #374151 !important;
+}
+
+/* Inputs */
+.dark input[type="text"],
+.dark input[type="number"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="search"],
+.dark input[type="date"],
+.dark select,
+.dark textarea {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #f3f4f6 !important;
+}
+
+/* Recharts */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+  stroke: #374151 !important;
+}
+
+.dark .recharts-text {
+  fill: #9ca3af !important;
+}
+
+.dark .recharts-legend-item-text {
+  color: #d1d5db !important;
+}
+
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+/* Gradient overrides */
+.dark [class*="from-indigo-"][class*="to-purple-"] {
+  background: linear-gradient(to right, #312e81, #581c87) !important;
+}
+
+.dark [class*="from-green-"][class*="to-blue-"] {
+  background: linear-gradient(to right, #064e3b, #1e3a5f) !important;
+}
+
+.dark [class*="from-blue-"][class*="to-indigo-"] {
+  background: linear-gradient(to right, #1e3a5f, #312e81) !important;
+}
+
+/* Hover states */
+.dark .hover\:bg-gray-50:hover {
+  background-color: #374151 !important;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #374151 !important;
+}
+
+.dark .hover\:bg-blue-50:hover {
+  background-color: #1e3a5f !important;
+}
+
+.dark .hover\:bg-indigo-50:hover {
+  background-color: #312e81 !important;
+}
+
+/* Divide and ring */
+.dark .divide-gray-200>*+* {
+  border-color: #374151 !important;
+}
+
+.dark .divide-gray-100>*+* {
+  border-color: #374151 !important;
+}
+
+.dark .ring-gray-200 {
+  --tw-ring-color: #374151 !important;
+}
+
+.dark .ring-gray-300 {
+  --tw-ring-color: #4b5563 !important;
+}
+
+/* Shadows */
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3) !important;
 }
