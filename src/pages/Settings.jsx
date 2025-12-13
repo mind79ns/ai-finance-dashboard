@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Sun, Moon, DollarSign, Key, Trash2, Download, Upload, RefreshCw, Check, AlertTriangle } from 'lucide-react'
+import { Settings as SettingsIcon, Sun, Moon, DollarSign, Key, Trash2, Download, Upload, RefreshCw, Check, AlertTriangle, Clock, History, FileSpreadsheet, RotateCcw } from 'lucide-react'
 import DataMigrationPanel from '../components/DataMigrationPanel'
+import backupManager from '../utils/backupManager'
 
 const Settings = () => {
   // Theme settings
@@ -19,6 +20,11 @@ const Settings = () => {
   // Status messages
   const [saveStatus, setSaveStatus] = useState('')
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+
+  // Auto-backup settings
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(() => backupManager.isAutoBackupEnabled())
+  const [backupHistory, setBackupHistory] = useState(() => backupManager.getBackupHistory())
+  const [lastBackupDate, setLastBackupDate] = useState(() => backupManager.getLastBackupDate())
 
   // Apply theme on change
   useEffect(() => {
@@ -151,8 +157,8 @@ const Settings = () => {
           <button
             onClick={() => setTheme('light')}
             className={`flex-1 p-4 rounded-lg border-2 transition-all ${theme === 'light'
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300'
+              ? 'border-primary-500 bg-primary-50'
+              : 'border-gray-200 hover:border-gray-300'
               }`}
           >
             <Sun className={`w-8 h-8 mx-auto mb-2 ${theme === 'light' ? 'text-primary-600' : 'text-gray-400'}`} />
@@ -163,8 +169,8 @@ const Settings = () => {
           <button
             onClick={() => setTheme('dark')}
             className={`flex-1 p-4 rounded-lg border-2 transition-all ${theme === 'dark'
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300'
+              ? 'border-primary-500 bg-primary-50'
+              : 'border-gray-200 hover:border-gray-300'
               }`}
           >
             <Moon className={`w-8 h-8 mx-auto mb-2 ${theme === 'dark' ? 'text-primary-600' : 'text-gray-400'}`} />
@@ -187,8 +193,8 @@ const Settings = () => {
               key={currency}
               onClick={() => handleCurrencyChange(currency)}
               className={`p-3 rounded-lg border-2 transition-all ${defaultCurrency === currency
-                  ? 'border-primary-500 bg-primary-50 text-primary-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                : 'border-gray-200 hover:border-gray-300 text-gray-600'
                 }`}
             >
               <p className="font-semibold">{currency}</p>
@@ -265,27 +271,76 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Data Backup/Restore */}
+      {/* Data Backup/Restore - Enhanced */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <Download className="w-5 h-5" />
           데이터 백업 및 복원
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Auto-backup Toggle */}
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-gray-100">자동 백업</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  24시간마다 자동으로 백업 (최근 5개 유지)
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const newValue = !autoBackupEnabled
+                setAutoBackupEnabled(newValue)
+                backupManager.setAutoBackupEnabled(newValue)
+                if (newValue) {
+                  // 활성화 시 즉시 백업 실행
+                  const backup = backupManager.createBackupData()
+                  backupManager.saveToBackupHistory(backup, `수동 백업 ${new Date().toLocaleString('ko-KR')}`)
+                  setBackupHistory(backupManager.getBackupHistory())
+                  setLastBackupDate(backupManager.getLastBackupDate())
+                  showSaveMessage('자동 백업이 활성화되었습니다.')
+                } else {
+                  showSaveMessage('자동 백업이 비활성화되었습니다.')
+                }
+              }}
+              className={`relative w-14 h-7 rounded-full transition-colors ${autoBackupEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+            >
+              <span
+                className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${autoBackupEnabled ? 'translate-x-7' : 'translate-x-0'
+                  }`}
+              />
+            </button>
+          </div>
+          {lastBackupDate && (
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+              마지막 백업: {new Date(lastBackupDate).toLocaleString('ko-KR')}
+            </p>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <button
-            onClick={handleExportData}
-            className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
+            onClick={() => {
+              const backup = backupManager.createBackupData()
+              backupManager.downloadBackup(backup)
+              showSaveMessage('데이터가 내보내기 되었습니다.')
+            }}
+            className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-all group"
           >
             <Download className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600" />
-            <p className="font-medium text-gray-700 group-hover:text-primary-700">데이터 내보내기</p>
-            <p className="text-xs text-gray-500">JSON 파일로 백업</p>
+            <p className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary-700">JSON 내보내기</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">전체 데이터 백업</p>
           </button>
 
-          <label className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all cursor-pointer group">
+          <label className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-all cursor-pointer group">
             <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600" />
-            <p className="font-medium text-gray-700 group-hover:text-primary-700">데이터 가져오기</p>
-            <p className="text-xs text-gray-500">백업 파일에서 복원</p>
+            <p className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary-700">JSON 가져오기</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">백업 파일 복원</p>
             <input
               type="file"
               accept=".json"
@@ -293,7 +348,85 @@ const Settings = () => {
               className="hidden"
             />
           </label>
+
+          <button
+            onClick={() => {
+              try {
+                backupManager.exportPortfolioToCSV()
+                showSaveMessage('포트폴리오가 CSV로 내보내기 되었습니다.')
+              } catch (e) {
+                showSaveMessage('⚠️ ' + e.message)
+              }
+            }}
+            className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all group"
+          >
+            <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-emerald-600" />
+            <p className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-emerald-700">CSV 내보내기</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">포트폴리오 스프레드시트</p>
+          </button>
         </div>
+
+        {/* Backup History */}
+        {backupHistory.length > 0 && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <History className="w-4 h-4 text-gray-500" />
+              <h4 className="font-medium text-gray-700 dark:text-gray-300">백업 히스토리</h4>
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {backupHistory.map((backup) => (
+                <div
+                  key={backup.id}
+                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg p-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{backup.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(backup.date).toLocaleString('ko-KR')} · {backup.size}KB · {backup.itemCount}개 항목
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (window.confirm('이 백업으로 복원하시겠습니까? 현재 데이터가 덮어쓰기 됩니다.')) {
+                          backupManager.restoreFromBackup(backup.data)
+                          showSaveMessage('백업이 복원되었습니다. 페이지를 새로고침하세요.')
+                        }
+                      }}
+                      className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
+                      title="복원"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        backupManager.downloadBackup(backup.data, `backup-${backup.id}.json`)
+                        showSaveMessage('백업 파일이 다운로드되었습니다.')
+                      }}
+                      className="p-2 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg"
+                      title="다운로드"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('이 백업을 삭제하시겠습니까?')) {
+                          const newHistory = backupManager.deleteFromBackupHistory(backup.id)
+                          setBackupHistory(newHistory)
+                          showSaveMessage('백업이 삭제되었습니다.')
+                        }
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Data Migration Panel */}
