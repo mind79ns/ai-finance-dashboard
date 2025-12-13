@@ -141,8 +141,8 @@ const Portfolio = () => {
 
           // Update USD stock/ETF prices from Finnhub
           if ((asset.type === '주식' || asset.type === 'ETF') &&
-              asset.currency === 'USD' &&
-              usdStockPrices[asset.symbol]) {
+            asset.currency === 'USD' &&
+            usdStockPrices[asset.symbol]) {
             currentPrice = usdStockPrices[asset.symbol].price
             // Finnhub도 changePercent 제공하면 저장
             if (usdStockPrices[asset.symbol].changePercent !== undefined) {
@@ -152,8 +152,8 @@ const Portfolio = () => {
           }
           // Update KRW stock/ETF prices from 한국투자증권
           else if ((asset.type === '주식' || asset.type === 'ETF') &&
-                   asset.currency === 'KRW' &&
-                   krwStockPrices[asset.symbol]) {
+            asset.currency === 'KRW' &&
+            krwStockPrices[asset.symbol]) {
             currentPrice = krwStockPrices[asset.symbol].price
             dailyChangePercent = krwStockPrices[asset.symbol].changePercent || 0
             console.log(`📊 KIS: ${asset.symbol} = ₩${currentPrice} (${dailyChangePercent > 0 ? '+' : ''}${dailyChangePercent.toFixed(2)}%)`)
@@ -626,7 +626,7 @@ const Portfolio = () => {
       if (searchQuery.trim() !== '') {
         const query = searchQuery.toLowerCase()
         return asset.symbol.toLowerCase().includes(query) ||
-               asset.name.toLowerCase().includes(query)
+          asset.name.toLowerCase().includes(query)
       }
       return true
     })
@@ -698,11 +698,10 @@ const Portfolio = () => {
         </div>
 
         {/* 총 수익금 (원화 기준 통합) */}
-        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-xl ${
-          totalProfitKRW >= 0
-            ? 'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700'
-            : 'bg-gradient-to-br from-red-500 via-rose-600 to-pink-700'
-        }`}>
+        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-xl ${totalProfitKRW >= 0
+          ? 'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700'
+          : 'bg-gradient-to-br from-red-500 via-rose-600 to-pink-700'
+          }`}>
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
           <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
           <div className="relative">
@@ -734,11 +733,10 @@ const Portfolio = () => {
         </div>
 
         {/* 평균 수익률 */}
-        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-xl ${
-          totalAvgProfitPercent >= 0
-            ? 'bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-700'
-            : 'bg-gradient-to-br from-orange-500 via-amber-600 to-yellow-700'
-        }`}>
+        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-xl ${totalAvgProfitPercent >= 0
+          ? 'bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-700'
+          : 'bg-gradient-to-br from-orange-500 via-amber-600 to-yellow-700'
+          }`}>
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
           <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
           <div className="relative">
@@ -1139,13 +1137,13 @@ const Portfolio = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-bold text-gray-900">계좌별 현황</h3>
-              <p className="text-sm text-gray-600 mt-1">계좌별 평가액 및 수익 분석 (USD/KRW 분리)</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">계좌별 현황</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">계좌별 평가액 및 수익 분석 (USD/KRW 분리)</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {accountSummary.map((account) => (
-              <div key={account.account} className="relative overflow-hidden rounded-xl bg-white border border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div key={account.account} className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
                 {/* Header with gradient background */}
                 <div className="bg-gradient-to-r from-slate-700 to-slate-900 p-4">
                   <div className="flex items-center justify-between">
@@ -1160,26 +1158,26 @@ const Portfolio = () => {
                 <div className="p-5 space-y-4">
                   {/* USD 자산 */}
                   {account.usdTotalValue > 0 && (
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-lg">🇺🇸</span>
-                        <span className="text-sm font-bold text-blue-900">USD</span>
+                        <span className="text-sm font-bold text-blue-900 dark:text-blue-200">USD</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-blue-700">평가액</span>
-                          <span className="text-base font-bold text-blue-900">
+                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">평가액</span>
+                          <span className="text-base font-bold text-blue-900 dark:text-blue-100">
                             ${account.usdTotalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-blue-700">수익금</span>
+                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">수익금</span>
                           <span className={`text-sm font-bold ${account.usdTotalProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {account.usdTotalProfit >= 0 ? '+' : ''}${account.usdTotalProfit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-blue-200">
-                          <span className="text-xs font-medium text-blue-700">수익률</span>
+                        <div className="flex justify-between items-center pt-2 border-t border-blue-200 dark:border-blue-700">
+                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">수익률</span>
                           <span className={`text-lg font-bold ${account.usdProfitPercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {account.usdProfitPercent >= 0 ? '+' : ''}{account.usdProfitPercent.toFixed(2)}%
                           </span>
@@ -1190,26 +1188,26 @@ const Portfolio = () => {
 
                   {/* KRW 자산 */}
                   {account.krwTotalValue > 0 && (
-                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-100">
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg p-4 border border-purple-100 dark:border-purple-800">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-lg">🇰🇷</span>
-                        <span className="text-sm font-bold text-purple-900">KRW</span>
+                        <span className="text-sm font-bold text-purple-900 dark:text-purple-200">KRW</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-purple-700">평가액</span>
-                          <span className="text-base font-bold text-purple-900">
+                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">평가액</span>
+                          <span className="text-base font-bold text-purple-900 dark:text-purple-100">
                             ₩{Math.round(account.krwTotalValue).toLocaleString('ko-KR')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-purple-700">수익금</span>
+                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">수익금</span>
                           <span className={`text-sm font-bold ${account.krwTotalProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {account.krwTotalProfit >= 0 ? '+' : ''}₩{Math.round(account.krwTotalProfit).toLocaleString('ko-KR')}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-purple-200">
-                          <span className="text-xs font-medium text-purple-700">수익률</span>
+                        <div className="flex justify-between items-center pt-2 border-t border-purple-200 dark:border-purple-700">
+                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">수익률</span>
                           <span className={`text-lg font-bold ${account.krwProfitPercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {account.krwProfitPercent >= 0 ? '+' : ''}{account.krwProfitPercent.toFixed(2)}%
                           </span>
@@ -1280,11 +1278,10 @@ const Portfolio = () => {
                   <button
                     key={type}
                     onClick={() => setFilterType(type)}
-                    className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-lg transition-colors min-h-[32px] ${
-                      filterType === type
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                    className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-lg transition-colors min-h-[32px] ${filterType === type
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
                   >
                     {type}
                   </button>
@@ -1448,9 +1445,8 @@ const Portfolio = () => {
                       </div>
                     </div>
                     {/* Profit percentage badge */}
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${
-                      positive ? 'bg-emerald-50' : 'bg-rose-50'
-                    }`}>
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${positive ? 'bg-emerald-50' : 'bg-rose-50'
+                      }`}>
                       <span className={`text-base font-bold ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(1)}%
                       </span>
@@ -1550,85 +1546,85 @@ const Portfolio = () => {
                 </tr>
               ) : (
                 filteredAssets.map((asset) => (
-                <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  {selectionMode && (
-                    <td className="py-4 px-4 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedAssets.includes(asset.id)}
-                        onChange={() => handleToggleAssetSelection(asset.id)}
-                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                      />
-                    </td>
-                  )}
-                  <td className="py-4 px-4">
-                    <p className="font-medium text-gray-900">{asset.symbol}</p>
-                  </td>
-                  <td className="py-4 px-4">
-                    <p className="text-sm text-gray-700">{asset.name}</p>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-primary-50 text-primary-700">
-                      {asset.type}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700">
-                      {asset.account || '기본계좌'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-center">
-                    <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
-                      {asset.currency}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-right text-sm text-gray-700">
-                    {asset.quantity}
-                  </td>
-                  <td className="py-4 px-4 text-right text-sm text-gray-700">
-                    {formatCurrency(asset.avgPrice, asset.currency)}
-                  </td>
-                  <td className="py-4 px-4 text-right text-sm text-gray-700">
-                    {formatCurrency(asset.currentPrice, asset.currency)}
-                  </td>
-                  <td className="py-4 px-4 text-right text-sm font-medium text-gray-900">
-                    {formatCurrency(asset.totalValue, asset.currency)}
-                    {asset.currency === 'KRW' && (
-                      <div className="text-xs text-gray-500">
-                        ${(asset.totalValue / exchangeRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                      </div>
+                  <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    {selectionMode && (
+                      <td className="py-4 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedAssets.includes(asset.id)}
+                          onChange={() => handleToggleAssetSelection(asset.id)}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                      </td>
                     )}
-                  </td>
-                  <td className="py-4 px-4 text-right text-sm">
-                    <span className={asset.profit >= 0 ? 'text-success' : 'text-danger'}>
-                      {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-right text-sm font-medium">
-                    <span className={(asset.profitPercent || 0) >= 0 ? 'text-success' : 'text-danger'}>
-                      {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(2)}%
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleViewDetail(asset)}
-                        className="p-1 hover:bg-primary-50 rounded transition-colors"
-                        title="상세 보기"
-                      >
-                        <Eye className="w-4 h-4 text-primary-600" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAsset(asset.id)}
-                        className="p-1 hover:bg-red-50 rounded transition-colors"
-                        title="삭제"
-                      >
-                        <Trash2 className="w-4 h-4 text-danger" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    <td className="py-4 px-4">
+                      <p className="font-medium text-gray-900">{asset.symbol}</p>
+                    </td>
+                    <td className="py-4 px-4">
+                      <p className="text-sm text-gray-700">{asset.name}</p>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-primary-50 text-primary-700">
+                        {asset.type}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700">
+                        {asset.account || '기본계좌'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                        {asset.currency}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-right text-sm text-gray-700">
+                      {asset.quantity}
+                    </td>
+                    <td className="py-4 px-4 text-right text-sm text-gray-700">
+                      {formatCurrency(asset.avgPrice, asset.currency)}
+                    </td>
+                    <td className="py-4 px-4 text-right text-sm text-gray-700">
+                      {formatCurrency(asset.currentPrice, asset.currency)}
+                    </td>
+                    <td className="py-4 px-4 text-right text-sm font-medium text-gray-900">
+                      {formatCurrency(asset.totalValue, asset.currency)}
+                      {asset.currency === 'KRW' && (
+                        <div className="text-xs text-gray-500">
+                          ${(asset.totalValue / exchangeRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-4 px-4 text-right text-sm">
+                      <span className={asset.profit >= 0 ? 'text-success' : 'text-danger'}>
+                        {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-right text-sm font-medium">
+                      <span className={(asset.profitPercent || 0) >= 0 ? 'text-success' : 'text-danger'}>
+                        {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(2)}%
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleViewDetail(asset)}
+                          className="p-1 hover:bg-primary-50 rounded transition-colors"
+                          title="상세 보기"
+                        >
+                          <Eye className="w-4 h-4 text-primary-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAsset(asset.id)}
+                          className="p-1 hover:bg-red-50 rounded transition-colors"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4 text-danger" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
@@ -1902,7 +1898,7 @@ const Portfolio = () => {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-900 mb-2">📋 CSV 템플릿 샘플</h4>
                 <pre className="text-xs bg-white p-3 rounded border border-gray-200 overflow-x-auto">
-{`Symbol,Name,Type,Quantity,AvgPrice,Currency
+                  {`Symbol,Name,Type,Quantity,AvgPrice,Currency
 AAPL,Apple Inc.,주식,10,150.50,USD
 TSLA,Tesla Inc.,주식,5,242.15,USD
 005930,삼성전자,주식,20,75000,KRW

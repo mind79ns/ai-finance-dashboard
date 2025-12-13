@@ -277,7 +277,7 @@ const Goals = () => {
 
       // Compound growth projection (more realistic)
       const compoundGrowth = currentAmount * Math.pow(1 + annualReturnRate, i) +
-                             (monthlyContribution * 12 * ((Math.pow(1 + annualReturnRate, i) - 1) / annualReturnRate))
+        (monthlyContribution * 12 * ((Math.pow(1 + annualReturnRate, i) - 1) / annualReturnRate))
 
       // Target path (linear to target)
       const targetPath = currentAmount + (remainingAmount * (i / yearsToTarget))
@@ -776,15 +776,15 @@ ${JSON.stringify(context, null, 2)}
           </ResponsiveContainer>
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-primary-50 rounded-lg">
-              <p className="text-sm text-primary-700 mb-1">필요 연평균 수익률</p>
+            <div className="p-4 bg-primary-50 dark:bg-primary-900/30 rounded-lg">
+              <p className="text-sm text-primary-700 dark:text-primary-300 mb-1">필요 연평균 수익률</p>
               <p className={`text-2xl font-bold ${riskAssessment.color}`}>
                 {requiredAnnualReturn > 0 && isFinite(requiredAnnualReturn)
                   ? `${requiredAnnualReturn.toFixed(1)}%`
                   : '0%'}
               </p>
             </div>
-            <div className="p-4 bg-success/10 rounded-lg">
+            <div className="p-4 bg-success/10 dark:bg-success/20 rounded-lg">
               <p className="text-sm text-success mb-1">예상 총 수익</p>
               <p className="text-2xl font-bold text-success">
                 {goals[0]?.currency === 'KRW'
@@ -792,8 +792,8 @@ ${JSON.stringify(context, null, 2)}
                   : `$${Math.round(expectedProfit).toLocaleString()}`}
               </p>
             </div>
-            <div className="p-4 bg-warning/10 rounded-lg">
-              <p className="text-sm text-gray-700 mb-1">리스크 수준</p>
+            <div className="p-4 bg-warning/10 dark:bg-warning/20 rounded-lg">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-1">리스크 수준</p>
               <p className={`text-2xl font-bold ${riskAssessment.color}`}>
                 {riskAssessment.level}
               </p>
@@ -801,8 +801,8 @@ ${JSON.stringify(context, null, 2)}
           </div>
 
           {goals.length > 0 && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-800">
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <p className="text-xs text-blue-800 dark:text-blue-300">
                 <strong>차트 설명:</strong> 파란색 실선은 연 8% 복리 수익률 가정 시 예상 경로입니다.
                 점선은 목표 달성을 위한 이상적인 경로를 나타냅니다.
                 실제 수익률은 시장 상황에 따라 달라질 수 있습니다.
@@ -856,21 +856,21 @@ ${JSON.stringify(context, null, 2)}
             {aiSuggestions.map((suggestion, index) => {
               const bgColor = suggestion.type === 'error' ? 'bg-red-50 border-red-200'
                 : suggestion.type === 'warning' ? 'bg-yellow-50 border-yellow-200'
-                : suggestion.type === 'rebalance' ? 'bg-purple-50 border-purple-200'
-                : suggestion.type === 'investment' ? 'bg-green-50 border-green-200'
-                : 'bg-blue-50 border-blue-200'
+                  : suggestion.type === 'rebalance' ? 'bg-purple-50 border-purple-200'
+                    : suggestion.type === 'investment' ? 'bg-green-50 border-green-200'
+                      : 'bg-blue-50 border-blue-200'
 
               const iconColor = suggestion.type === 'error' ? 'text-red-600'
                 : suggestion.type === 'warning' ? 'text-yellow-600'
-                : suggestion.type === 'rebalance' ? 'text-purple-600'
-                : suggestion.type === 'investment' ? 'text-green-600'
-                : 'text-blue-600'
+                  : suggestion.type === 'rebalance' ? 'text-purple-600'
+                    : suggestion.type === 'investment' ? 'text-green-600'
+                      : 'text-blue-600'
 
               const Icon = suggestion.type === 'error' ? X
                 : suggestion.type === 'warning' ? Calendar
-                : suggestion.type === 'rebalance' ? TrendingUp
-                : suggestion.type === 'investment' ? Target
-                : Sparkles
+                  : suggestion.type === 'rebalance' ? TrendingUp
+                    : suggestion.type === 'investment' ? Target
+                      : Sparkles
 
               return (
                 <div key={index} className={`flex items-start gap-3 p-4 rounded-lg border ${bgColor}`}>

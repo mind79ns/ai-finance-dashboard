@@ -692,19 +692,19 @@ const HeaderSummary = ({ totals, assetsCount, accountSummary, assetStatusTotal }
 
 const MarketStrip = ({ data }) => {
   return (
-    <div className="card border-primary-100 bg-primary-50/60">
+    <div className="card border-primary-100 bg-primary-50/60 dark:bg-gray-800 dark:border-gray-700">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 sm:mb-4">
         <div className="flex items-center gap-2">
-          <Info className="w-4 h-4 text-primary-600 flex-shrink-0" />
-          <span className="text-xs sm:text-sm font-semibold text-primary-700">오늘의 시장 하이라이트</span>
+          <Info className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+          <span className="text-xs sm:text-sm font-semibold text-primary-700 dark:text-primary-300">오늘의 시장 하이라이트</span>
         </div>
-        <span className="text-xs text-primary-500 hidden md:inline">데이터 출처: Finnhub · CoinGecko · ExchangeRate API</span>
+        <span className="text-xs text-primary-500 dark:text-primary-400 hidden md:inline">데이터 출처: Finnhub · CoinGecko · ExchangeRate API</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {data.map(item => (
-          <div key={item.label} className="bg-white/80 border border-white rounded-lg p-3 sm:p-4 shadow-sm">
-            <p className="text-xs font-medium text-gray-500">{item.label}</p>
-            <p className="text-sm font-semibold text-gray-900 mt-1">{item.value}</p>
+          <div key={item.label} className="bg-white/80 dark:bg-gray-700 border border-white dark:border-gray-600 rounded-lg p-3 sm:p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{item.label}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1">{item.value}</p>
             <div className="flex items-center gap-1 text-xs mt-1">
               <span className={item.change >= 0 ? 'text-success' : 'text-danger'}>
                 {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change).toFixed(2)}%

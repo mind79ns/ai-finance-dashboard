@@ -1027,25 +1027,25 @@ ${assetsList}
       </div>
 
       {/* AI Model Selection */}
-      <div className="card bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+      <div className="card bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 border-purple-200 dark:border-purple-700">
         <div className="flex items-start gap-4">
-          <div className="p-2 bg-white rounded-lg">
-            <Zap className="w-6 h-6 text-purple-600" />
+          <div className="p-2 bg-white dark:bg-gray-700 rounded-lg">
+            <Zap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 mb-3">💡 AI 모델 선택</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">💡 AI 모델 선택</h3>
             <div className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button
                   onClick={() => setSelectedAI('auto')}
                   className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'auto'
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200 bg-white hover:border-purple-300'
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900'
+                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-purple-300'
                     }`}
                 >
                   <div className="text-left">
-                    <p className="font-semibold text-sm text-gray-900">🤖 자동 선택</p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">🤖 자동 선택</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                       작업에 맞게 AI 자동 배정
                     </p>
                     <p className="text-xs text-purple-600 mt-1">💰 비용 최적화</p>
@@ -1055,37 +1055,37 @@ ${assetsList}
                 <button
                   onClick={() => setSelectedAI('gpt')}
                   className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'gpt'
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-200 bg-white hover:border-green-300'
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900'
+                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-green-300'
                     }`}
                 >
                   <div className="text-left">
-                    <p className="font-semibold text-sm text-gray-900">🧠 GPT-5.2</p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">🧠 GPT-5.2</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                       최신 플래그십 (Dec 2025)
                     </p>
-                    <p className="text-xs text-green-600 mt-1">⭐ 최고 성능</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">⭐ 최고 성능</p>
                   </div>
                 </button>
 
                 <button
                   onClick={() => setSelectedAI('gemini')}
                   className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'gemini'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 bg-white hover:border-blue-300'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900'
+                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-blue-300'
                     }`}
                 >
                   <div className="text-left">
-                    <p className="font-semibold text-sm text-gray-900">⚡ Gemini 3 Pro</p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">⚡ Gemini 3 Pro</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                       Deep Think 지원 (Nov 2025)
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">🚀 추론 강화</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">🚀 추론 강화</p>
                   </div>
                 </button>
               </div>
 
-              <div className="text-xs text-gray-600 bg-white p-2 rounded">
+              <div className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 p-2 rounded">
                 <strong>현재 선택:</strong> {
                   selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
                     selectedAI === 'gpt' ? '🧠 GPT-5.2 (최신 플래그십)' :
