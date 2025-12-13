@@ -12,6 +12,35 @@
   .dark {
     @apply bg-gray-900 text-gray-100;
   }
+
+  /* Dark mode text colors */
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6 {
+    @apply text-gray-100;
+  }
+
+  .dark p,
+  .dark span,
+  .dark label {
+    @apply text-gray-300;
+  }
+
+  /* Dark mode inputs */
+  .dark input,
+  .dark select,
+  .dark textarea {
+    @apply bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400;
+  }
+
+  .dark input:focus,
+  .dark select:focus,
+  .dark textarea:focus {
+    @apply ring-primary-500 border-primary-500;
+  }
 }
 
 @layer components {
@@ -23,6 +52,14 @@
     @apply bg-gray-800 border-gray-700 text-gray-100;
   }
 
+  /* Dark mode for gradient backgrounds */
+  .dark [class*="bg-gradient"],
+  .dark [class*="from-"],
+  .dark [class*="to-"] {
+    --tw-gradient-from: #1f2937;
+    --tw-gradient-to: #111827;
+  }
+
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white font-medium py-2.5 px-4 rounded-lg transition-colors min-h-[44px] touch-manipulation;
   }
@@ -31,10 +68,15 @@
     @apply bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors min-h-[44px] touch-manipulation;
   }
 
+  .dark .btn-secondary {
+    @apply bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-gray-100;
+  }
+
   .btn-danger {
     @apply bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed min-h-[44px] touch-manipulation;
   }
 
+  /* Markdown body */
   .markdown-body {
     @apply space-y-4 leading-relaxed;
   }
@@ -80,6 +122,26 @@
     @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto text-xs leading-6;
   }
 
+  /* Dark mode markdown */
+  .dark .markdown-body h1,
+  .dark .markdown-body h2,
+  .dark .markdown-body h3 {
+    @apply text-gray-100;
+  }
+
+  .dark .markdown-body p,
+  .dark .markdown-body li {
+    @apply text-gray-300;
+  }
+
+  .dark .markdown-body blockquote {
+    @apply border-primary-600 text-gray-400;
+  }
+
+  .dark .markdown-body code {
+    @apply bg-gray-700 text-gray-200;
+  }
+
   /* Markdown Table Styles */
   .markdown-body table {
     @apply w-full border-collapse mb-4;
@@ -103,6 +165,27 @@
 
   .markdown-body tr:hover {
     @apply bg-blue-50;
+  }
+
+  /* Dark mode markdown tables */
+  .dark .markdown-body thead {
+    @apply bg-gray-700;
+  }
+
+  .dark .markdown-body th {
+    @apply border-gray-600 text-gray-100;
+  }
+
+  .dark .markdown-body td {
+    @apply border-gray-600 text-gray-300;
+  }
+
+  .dark .markdown-body tr:nth-child(even) {
+    @apply bg-gray-750;
+  }
+
+  .dark .markdown-body tr:hover {
+    @apply bg-gray-700;
   }
 
   /* Prose-specific table styles for ReactMarkdown */
@@ -134,9 +217,97 @@
     @apply bg-blue-50 transition-colors;
   }
 
+  /* Dark mode prose tables */
+  .dark .prose thead {
+    @apply bg-gray-700;
+  }
+
+  .dark .prose th {
+    @apply border-gray-600 text-gray-100;
+  }
+
+  .dark .prose td {
+    @apply border-gray-600 text-gray-300;
+  }
+
+  .dark .prose tbody tr:nth-child(odd) {
+    @apply bg-gray-800;
+  }
+
+  .dark .prose tbody tr:nth-child(even) {
+    @apply bg-gray-750;
+  }
+
+  .dark .prose tbody tr:hover {
+    @apply bg-gray-700;
+  }
+
   /* Ensure proper text wrapping in table cells */
   .prose th,
   .prose td {
     @apply break-words;
+  }
+
+  /* Dark mode for common UI elements */
+  .dark .bg-white {
+    background-color: #1f2937 !important;
+  }
+
+  .dark .bg-gray-50 {
+    background-color: #111827 !important;
+  }
+
+  .dark .bg-gray-100 {
+    background-color: #1f2937 !important;
+  }
+
+  .dark .text-gray-900 {
+    color: #f3f4f6 !important;
+  }
+
+  .dark .text-gray-800 {
+    color: #e5e7eb !important;
+  }
+
+  .dark .text-gray-700 {
+    color: #d1d5db !important;
+  }
+
+  .dark .text-gray-600 {
+    color: #9ca3af !important;
+  }
+
+  .dark .border-gray-200 {
+    border-color: #374151 !important;
+  }
+
+  .dark .border-gray-300 {
+    border-color: #4b5563 !important;
+  }
+
+  /* Recharts dark mode */
+  .dark .recharts-cartesian-grid-horizontal line,
+  .dark .recharts-cartesian-grid-vertical line {
+    stroke: #374151;
+  }
+
+  .dark .recharts-text {
+    fill: #9ca3af;
+  }
+
+  .dark .recharts-legend-item-text {
+    color: #d1d5db !important;
+  }
+
+  .dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+  }
+}
+
+/* Custom bg-gray-750 for dark mode alternating rows */
+@layer utilities {
+  .bg-gray-750 {
+    background-color: #2d3748;
   }
 }
