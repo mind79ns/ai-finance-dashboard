@@ -6,11 +6,21 @@
   body {
     @apply bg-gray-50 text-gray-900 antialiased;
   }
+
+  /* Dark mode base */
+  .dark body,
+  .dark {
+    @apply bg-gray-900 text-gray-100;
+  }
 }
 
 @layer components {
   .card {
     @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6;
+  }
+
+  .dark .card {
+    @apply bg-gray-800 border-gray-700 text-gray-100;
   }
 
   .btn-primary {
