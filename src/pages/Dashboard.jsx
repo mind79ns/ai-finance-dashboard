@@ -1044,17 +1044,17 @@ const NetWorthTracker = ({ totalAssets, debts, onAddDebt, onDeleteDebt }) => {
     <div className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="bg-blue-50 rounded-lg p-3 text-center">
-          <p className="text-xs text-blue-600 mb-1">총 자산</p>
-          <p className="text-sm font-bold text-blue-900">₩{(totalAssets / 10000).toFixed(0)}만</p>
+        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+          <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">총 자산</p>
+          <p className="text-sm font-bold text-blue-900 dark:text-blue-100">₩{(totalAssets / 10000).toFixed(0)}만</p>
         </div>
-        <div className="bg-rose-50 rounded-lg p-3 text-center">
-          <p className="text-xs text-rose-600 mb-1">총 부채</p>
-          <p className="text-sm font-bold text-rose-900">₩{(totalDebt / 10000).toFixed(0)}만</p>
+        <div className="bg-rose-50 dark:bg-rose-900/30 rounded-lg p-3 text-center">
+          <p className="text-xs text-rose-600 dark:text-rose-400 mb-1">총 부채</p>
+          <p className="text-sm font-bold text-rose-900 dark:text-rose-100">₩{(totalDebt / 10000).toFixed(0)}만</p>
         </div>
-        <div className={`rounded-lg p-3 text-center ${netWorth >= 0 ? 'bg-emerald-50' : 'bg-amber-50'}`}>
-          <p className={`text-xs mb-1 ${netWorth >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>순자산</p>
-          <p className={`text-sm font-bold ${netWorth >= 0 ? 'text-emerald-900' : 'text-amber-900'}`}>
+        <div className={`rounded-lg p-3 text-center ${netWorth >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-amber-50 dark:bg-amber-900/30'}`}>
+          <p className={`text-xs mb-1 ${netWorth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>순자산</p>
+          <p className={`text-sm font-bold ${netWorth >= 0 ? 'text-emerald-900 dark:text-emerald-100' : 'text-amber-900 dark:text-amber-100'}`}>
             ₩{(netWorth / 10000).toFixed(0)}만
           </p>
         </div>
@@ -1129,7 +1129,7 @@ const StressTest = ({ totalAssets, rate, onRateChange }) => {
               onClick={() => onRateChange(r)}
               className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium transition-all ${rate === r
                 ? 'bg-rose-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
             >
               -{r}%
@@ -1152,22 +1152,22 @@ const StressTest = ({ totalAssets, rate, onRateChange }) => {
       </div>
 
       {/* Result */}
-      <div className="bg-rose-50 rounded-lg p-4 space-y-2">
+      <div className="bg-rose-50 dark:bg-rose-900/30 rounded-lg p-4 space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">현재 자산</span>
-          <span className="text-gray-900 font-medium">₩{totalAssets.toLocaleString()}</span>
+          <span className="text-gray-600 dark:text-gray-400">현재 자산</span>
+          <span className="text-gray-900 dark:text-gray-100 font-medium">₩{totalAssets.toLocaleString()}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-rose-600">하락 금액 (-{rate}%)</span>
-          <span className="text-rose-600 font-medium">-₩{dropAmount.toLocaleString()}</span>
+          <span className="text-rose-600 dark:text-rose-400">하락 금액 (-{rate}%)</span>
+          <span className="text-rose-600 dark:text-rose-400 font-medium">-₩{dropAmount.toLocaleString()}</span>
         </div>
-        <div className="border-t border-rose-200 pt-2 flex justify-between">
-          <span className="text-gray-700 font-medium">예상 자산</span>
-          <span className="text-rose-700 font-bold">₩{afterDrop.toLocaleString()}</span>
+        <div className="border-t border-rose-200 dark:border-rose-700 pt-2 flex justify-between">
+          <span className="text-gray-700 dark:text-gray-300 font-medium">예상 자산</span>
+          <span className="text-rose-700 dark:text-rose-300 font-bold">₩{afterDrop.toLocaleString()}</span>
         </div>
       </div>
 
-      <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+      <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
         <p>💡 시장 폭락 시 포트폴리오 영향을 미리 확인해보세요</p>
       </div>
     </div>

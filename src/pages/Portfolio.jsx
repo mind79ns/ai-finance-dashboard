@@ -1432,20 +1432,20 @@ const Portfolio = () => {
                         <p className="text-sm font-bold text-gray-900 truncate">{asset.symbol}</p>
                         <p className="text-xs text-gray-600 truncate mt-0.5">{asset.name}</p>
                         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-primary-50 text-primary-700">
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-primary-50 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300">
                             {asset.type}
                           </span>
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700">
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
                             {asset.account || '기본계좌'}
                           </span>
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200">
                             {asset.currency}
                           </span>
                         </div>
                       </div>
                     </div>
                     {/* Profit percentage badge */}
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${positive ? 'bg-emerald-50' : 'bg-rose-50'
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${positive ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-rose-50 dark:bg-rose-900/30'
                       }`}>
                       <span className={`text-base font-bold ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(1)}%
