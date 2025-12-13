@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Sparkles, FileText, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, RadialBarChart, RadialBar } from 'recharts'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
 import AIStrategyBadge from '../components/AIStrategyBadge'
@@ -54,6 +55,35 @@ const AIReport = () => {
     () => computePortfolioInsights(portfolioData, goalsSummary),
     [portfolioData, goalsSummary]
   )
+
+  // Chart colors and data
+  const CHART_COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#14B8A6']
+
+  const allocationChartData = useMemo(() => {
+    if (!portfolioData?.assets?.length) return []
+    const totalValue = portfolioData.assets.reduce((sum, a) => sum + (a.valueKRW || 0), 0)
+    return portfolioData.assets.map((asset, idx) => ({
+      name: asset.symbol,
+      value: asset.valueKRW || 0,
+      percent: ((asset.valueKRW || 0) / totalValue * 100).toFixed(1),
+      fill: CHART_COLORS[idx % CHART_COLORS.length]
+    }))
+  }, [portfolioData])
+
+  const rebalanceChartData = useMemo(() => {
+    if (!portfolioData?.assets?.length) return []
+    const totalValue = portfolioData.assets.reduce((sum, a) => sum + (a.valueKRW || 0), 0)
+    return portfolioData.assets.map((asset, idx) => {
+      const current = ((asset.valueKRW || 0) / totalValue * 100)
+      const target = targetAllocation[asset.symbol] ?? current
+      return {
+        name: asset.symbol,
+        current: parseFloat(current.toFixed(1)),
+        target: parseFloat(target.toFixed(1)),
+        fill: CHART_COLORS[idx % CHART_COLORS.length]
+      }
+    })
+  }, [portfolioData, targetAllocation])
 
   // Load real market and portfolio data
   useEffect(() => {
@@ -1844,7 +1874,7 @@ ${assetsList}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">목표 비율 합계:</span>
                   <span className={`font-semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
-                      ? 'text-green-600' : 'text-orange-600'
+                    ? 'text-green-600' : 'text-orange-600'
                     }`}>
                     {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
                     {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 1 &&
@@ -1887,6 +1917,56 @@ ${assetsList}
                     'KRW'
                   )}
                 </span>
+              </div>
+            </div>
+          )}
+
+          {/* 자산 배분 차트 */}
+          {allocationChartData.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* 현재 자산 배분 파이 차트 */}
+              <div className="card">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">📊 현재 자산 배분</h4>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={allocationChartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${percent}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {allocationChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => formatCurrency(value, 'KRW')}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* 현재 vs 목표 비교 바 차트 */}
+              <div className="card">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">📈 현재 vs 목표 비율</h4>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={rebalanceChartData} layout="vertical">
+                      <XAxis type="number" domain={[0, 100]} unit="%" />
+                      <YAxis type="category" dataKey="name" width={60} />
+                      <Tooltip formatter={(value) => `${value}%`} />
+                      <Legend />
+                      <Bar dataKey="current" name="현재" fill="#94A3B8" />
+                      <Bar dataKey="target" name="목표" fill="#6366F1" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           )}
