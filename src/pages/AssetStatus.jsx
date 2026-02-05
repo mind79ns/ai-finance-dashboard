@@ -2186,90 +2186,93 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
   return (
     <>
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
-            <h3 className="text-xl font-bold text-gray-900">
-              {year}년 계좌별 자산 수정
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">각 계좌별로 자산 카테고리 금액을 입력하세요</p>
+        <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+          {/* 고정 헤더 */}
+          <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white">
+                  {year}년 계좌별 자산 수정
+                </h3>
+                <p className="text-sm text-blue-100 mt-1">각 계좌별로 자산 카테고리 금액을 입력하세요</p>
+              </div>
+              <button type="button" onClick={onClose} className="text-white/80 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-blue-100 border-b border-blue-200">
-                    <th className="text-left py-3 px-4 font-bold text-blue-900 sticky left-0 bg-blue-100 z-10">계좌명</th>
-                    {ASSET_CATEGORIES.map(cat => (
-                      <th key={cat.id} className="text-center py-3 px-4 font-bold text-blue-900 min-w-[120px]">
-                        {cat.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {accountTypes.map((acc, idx) => {
-                    const Icon = getIconComponent(acc.icon)
-                    return (
-                      <tr key={acc.id} className={`border-b border-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                        <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 z-10" style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f9fafb' }}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4 text-gray-600" />
-                            <span>{acc.name}</span>
-                          </div>
-                        </td>
-                        {ASSET_CATEGORIES.map(cat => {
-                          const linkedInfo = portfolioLinks?.[acc.id]?.[cat.id]
-                          return (
-                            <td key={cat.id} className="py-2 px-2">
-                              <div className="flex flex-col gap-2">
-                                <input
-                                  type="number"
-                                  value={formData[acc.id]?.[cat.id] || ''}
-                                  onChange={(e) => handleChange(acc.id, cat.id, e.target.value)}
-                                  className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right text-sm"
-                                  placeholder="0"
-                                />
-                                {portfolioAccountOptions.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenMetricPicker(acc.id, cat.id)}
-                                    className="px-2 py-1 text-[11px] border border-primary-200 text-primary-600 rounded bg-primary-50 hover:bg-primary-100 transition-colors self-end"
-                                  >
-                                    포트폴리오 값 선택
-                                  </button>
-                                )}
-                                {linkedInfo && (
-                                  <div className="flex items-center justify-between gap-2 text-[11px] text-primary-700 bg-primary-50/70 rounded px-2 py-1">
-                                    <span className="truncate">
-                                      포트폴리오 연동: {linkedInfo.portfolioAccount} · {linkedInfo.metricLabel || getMetricLabel(linkedInfo.metricKey)}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleUnlink(acc.id, cat.id)}
-                                      className="text-[11px] text-primary-700 underline underline-offset-2 whitespace-nowrap"
-                                    >
-                                      연동 해제
-                                    </button>
-                                  </div>
-                                )}
+          {/* 스크롤 가능한 콘텐츠 영역 */}
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {accountTypes.map((acc) => {
+                const Icon = getIconComponent(acc.icon)
+                return (
+                  <div key={acc.id} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    {/* 계좌명 헤더 */}
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+                      <Icon className="w-5 h-5 text-blue-600" />
+                      <span className="font-semibold text-gray-900">{acc.name}</span>
+                    </div>
+
+                    {/* 카테고리 그리드 - 2열 */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {ASSET_CATEGORIES.map(cat => {
+                        const linkedInfo = portfolioLinks?.[acc.id]?.[cat.id]
+                        return (
+                          <div key={cat.id} className="bg-white rounded-lg p-3 border border-gray-100">
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                              {cat.name}
+                            </label>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                value={formData[acc.id]?.[cat.id] || ''}
+                                onChange={(e) => handleChange(acc.id, cat.id, e.target.value)}
+                                className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right text-sm font-medium"
+                                placeholder="0"
+                              />
+                              {portfolioAccountOptions.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenMetricPicker(acc.id, cat.id)}
+                                  className="flex-shrink-0 p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="포트폴리오 값 선택"
+                                >
+                                  <TrendingUp className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                            {linkedInfo && (
+                              <div className="mt-1.5 flex items-center justify-between text-[10px] text-blue-700 bg-blue-50 rounded px-2 py-1">
+                                <span className="truncate">
+                                  🔗 {linkedInfo.portfolioAccount}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnlink(acc.id, cat.id)}
+                                  className="text-blue-600 hover:text-blue-800 ml-1"
+                                >
+                                  해제
+                                </button>
                               </div>
-                            </td>
-                          )
-                        })}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
-            <div className="flex gap-3 pt-6 mt-6 border-t border-gray-200">
-              <button type="submit" className="btn-primary flex-1">
-                저장
-              </button>
-              <button type="button" onClick={onClose} className="btn-secondary flex-1">
+            {/* 고정 푸터 버튼 */}
+            <div className="flex-shrink-0 flex gap-3 p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+              <button type="button" onClick={onClose} className="btn-secondary flex-1 py-2.5">
                 취소
+              </button>
+              <button type="submit" className="btn-primary flex-1 py-2.5">
+                저장
               </button>
             </div>
           </form>
