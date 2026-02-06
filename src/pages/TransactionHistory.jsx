@@ -16,7 +16,18 @@ import {
   RefreshCw,
   PiggyBank,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Utensils,
+  Car,
+  Home,
+  ShoppingBag,
+  Heart,
+  GraduationCap,
+  Gamepad2,
+  Zap,
+  Wallet,
+  MoreHorizontal,
+  PieChart
 } from 'lucide-react'
 import {
   BarChart,
@@ -25,10 +36,30 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  PieChart as RechartsPie,
+  Pie,
+  Cell,
+  Legend
 } from 'recharts'
 import dataSync from '../utils/dataSync'
 import marketDataService from '../services/marketDataService'
+
+// 카테고리 정의
+const CATEGORIES = [
+  { id: 'food', name: '식비', icon: Utensils, color: '#ef4444', bgColor: 'bg-red-100' },
+  { id: 'transport', name: '교통비', icon: Car, color: '#f97316', bgColor: 'bg-orange-100' },
+  { id: 'living', name: '생활비', icon: Home, color: '#eab308', bgColor: 'bg-yellow-100' },
+  { id: 'shopping', name: '쇼핑', icon: ShoppingBag, color: '#22c55e', bgColor: 'bg-green-100' },
+  { id: 'medical', name: '의료비', icon: Heart, color: '#ec4899', bgColor: 'bg-pink-100' },
+  { id: 'education', name: '교육비', icon: GraduationCap, color: '#8b5cf6', bgColor: 'bg-violet-100' },
+  { id: 'leisure', name: '여가/문화', icon: Gamepad2, color: '#06b6d4', bgColor: 'bg-cyan-100' },
+  { id: 'utilities', name: '공과금', icon: Zap, color: '#6366f1', bgColor: 'bg-indigo-100' },
+  { id: 'savings', name: '저축/투자', icon: Wallet, color: '#10b981', bgColor: 'bg-emerald-100' },
+  { id: 'other', name: '기타', icon: MoreHorizontal, color: '#6b7280', bgColor: 'bg-gray-100' }
+]
+
+const getCategoryById = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1]
 
 const TransactionHistory = () => {
   const [vndTransactions, setVndTransactions] = useState([])
@@ -51,8 +82,13 @@ const TransactionHistory = () => {
   const [formData, setFormData] = useState({
     amount: '',
     description: '',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    category: 'other'
   })
+
+  // 카테고리별 통계 모달 상태
+  const [showCategoryStatsModal, setShowCategoryStatsModal] = useState(false)
+  const [categoryStatsCurrency, setCategoryStatsCurrency] = useState(null)
 
   const [editingTransaction, setEditingTransaction] = useState(null)
 
@@ -414,6 +450,7 @@ const TransactionHistory = () => {
       amount: parseFloat(formData.amount),
       description: formData.description,
       date: formData.date,
+      category: formData.category || 'other',
       createdAt: new Date().toISOString()
     }
 
@@ -439,7 +476,8 @@ const TransactionHistory = () => {
       setFormData({
         amount: '',
         description: '',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        category: formData.category // 카테고리는 유지
       })
     } else {
       handleCloseModal()
@@ -455,6 +493,7 @@ const TransactionHistory = () => {
       amount: parseFloat(formData.amount),
       description: formData.description,
       date: formData.date,
+      category: formData.category || 'other',
       updatedAt: new Date().toISOString()
     }
 
@@ -528,7 +567,8 @@ const TransactionHistory = () => {
     setFormData({
       amount: '',
       description: '',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      category: 'other'
     })
     setShowAddModal(true)
   }
@@ -540,7 +580,8 @@ const TransactionHistory = () => {
     setFormData({
       amount: transaction.amount.toString(),
       description: transaction.description || '',
-      date: transaction.date
+      date: transaction.date,
+      category: transaction.category || 'other'
     })
     setShowAddModal(true)
     setShowHistoryModal(false)
@@ -555,7 +596,8 @@ const TransactionHistory = () => {
     setFormData({
       amount: '',
       description: '',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      category: 'other'
     })
   }
 
@@ -606,6 +648,84 @@ const TransactionHistory = () => {
 
     return { totalAmount, count, totalKRW }
   }, [getFilteredTransactions, selectedCurrency, exchangeRates])
+
+  // 카테고리별 통계 계산
+  const getCategoryStats = useCallback((transactions, currency) => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1
+
+    // 당월 거래만 필터링
+    const monthlyTx = transactions.filter(tx => {
+      const txDate = new Date(tx.date)
+      return txDate.getFullYear() === currentYear && (txDate.getMonth() + 1) === currentMonth
+    })
+
+    // 카테고리별 집계
+    const categoryTotals = {}
+    CATEGORIES.forEach(cat => {
+      categoryTotals[cat.id] = { ...cat, total: 0, count: 0 }
+    })
+
+    monthlyTx.forEach(tx => {
+      const catId = tx.category || 'other'
+      if (categoryTotals[catId]) {
+        categoryTotals[catId].total += Number(tx.amount || 0)
+        categoryTotals[catId].count += 1
+      }
+    })
+
+    const totalAmount = monthlyTx.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+
+    // 원화 환산
+    let totalKRW = totalAmount
+    if (currency === 'VND') {
+      totalKRW = totalAmount * exchangeRates.vndToKrw
+    } else if (currency === 'USD') {
+      totalKRW = totalAmount * exchangeRates.usdToKrw
+    }
+
+    // 차트용 데이터 (금액 > 0인 카테고리만)
+    const chartData = Object.values(categoryTotals)
+      .filter(c => c.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .map(c => ({
+        name: c.name,
+        value: c.total,
+        color: c.color,
+        percent: totalAmount > 0 ? ((c.total / totalAmount) * 100).toFixed(1) : 0
+      }))
+
+    // 월별 차트 데이터 (최근 6개월)
+    const monthlyChartData = []
+    for (let i = 5; i >= 0; i--) {
+      const targetDate = new Date(currentYear, currentMonth - 1 - i, 1)
+      const targetYear = targetDate.getFullYear()
+      const targetMonth = targetDate.getMonth() + 1
+
+      const monthTx = transactions.filter(tx => {
+        const txDate = new Date(tx.date)
+        return txDate.getFullYear() === targetYear && (txDate.getMonth() + 1) === targetMonth
+      })
+
+      const monthTotal = monthTx.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+
+      monthlyChartData.push({
+        month: `${targetMonth}월`,
+        amount: monthTotal,
+        year: targetYear
+      })
+    }
+
+    return {
+      categories: Object.values(categoryTotals).sort((a, b) => b.total - a.total),
+      totalAmount,
+      totalKRW,
+      count: monthlyTx.length,
+      chartData,
+      monthlyChartData
+    }
+  }, [exchangeRates])
 
   // 환율 계산기 - 환산 결과 계산
   const calculatedRates = useMemo(() => {
@@ -658,14 +778,15 @@ const TransactionHistory = () => {
 
   // Currency section component
   const CurrencySection = ({ currency, label, transactions }) => {
-    const currentMonthCumulative = calculateCurrentMonthCumulative(transactions)
-    const cumulativeKRW = calculateCumulativeKRW(transactions, currency)
-    const currentMonthCount = getCurrentMonthCount(transactions)
+    const stats = getCategoryStats(transactions, currency)
     const totalCount = transactions.length
 
     // 현재 년월 표시
     const now = new Date()
     const currentYearMonth = `${now.getFullYear()}년 ${now.getMonth() + 1}월`
+
+    // 상위 3개 카테고리
+    const topCategories = stats.categories.filter(c => c.total > 0).slice(0, 3)
 
     return (
       <div className="card">
@@ -673,64 +794,151 @@ const TransactionHistory = () => {
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-blue-600" />
             <h3 className="text-lg font-bold text-gray-900">{label}</h3>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+              가계부
+            </span>
           </div>
-          <button
-            onClick={() => handleOpenAddModal(currency)}
-            className="btn-primary flex items-center gap-2 text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            입력 추가
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* 금액입력 */}
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-            <p className="text-sm font-medium text-blue-700 mb-2">금액입력</p>
-            <p className="text-2xl font-bold text-blue-900">
-              {formatCurrency(currentMonthCumulative, currency)}
-            </p>
-            <p className="text-xs text-blue-600 mt-1">{currentYearMonth} • {currentMonthCount}건</p>
-          </div>
-
-          {/* 누적합산 (당월) */}
-          <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-            <p className="text-sm font-medium text-green-700 mb-2">누적합산 (당월)</p>
-            <p className="text-2xl font-bold text-green-900">
-              {formatCurrency(currentMonthCumulative, currency)}
-            </p>
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => handleOpenHistoryModal(currency)}
-              className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 mt-2"
+              onClick={() => { setCategoryStatsCurrency(currency); setShowCategoryStatsModal(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
             >
-              <Eye className="w-3 h-3" />
-              이력 보기 (전체 {totalCount}건)
+              <PieChart className="w-4 h-4" />
+              카테고리 분석
+            </button>
+            <button
+              onClick={() => handleOpenAddModal(currency)}
+              className="btn-primary flex items-center gap-2 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              입력 추가
             </button>
           </div>
+        </div>
 
-          {/* 누적합산 (원화환율적용) - 당월 */}
-          {currency !== 'KRW' && (
+        {/* 상단 통계 카드 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* 당월 지출 */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <p className="text-sm font-medium text-blue-700 mb-2">당월 지출</p>
+            <p className="text-2xl font-bold text-blue-900">
+              {formatCurrency(stats.totalAmount, currency)}
+            </p>
+            <p className="text-xs text-blue-600 mt-1">{currentYearMonth} • {stats.count}건</p>
+          </div>
+
+          {/* 원화 환산 (외화일 경우) / 이력보기 (원화일 경우) */}
+          {currency !== 'KRW' ? (
             <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
-              <p className="text-sm font-medium text-purple-700 mb-2">누적합산 (원화환율적용)</p>
+              <p className="text-sm font-medium text-purple-700 mb-2">원화 환산</p>
               <p className="text-2xl font-bold text-purple-900">
-                {formatCurrency(cumulativeKRW, 'KRW')}
+                {formatCurrency(stats.totalKRW, 'KRW')}
               </p>
               <p className="text-xs text-purple-600 mt-1">
-                {currentYearMonth} • 환율: {currency === 'VND'
+                환율: {currency === 'VND'
                   ? `1₫ = ₩${exchangeRates.vndToKrw.toFixed(3)}`
                   : `$1 = ₩${exchangeRates.usdToKrw.toLocaleString()}`
                 }
               </p>
             </div>
+          ) : (
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+              <p className="text-sm font-medium text-green-700 mb-2">전체 이력</p>
+              <p className="text-2xl font-bold text-green-900">{totalCount}건</p>
+              <button
+                onClick={() => handleOpenHistoryModal(currency)}
+                className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 mt-2"
+              >
+                <Eye className="w-3 h-3" />
+                이력 보기
+              </button>
+            </div>
           )}
 
-          {/* KRW는 2열만 사용 */}
-          {currency === 'KRW' && (
+          {/* 이력 보기 (외화) / 공백 (원화) */}
+          {currency !== 'KRW' ? (
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+              <p className="text-sm font-medium text-green-700 mb-2">전체 이력</p>
+              <p className="text-2xl font-bold text-green-900">{totalCount}건</p>
+              <button
+                onClick={() => handleOpenHistoryModal(currency)}
+                className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800 mt-2"
+              >
+                <Eye className="w-3 h-3" />
+                이력 보기
+              </button>
+            </div>
+          ) : (
             <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 flex items-center justify-center">
               <p className="text-sm text-gray-500">원화는 환율 적용 없음</p>
             </div>
           )}
         </div>
+
+        {/* 카테고리별 지출 미리보기 */}
+        {topCategories.length > 0 && (
+          <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-4 border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-gray-600" />
+                <p className="text-sm font-semibold text-gray-700">카테고리별 지출 ({currentYearMonth})</p>
+              </div>
+              <button
+                onClick={() => { setCategoryStatsCurrency(currency); setShowCategoryStatsModal(true); }}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                상세보기 →
+              </button>
+            </div>
+            <div className="space-y-2">
+              {topCategories.map(cat => {
+                const IconComponent = cat.icon
+                const percent = stats.totalAmount > 0 ? (cat.total / stats.totalAmount) * 100 : 0
+                return (
+                  <div key={cat.id} className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg ${cat.bgColor} flex items-center justify-center`}>
+                      <IconComponent className="w-4 h-4" style={{ color: cat.color }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-700">{cat.name}</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {formatCurrency(cat.total, currency)}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div
+                          className="h-1.5 rounded-full transition-all duration-500"
+                          style={{ width: `${percent}%`, backgroundColor: cat.color }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500 w-12 text-right">{percent.toFixed(0)}%</span>
+                  </div>
+                )
+              })}
+            </div>
+            {stats.categories.filter(c => c.total > 0).length > 3 && (
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                +{stats.categories.filter(c => c.total > 0).length - 3}개 카테고리 더보기
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 거래 내역이 없을 때 */}
+        {stats.count === 0 && (
+          <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-200">
+            <Receipt className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">{currentYearMonth} 거래 내역이 없습니다</p>
+            <button
+              onClick={() => handleOpenAddModal(currency)}
+              className="mt-3 text-sm text-blue-600 hover:text-blue-800"
+            >
+              첫 거래 추가하기 →
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -1317,7 +1525,7 @@ const TransactionHistory = () => {
       {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-gray-900">
                 {editingTransaction ? '거래 수정' : '거래 추가'} ({selectedCurrency})
@@ -1328,43 +1536,79 @@ const TransactionHistory = () => {
             </div>
 
             <div className="space-y-4">
+              {/* 카테고리 선택 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  금액 ({selectedCurrency})
+                  카테고리 선택
                 </label>
-                <input
-                  type="number"
-                  value={formData.amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                  placeholder="금액을 입력하세요"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                />
+                <div className="grid grid-cols-5 gap-2">
+                  {CATEGORIES.map(cat => {
+                    const IconComponent = cat.icon
+                    const isSelected = formData.category === cat.id
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                        title={cat.name}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${cat.bgColor}`}
+                        >
+                          <IconComponent className="w-4 h-4" style={{ color: cat.color }} />
+                        </div>
+                        <span className={`text-xs ${isSelected ? 'font-semibold text-blue-700' : 'text-gray-600'}`}>
+                          {cat.name}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    금액 ({selectedCurrency})
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="금액 입력"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    날짜
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  설명 (선택)
+                  메모 (선택)
                 </label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="거래 내역 설명"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  날짜
-                </label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
+                  placeholder="거래 내역 메모"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -1372,25 +1616,25 @@ const TransactionHistory = () => {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleCloseModal}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
               >
                 취소
               </button>
               {!editingTransaction && (
                 <button
                   onClick={() => handleAddTransaction(true)}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium"
                 >
                   <Plus className="w-4 h-4" />
-                  추가 후 계속
+                  계속 추가
                 </button>
               )}
               <button
                 onClick={editingTransaction ? handleEditTransaction : () => handleAddTransaction(false)}
-                className="flex-1 btn-primary flex items-center justify-center gap-2"
+                className="flex-1 btn-primary flex items-center justify-center gap-2 py-2.5 font-medium"
               >
                 <Save className="w-4 h-4" />
-                {editingTransaction ? '수정' : '추가'}
+                {editingTransaction ? '수정' : '저장'}
               </button>
             </div>
           </div>
@@ -1513,53 +1757,269 @@ const TransactionHistory = () => {
               ) : (
                 getFilteredTransactions
                   .sort((a, b) => new Date(b.date) - new Date(a.date))
-                  .map((transaction) => (
-                    <div
-                      key={transaction.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex-1">
+                  .map((transaction) => {
+                    const category = getCategoryById(transaction.category)
+                    const CategoryIcon = category.icon
+                    return (
+                      <div
+                        key={transaction.id}
+                        className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        {/* 카테고리 아이콘 */}
+                        <div className={`w-10 h-10 rounded-xl ${category.bgColor} flex items-center justify-center flex-shrink-0`}>
+                          <CategoryIcon className="w-5 h-5" style={{ color: category.color }} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: category.bgColor.replace('bg-', ''), color: category.color }}>
+                              {category.name}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(transaction.date).toLocaleDateString('ko-KR')}
+                            </span>
+                          </div>
+                          {transaction.description && (
+                            <p className="text-sm text-gray-600 mt-1 truncate">{transaction.description}</p>
+                          )}
+                          {selectedCurrency !== 'KRW' && (
+                            <p className="text-xs text-purple-600 mt-0.5">
+                              ≈ {formatCurrency(
+                                selectedCurrency === 'VND'
+                                  ? transaction.amount * exchangeRates.vndToKrw
+                                  : transaction.amount * exchangeRates.usdToKrw,
+                                'KRW'
+                              )}
+                            </p>
+                          )}
+                        </div>
+
                         <div className="flex items-center gap-2">
-                          <p className="text-lg font-bold text-gray-900">
+                          <p className="text-lg font-bold text-gray-900 whitespace-nowrap">
                             {formatCurrency(transaction.amount, selectedCurrency)}
                           </p>
-                          <span className="text-xs text-gray-500">
-                            {new Date(transaction.date).toLocaleDateString('ko-KR')}
-                          </span>
+                          <button
+                            onClick={() => handleOpenEditModal(transaction, selectedCurrency)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="수정"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTransaction(transaction.id, selectedCurrency)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        {transaction.description && (
-                          <p className="text-sm text-gray-600 mt-1">{transaction.description}</p>
-                        )}
-                        {selectedCurrency !== 'KRW' && (
-                          <p className="text-xs text-purple-600 mt-1">
-                            ≈ {formatCurrency(
-                              selectedCurrency === 'VND'
-                                ? transaction.amount * exchangeRates.vndToKrw
-                                : transaction.amount * exchangeRates.usdToKrw,
-                              'KRW'
-                            )}
-                          </p>
-                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleOpenEditModal(transaction, selectedCurrency)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="수정"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTransaction(transaction.id, selectedCurrency)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                    )
+                  })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Stats Modal */}
+      {showCategoryStatsModal && categoryStatsCurrency && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <PieChart className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    카테고리 분석 ({categoryStatsCurrency})
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {new Date().getFullYear()}년 {new Date().getMonth() + 1}월 지출 현황
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCategoryStatsModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {(() => {
+                const transactions = getTransactionsByCurrency(categoryStatsCurrency)
+                const stats = getCategoryStats(transactions, categoryStatsCurrency)
+
+                return (
+                  <div className="space-y-6">
+                    {/* 상단 요약 카드 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+                        <p className="text-blue-100 text-sm mb-1">당월 총 지출</p>
+                        <p className="text-2xl font-bold">
+                          {formatCurrency(stats.totalAmount, categoryStatsCurrency)}
+                        </p>
+                        <p className="text-blue-100 text-xs mt-1">{stats.count}건의 거래</p>
+                      </div>
+                      {categoryStatsCurrency !== 'KRW' && (
+                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+                          <p className="text-purple-100 text-sm mb-1">원화 환산</p>
+                          <p className="text-2xl font-bold">{formatCurrency(stats.totalKRW, 'KRW')}</p>
+                          <p className="text-purple-100 text-xs mt-1">
+                            환율: {categoryStatsCurrency === 'VND'
+                              ? `1₫ = ₩${exchangeRates.vndToKrw.toFixed(3)}`
+                              : `$1 = ₩${exchangeRates.usdToKrw.toLocaleString()}`}
+                          </p>
+                        </div>
+                      )}
+                      <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white">
+                        <p className="text-emerald-100 text-sm mb-1">카테고리 수</p>
+                        <p className="text-2xl font-bold">{stats.chartData.length}개</p>
+                        <p className="text-emerald-100 text-xs mt-1">활성 카테고리</p>
                       </div>
                     </div>
-                  ))
-              )}
+
+                    {/* 차트 영역 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* 카테고리별 파이 차트 */}
+                      <div className="bg-white rounded-xl p-4 border border-gray-200">
+                        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <PieChart className="w-4 h-4 text-indigo-600" />
+                          카테고리별 지출 비율
+                        </h4>
+                        {stats.chartData.length > 0 ? (
+                          <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RechartsPie>
+                                <Pie
+                                  data={stats.chartData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={50}
+                                  outerRadius={80}
+                                  paddingAngle={2}
+                                  dataKey="value"
+                                  label={({ name, percent }) => `${name} ${percent}%`}
+                                  labelLine={false}
+                                >
+                                  {stats.chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  formatter={(value) => formatCurrency(value, categoryStatsCurrency)}
+                                />
+                              </RechartsPie>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <div className="h-64 flex items-center justify-center text-gray-500">
+                            데이터가 없습니다
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 월별 지출 추이 차트 */}
+                      <div className="bg-white rounded-xl p-4 border border-gray-200">
+                        <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-emerald-600" />
+                          최근 6개월 지출 추이
+                        </h4>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.monthlyChartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis
+                                dataKey="month"
+                                tick={{ fontSize: 12, fill: '#6b7280' }}
+                                tickLine={false}
+                                axisLine={{ stroke: '#e5e7eb' }}
+                              />
+                              <YAxis
+                                tick={{ fontSize: 11, fill: '#6b7280' }}
+                                tickLine={false}
+                                axisLine={{ stroke: '#e5e7eb' }}
+                                tickFormatter={(value) => {
+                                  if (categoryStatsCurrency === 'KRW') {
+                                    return value >= 10000 ? `${(value / 10000).toFixed(0)}만` : value.toLocaleString()
+                                  }
+                                  return value.toLocaleString()
+                                }}
+                              />
+                              <Tooltip
+                                formatter={(value) => [formatCurrency(value, categoryStatsCurrency), '지출']}
+                                contentStyle={{ borderRadius: '8px', border: '1px solid #d1d5db' }}
+                              />
+                              <Bar
+                                dataKey="amount"
+                                fill="#6366f1"
+                                radius={[4, 4, 0, 0]}
+                              />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 카테고리별 상세 목록 */}
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-4">카테고리별 상세 내역</h4>
+                      <div className="space-y-3">
+                        {stats.categories.map(cat => {
+                          const IconComponent = cat.icon
+                          const percent = stats.totalAmount > 0 ? (cat.total / stats.totalAmount) * 100 : 0
+                          return (
+                            <div key={cat.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                              <div className={`w-12 h-12 rounded-xl ${cat.bgColor} flex items-center justify-center`}>
+                                <IconComponent className="w-6 h-6" style={{ color: cat.color }} />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div>
+                                    <span className="font-semibold text-gray-900">{cat.name}</span>
+                                    <span className="text-xs text-gray-500 ml-2">{cat.count}건</span>
+                                  </div>
+                                  <span className="font-bold text-gray-900">
+                                    {formatCurrency(cat.total, categoryStatsCurrency)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="h-2 rounded-full transition-all duration-500"
+                                      style={{ width: `${percent}%`, backgroundColor: cat.color }}
+                                    />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-600 w-14 text-right">
+                                    {percent.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowCategoryStatsModal(false)}
+                  className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                >
+                  닫기
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1573,9 +2033,9 @@ const TransactionHistory = () => {
             <p className="font-semibold mb-2">사용 방법:</p>
             <ul className="space-y-1 list-disc list-inside">
               <li>"입력 추가" 버튼을 클릭하여 새로운 거래를 등록합니다</li>
-              <li>누적합산은 모든 거래 금액을 자동으로 합산합니다</li>
+              <li>카테고리를 선택하여 지출을 분류할 수 있습니다</li>
+              <li>"카테고리 분석" 버튼으로 지출 현황을 차트로 확인합니다</li>
               <li>VND와 USD는 현재 환율을 적용하여 원화로 환산합니다</li>
-              <li>"이력 보기"를 클릭하여 거래 내역을 확인하고 수정/삭제할 수 있습니다</li>
               <li>환율은 5분마다 자동으로 업데이트됩니다</li>
             </ul>
           </div>
