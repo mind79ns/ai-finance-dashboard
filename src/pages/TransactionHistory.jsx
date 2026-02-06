@@ -15,8 +15,18 @@ import {
   ArrowRightLeft,
   RefreshCw,
   PiggyBank,
-  TrendingUp
+  TrendingUp,
+  BarChart3
 } from 'lucide-react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts'
 import dataSync from '../utils/dataSync'
 import marketDataService from '../services/marketDataService'
 
@@ -58,6 +68,10 @@ const TransactionHistory = () => {
     description: ''
   })
   const [editingDividend, setEditingDividend] = useState(null)
+
+  // 배당금 상세 내역 모달 상태
+  const [showDividendDetailModal, setShowDividendDetailModal] = useState(false)
+  const [dividendDetailType, setDividendDetailType] = useState('monthly') // 'monthly', 'yearly', 'bySymbol'
 
   // 환율 계산기 상태
   const [calcFromCurrency, setCalcFromCurrency] = useState('KRW')
@@ -261,12 +275,32 @@ const TransactionHistory = () => {
       bySymbol[d.symbol].count += 1
     })
 
+    // 월별 배당금 차트 데이터 (현재 연도 기준 12개월)
+    const monthlyChartData = Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1
+      const monthTotal = dividendTransactions
+        .filter(d => {
+          const date = new Date(d.date)
+          return date.getFullYear() === currentYear && (date.getMonth() + 1) === month
+        })
+        .reduce((sum, d) => {
+          const amount = d.currency === 'USD' ? d.amount * exchangeRates.usdToKrw : d.amount
+          return sum + amount
+        }, 0)
+      return {
+        month: `${month}월`,
+        monthNum: month,
+        amount: Math.round(monthTotal)
+      }
+    })
+
     return {
       monthlyTotal,
       yearlyTotal,
       monthlyAvg: yearlyTotal / 12,
       bySymbol: Object.values(bySymbol).sort((a, b) => b.total - a.total),
-      totalCount: dividendTransactions.length
+      totalCount: dividendTransactions.length,
+      monthlyChartData
     }
   }, [dividendTransactions, exchangeRates])
 
@@ -844,101 +878,88 @@ const TransactionHistory = () => {
           </button>
         </div>
 
+        {/* 상단 통계 카드 - 클릭 시 상세 내역 모달 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* 당월 배당금 */}
-          <div className="bg-white border-2 border-emerald-200 rounded-xl p-4">
+          <button
+            onClick={() => { setDividendDetailType('monthly'); setShowDividendDetailModal(true); }}
+            className="bg-white border-2 border-emerald-200 rounded-xl p-4 text-left hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer"
+          >
             <p className="text-sm font-medium text-emerald-700 mb-2">당월 배당금</p>
             <p className="text-2xl font-bold text-emerald-900">
               {formatCurrency(dividendStats.monthlyTotal, 'KRW')}
             </p>
-            <p className="text-xs text-emerald-600 mt-1">
+            <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
               {new Date().getFullYear()}년 {new Date().getMonth() + 1}월
+              <Eye className="w-3 h-3 ml-auto" />
             </p>
-          </div>
+          </button>
 
           {/* 연간 배당금 */}
-          <div className="bg-white border-2 border-green-200 rounded-xl p-4">
+          <button
+            onClick={() => { setDividendDetailType('yearly'); setShowDividendDetailModal(true); }}
+            className="bg-white border-2 border-green-200 rounded-xl p-4 text-left hover:border-green-400 hover:shadow-md transition-all cursor-pointer"
+          >
             <p className="text-sm font-medium text-green-700 mb-2">연간 배당금</p>
             <p className="text-2xl font-bold text-green-900">
               {formatCurrency(dividendStats.yearlyTotal, 'KRW')}
             </p>
-            <p className="text-xs text-green-600 mt-1">
+            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
               {new Date().getFullYear()}년 • {dividendStats.totalCount}건
+              <Eye className="w-3 h-3 ml-auto" />
             </p>
-          </div>
+          </button>
 
-          {/* 월 평균 배당금 */}
-          <div className="bg-white border-2 border-teal-200 rounded-xl p-4">
-            <p className="text-sm font-medium text-teal-700 mb-2">월 평균</p>
+          {/* 종목별 배당금 */}
+          <button
+            onClick={() => { setDividendDetailType('bySymbol'); setShowDividendDetailModal(true); }}
+            className="bg-white border-2 border-teal-200 rounded-xl p-4 text-left hover:border-teal-400 hover:shadow-md transition-all cursor-pointer"
+          >
+            <p className="text-sm font-medium text-teal-700 mb-2">종목별 현황</p>
             <p className="text-2xl font-bold text-teal-900">
-              {formatCurrency(dividendStats.monthlyAvg, 'KRW')}
+              {dividendStats.bySymbol.length}종목
             </p>
-            <p className="text-xs text-teal-600 mt-1">
-              연간 ÷ 12
+            <p className="text-xs text-teal-600 mt-1 flex items-center gap-1">
+              월평균 {formatCurrency(dividendStats.monthlyAvg, 'KRW')}
+              <Eye className="w-3 h-3 ml-auto" />
             </p>
-          </div>
+          </button>
         </div>
 
-        {/* 종목별 배당금 */}
-        {dividendStats.bySymbol.length > 0 && (
-          <div className="bg-white rounded-xl p-4 border border-emerald-100">
-            <p className="text-sm font-semibold text-gray-700 mb-3">종목별 배당금</p>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {dividendStats.bySymbol.slice(0, 5).map(item => (
-                <div key={item.symbol} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{item.symbol}</span>
-                    <span className="text-xs text-gray-500">{item.count}건</span>
-                  </div>
-                  <span className="text-emerald-600 font-medium">
-                    {formatCurrency(item.total, 'KRW')}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* 월별 배당금 차트 */}
+        <div className="bg-white rounded-xl p-4 border border-emerald-100">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-5 h-5 text-emerald-600" />
+            <p className="text-sm font-semibold text-gray-700">{new Date().getFullYear()}년 월별 배당금</p>
           </div>
-        )}
-
-        {/* 최근 배당금 내역 */}
-        {dividendTransactions.length > 0 && (
-          <div className="mt-4 bg-white rounded-xl p-4 border border-emerald-100">
-            <p className="text-sm font-semibold text-gray-700 mb-3">최근 배당금 내역</p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {dividendTransactions
-                .slice()
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 5)
-                .map(d => (
-                  <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{d.symbol}</span>
-                        <span className="text-xs text-gray-500">{new Date(d.date).toLocaleDateString('ko-KR')}</span>
-                      </div>
-                      {d.description && <p className="text-xs text-gray-500 mt-1">{d.description}</p>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-emerald-600">
-                        {d.currency === 'USD' ? `$${d.amount.toLocaleString()}` : `₩${d.amount.toLocaleString()}`}
-                      </span>
-                      <button
-                        onClick={() => handleOpenEditDividendModal(d)}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDividend(d.id)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-            </div>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dividendStats.monthlyChartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                  tickFormatter={(value) => value >= 10000 ? `${(value / 10000).toFixed(0)}만` : value.toLocaleString()}
+                />
+                <Tooltip
+                  formatter={(value) => [`₩${value.toLocaleString()}`, '배당금']}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #d1d5db' }}
+                />
+                <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        )}
+          {dividendStats.totalCount === 0 && (
+            <p className="text-center text-gray-500 text-sm mt-2">배당금 내역이 없습니다</p>
+          )}
+        </div>
 
         {/* 보유 종목이 없을 때 안내 */}
         {portfolioAssets.length === 0 && (
@@ -949,6 +970,108 @@ const TransactionHistory = () => {
           </div>
         )}
       </div>
+
+      {/* 배당금 상세 내역 모달 */}
+      {showDividendDetailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">
+                {dividendDetailType === 'monthly' && `${new Date().getMonth() + 1}월 배당금 내역`}
+                {dividendDetailType === 'yearly' && `${new Date().getFullYear()}년 배당금 내역`}
+                {dividendDetailType === 'bySymbol' && '종목별 배당금 현황'}
+              </h3>
+              <button onClick={() => setShowDividendDetailModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {dividendDetailType === 'bySymbol' ? (
+                /* 종목별 배당금 */
+                <div className="space-y-2">
+                  {dividendStats.bySymbol.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">배당금 내역이 없습니다</p>
+                  ) : (
+                    dividendStats.bySymbol.map(item => (
+                      <div key={item.symbol} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+                        <div>
+                          <span className="font-semibold text-gray-900">{item.symbol}</span>
+                          <span className="text-xs text-gray-500 ml-2">{item.count}건</span>
+                        </div>
+                        <span className="text-emerald-600 font-bold">{formatCurrency(item.total, 'KRW')}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : (
+                /* 월별/연간 배당금 내역 */
+                <div className="space-y-2">
+                  {dividendTransactions
+                    .filter(d => {
+                      const date = new Date(d.date)
+                      const currentYear = new Date().getFullYear()
+                      const currentMonth = new Date().getMonth() + 1
+                      if (dividendDetailType === 'monthly') {
+                        return date.getFullYear() === currentYear && (date.getMonth() + 1) === currentMonth
+                      }
+                      return date.getFullYear() === currentYear
+                    })
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">배당금 내역이 없습니다</p>
+                  ) : (
+                    dividendTransactions
+                      .filter(d => {
+                        const date = new Date(d.date)
+                        const currentYear = new Date().getFullYear()
+                        const currentMonth = new Date().getMonth() + 1
+                        if (dividendDetailType === 'monthly') {
+                          return date.getFullYear() === currentYear && (date.getMonth() + 1) === currentMonth
+                        }
+                        return date.getFullYear() === currentYear
+                      })
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                      .map(d => (
+                        <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">{d.symbol}</span>
+                              <span className="text-xs text-gray-500">{new Date(d.date).toLocaleDateString('ko-KR')}</span>
+                            </div>
+                            {d.description && <p className="text-xs text-gray-500 mt-1">{d.description}</p>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-emerald-600">
+                              {d.currency === 'USD' ? `$${d.amount.toLocaleString()}` : `₩${d.amount.toLocaleString()}`}
+                            </span>
+                            <button onClick={() => { handleOpenEditDividendModal(d); setShowDividendDetailModal(false); }} className="p-1 text-blue-600 hover:bg-blue-50 rounded">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteDividend(d.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">
+                  {dividendDetailType === 'bySymbol' ? `총 ${dividendStats.bySymbol.length}개 종목` : `총 ${dividendStats.totalCount}건`}
+                </span>
+                <button onClick={() => setShowDividendDetailModal(false)} className="btn-secondary px-4 py-2">
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dividend Add/Edit Modal */}
       {showDividendModal && (
