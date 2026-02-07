@@ -552,3 +552,239 @@
 .dark .shadow-lg {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3) !important;
 }
+
+/* ========== CYBERPUNK DASHBOARD STYLES ========== */
+
+/* Dashboard Container */
+.cyber-dashboard {
+  background: linear-gradient(135deg, #0a1628 0%, #0d2137 50%, #0a1929 100%);
+  min-height: 100vh;
+  position: relative;
+}
+
+.cyber-dashboard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(0, 210, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(0, 150, 255, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Cyber Card - Glass Effect */
+.cyber-card {
+  background: linear-gradient(135deg, rgba(13, 33, 55, 0.9) 0%, rgba(10, 25, 40, 0.95) 100%);
+  border: 1px solid rgba(0, 210, 255, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 210, 255, 0.5), transparent);
+}
+
+.cyber-card-glow {
+  box-shadow:
+    0 0 20px rgba(0, 210, 255, 0.1),
+    inset 0 0 20px rgba(0, 210, 255, 0.02);
+}
+
+/* Neon Text Effects */
+.neon-text-cyan {
+  color: #00d4ff;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.neon-text-green {
+  color: #00ff88;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5), 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.neon-text-red {
+  color: #ff4757;
+  text-shadow: 0 0 10px rgba(255, 71, 87, 0.5), 0 0 20px rgba(255, 71, 87, 0.3);
+}
+
+.neon-text-gold {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Center Hub Ring */
+.cyber-hub {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: 0 auto;
+}
+
+.cyber-hub-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  animation: rotate 20s linear infinite;
+}
+
+.cyber-hub-ring-outer {
+  inset: 0;
+  border-color: rgba(0, 210, 255, 0.3);
+  border-style: dashed;
+}
+
+.cyber-hub-ring-middle {
+  inset: 20px;
+  border-color: rgba(0, 210, 255, 0.5);
+}
+
+.cyber-hub-ring-inner {
+  inset: 40px;
+  border-color: rgba(0, 210, 255, 0.2);
+  animation-direction: reverse;
+}
+
+.cyber-hub-center {
+  position: absolute;
+  inset: 60px;
+  background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(0, 30, 60, 0.9) 70%);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 210, 255, 0.3);
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Stat Items around hub */
+.cyber-stat-item {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.1) 0%, rgba(0, 30, 60, 0.8) 100%);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  backdrop-filter: blur(5px);
+}
+
+.cyber-stat-item:hover {
+  border-color: rgba(0, 210, 255, 0.6);
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+}
+
+/* Icon Circle */
+.cyber-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.2) 0%, rgba(0, 100, 150, 0.3) 100%);
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Cyber Button */
+.cyber-btn {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.2) 0%, rgba(0, 150, 200, 0.3) 100%);
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  color: #00d4ff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.cyber-btn:hover {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.3) 0%, rgba(0, 150, 200, 0.4) 100%);
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Table Cyber Style */
+.cyber-table {
+  background: rgba(10, 25, 40, 0.8);
+  border: 1px solid rgba(0, 210, 255, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cyber-table thead {
+  background: linear-gradient(90deg, rgba(0, 210, 255, 0.1) 0%, rgba(0, 100, 150, 0.1) 100%);
+}
+
+.cyber-table th {
+  color: #00d4ff;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 210, 255, 0.2);
+}
+
+.cyber-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 210, 255, 0.1);
+  color: #a0c4d8;
+}
+
+.cyber-table tr:hover td {
+  background: rgba(0, 210, 255, 0.05);
+}
+
+/* Progress Bar Cyber */
+.cyber-progress {
+  height: 8px;
+  background: rgba(0, 50, 80, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 210, 255, 0.2);
+}
+
+.cyber-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00d4ff, #00ff88);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+  transition: width 0.5s ease;
+}
+
+/* Scrollbar Cyber */
+.cyber-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.cyber-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 30, 50, 0.5);
+}
+
+.cyber-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 210, 255, 0.3);
+  border-radius: 3px;
+}
+
+.cyber-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 210, 255, 0.5);
+}
+
+/* Pulse Animation */
+@keyframes cyber-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.cyber-pulse {
+  animation: cyber-pulse 2s ease-in-out infinite;
+}
