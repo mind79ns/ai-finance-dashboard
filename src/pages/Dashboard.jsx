@@ -48,6 +48,8 @@ const Dashboard = () => {
     totalValueUSD: 0,
     profitPercent: 0
   })
+  const [accountSummary, setAccountSummary] = useState([])
+  const [assetStatusTotal, setAssetStatusTotal] = useState(0)
   const [allocationData, setAllocationData] = useState([])
   const [portfolioHistory, setPortfolioHistory] = useState([])
   const [goalSummary, setGoalSummary] = useState({
@@ -64,14 +66,15 @@ const Dashboard = () => {
     setError(null)
 
     try {
-      const [market, loadedAssets, loadedLogs, loadedGoals] = await Promise.all([
+      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData] = await Promise.all([
         marketDataService.getAllMarketData().catch(err => {
           console.error('Dashboard market data error:', err)
           return null
         }),
         dataSync.loadPortfolioAssets(),
         dataSync.loadInvestmentLogs(),
-        dataSync.loadGoals()
+        dataSync.loadGoals(),
+        dataSync.loadUserSetting('asset_account_data')
       ])
 
       const usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
@@ -81,7 +84,18 @@ const Dashboard = () => {
       const logsRaw = Array.isArray(loadedLogs) ? loadedLogs : safeParseLocalStorage('investment_logs', [])
       const goalsRaw = Array.isArray(loadedGoals) ? loadedGoals : safeParseLocalStorage('investment_goals', [])
 
-      const { totals, allocation, assetsMap, performance } = buildPortfolioSummary(assetsRaw, usdToKrw)
+      // Calculate AssetStatus TOTAL value
+      const currentYear = new Date().getFullYear()
+      const yearAccounts = assetAccountData?.[currentYear] || {}
+      let assetTotalValue = 0
+      Object.values(yearAccounts).forEach(accountCategories => {
+        Object.values(accountCategories).forEach(value => {
+          assetTotalValue += Number(value || 0)
+        })
+      })
+      setAssetStatusTotal(assetTotalValue)
+
+      const { totals, allocation, assetsMap, performance, accountBreakdown } = buildPortfolioSummary(assetsRaw, usdToKrw)
 
       setPortfolioSummary({
         totalValueKRW: totals.totalValueKRW,
@@ -90,6 +104,7 @@ const Dashboard = () => {
         profitPercent: totals.profitPercent
       })
 
+      setAccountSummary(accountBreakdown)
       setAllocationData(allocation)
 
       // Top 수익/손실 종목
@@ -101,7 +116,6 @@ const Dashboard = () => {
 
       // 배당금 총계
       const dividendData = await dataSync.loadUserSetting('dividend_transactions')
-      const currentYear = new Date().getFullYear()
       const yearlyDividends = (dividendData || []).filter(d =>
         new Date(d.date).getFullYear() === currentYear
       )
@@ -168,12 +182,11 @@ const Dashboard = () => {
         navigate={navigate}
       />
 
-      {/* 헤더 요약 - 간소화 */}
+      {/* 헤더 요약 */}
       <HeaderSummary
-        totalValue={portfolioSummary.totalValueKRW}
-        profitPercent={portfolioSummary.profitPercent}
-        totalProfit={portfolioSummary.totalProfitKRW}
-        dividendTotal={dividendTotal}
+        totals={portfolioSummary}
+        accountSummary={accountSummary}
+        assetStatusTotal={assetStatusTotal}
       />
 
       {/* 시장 지표 스트립 */}
@@ -415,47 +428,61 @@ const QuickActionBar = ({ onRefresh, navigate }) => {
   )
 }
 
-// 헤더 요약 - 간소화
-const HeaderSummary = ({ totalValue, profitPercent, totalProfit, dividendTotal }) => {
-  const isPositive = profitPercent >= 0
-
+// 헤더 요약 - 총평가액, TOTAL, 수익금, 계좌별
+const HeaderSummary = ({ totals, accountSummary, assetStatusTotal }) => {
   return (
-    <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-4 sm:p-6 text-white">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-        {/* 총 자산 */}
-        <div className="text-center sm:text-left">
-          <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">총 자산</p>
-          <p className="text-2xl sm:text-3xl font-bold">{formatCurrency(totalValue, 'KRW')}</p>
-        </div>
-
-        {/* 수익률 */}
-        <div className="text-center border-t sm:border-t-0 sm:border-l border-slate-700 pt-4 sm:pt-0 sm:pl-6">
-          <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">총 수익</p>
-          <div className="flex items-center justify-center sm:justify-start gap-2">
-            <p className={`text-2xl sm:text-3xl font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {isPositive ? '+' : ''}{profitPercent.toFixed(2)}%
+    <div className="card bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="space-y-4">
+        {/* 상단: 포트폴리오 스냅샷, TOTAL, 총 수익금 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* 포트폴리오 스냅샷 (현재 총 평가액) */}
+          <div className="flex flex-col">
+            <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">포트폴리오 스냅샷</p>
+            <h1 className="text-2xl font-bold truncate">
+              {formatCurrency(totals.totalValueKRW, 'KRW')}
+            </h1>
+            <p className="text-xs text-slate-300 mt-1">
+              현재 총 평가액 <span className="hidden lg:inline">(USD 환산 {formatCurrency(totals.totalValueUSD, 'USD')})</span>
             </p>
-            {isPositive ? (
-              <TrendingUp className="w-5 h-5 text-emerald-400" />
-            ) : (
-              <TrendingDown className="w-5 h-5 text-rose-400" />
-            )}
           </div>
-          <p className={`text-sm mt-1 ${isPositive ? 'text-emerald-300' : 'text-rose-300'}`}>
-            {formatCurrency(totalProfit, 'KRW')}
-          </p>
+
+          {/* TOTAL */}
+          <div className="flex flex-col">
+            <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">TOTAL</p>
+            <h1 className="text-2xl font-bold truncate">
+              {formatCurrency(assetStatusTotal, 'KRW')}
+            </h1>
+            <p className="text-xs text-emerald-300 mt-1">
+              자산현황 TOTAL
+            </p>
+          </div>
+
+          {/* 총 수익금 */}
+          <div className="flex flex-col">
+            <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">총 수익금</p>
+            <h1 className={`text-2xl font-bold truncate ${totals.totalProfitKRW >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+              {formatCurrency(totals.totalProfitKRW, 'KRW')}
+            </h1>
+            <p className={`text-xs mt-1 ${totals.totalProfitKRW >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+              {totals.profitPercent >= 0 ? '+' : ''}{totals.profitPercent.toFixed(2)}%
+            </p>
+          </div>
         </div>
 
-        {/* 배당금 */}
-        <div className="text-center sm:text-right border-t sm:border-t-0 sm:border-l border-slate-700 pt-4 sm:pt-0 sm:pl-6">
-          <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">연간 배당</p>
-          <p className="text-2xl sm:text-3xl font-bold text-amber-400">
-            {formatCurrency(dividendTotal, 'KRW')}
-          </p>
-          <p className="text-sm text-amber-300 mt-1">
-            월 {formatCurrency(dividendTotal / 12, 'KRW')}
-          </p>
-        </div>
+        {/* 하단: 계좌별 카드 그리드 */}
+        {accountSummary && accountSummary.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {accountSummary.map((account) => (
+              <AccountCard
+                key={account.account}
+                label={account.account}
+                value={formatCurrency(account.totalValueKRW, 'KRW')}
+                positive={account.profitKRW >= 0}
+                sub={`${account.profitPercent >= 0 ? '+' : ''}${account.profitPercent.toFixed(2)}%`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -525,6 +552,20 @@ const ActivityItem = ({ activity }) => {
   )
 }
 
+// 계좌별 카드
+const AccountCard = ({ label, value, sub, positive }) => (
+  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-3 hover:bg-white/15 transition-colors">
+    <div className="flex items-center gap-2 mb-2">
+      <Wallet className="w-4 h-4 text-slate-300 flex-shrink-0" />
+      <p className="text-xs font-medium text-slate-200 truncate">{label}</p>
+    </div>
+    <p className="text-sm font-bold text-white truncate mb-1">{value}</p>
+    <p className={`text-xs font-semibold ${positive ? 'text-emerald-300' : 'text-rose-300'}`}>
+      {sub}
+    </p>
+  </div>
+)
+
 // 빈 상태
 const EmptyState = ({ message }) => (
   <div className="flex flex-col items-center justify-center h-32 text-center">
@@ -550,6 +591,7 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
   let totalProfitKRW = 0
   const allocationMap = {}
   const assetsMap = {}
+  const accountMap = {}
   const performance = []
 
   const palette = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899']
@@ -560,6 +602,7 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     const avgPrice = Number(asset.avgPrice || 0)
     const currency = asset.currency || 'USD'
     const type = asset.type || '기타'
+    const account = asset.account || '기본계좌'
 
     const totalValue = quantity * currentPrice
     const totalProfit = quantity * (currentPrice - avgPrice)
@@ -576,6 +619,20 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     if (!allocationMap[type]) allocationMap[type] = 0
     allocationMap[type] += valueKRW
 
+    // 계좌별 집계
+    if (!accountMap[account]) {
+      accountMap[account] = {
+        account,
+        totalValueKRW: 0,
+        profitKRW: 0,
+        profitPercent: 0,
+        assetCount: 0
+      }
+    }
+    accountMap[account].totalValueKRW += valueKRW
+    accountMap[account].profitKRW += profitKRW
+    accountMap[account].assetCount += 1
+
     assetsMap[asset.symbol] = { ...asset, valueKRW, currency, profitKRW, profitPercent }
 
     performance.push({
@@ -587,6 +644,14 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
       profitPercent: Number(profitPercent.toFixed(2)),
       totalValueKRW: valueKRW
     })
+  })
+
+  // 계좌별 수익률 계산
+  Object.values(accountMap).forEach(account => {
+    const investedAmount = account.totalValueKRW - account.profitKRW
+    account.profitPercent = investedAmount > 0
+      ? (account.profitKRW / investedAmount) * 100
+      : 0
   })
 
   const profitPercent = totalValueKRW - totalProfitKRW !== 0
@@ -601,11 +666,14 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     }))
     .sort((a, b) => b.value - a.value)
 
+  const accountBreakdown = Object.values(accountMap).sort((a, b) => b.totalValueKRW - a.totalValueKRW)
+
   return {
     totals: { totalValueKRW, totalValueUSD, totalProfitKRW, profitPercent },
     allocation,
     assetsMap,
-    performance
+    performance,
+    accountBreakdown
   }
 }
 
