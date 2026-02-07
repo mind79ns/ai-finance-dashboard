@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
   Pie,
@@ -22,16 +24,16 @@ import {
   RefreshCw,
   ArrowUpRight,
   ArrowDownRight,
-  Info,
-  Clock,
   DollarSign,
   PiggyBank,
-  CheckCircle2,
-  AlertTriangle
+  BarChart3,
+  Activity,
+  Zap,
+  Globe,
+  Clock
 } from 'lucide-react'
 import { format, startOfMonth, subMonths } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import ChartCard from '../components/ChartCard'
 import marketDataService from '../services/marketDataService'
 import dataSync from '../utils/dataSync'
 
@@ -40,7 +42,6 @@ const DEFAULT_USD_KRW = 1340
 const Dashboard = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [marketData, setMarketData] = useState(null)
   const [portfolioSummary, setPortfolioSummary] = useState({
     totalValueKRW: 0,
@@ -52,25 +53,16 @@ const Dashboard = () => {
   const [assetStatusTotal, setAssetStatusTotal] = useState(0)
   const [allocationData, setAllocationData] = useState([])
   const [portfolioHistory, setPortfolioHistory] = useState([])
-  const [goalSummary, setGoalSummary] = useState({
-    averageProgress: 0,
-    totalGoals: 0,
-    goals: []
-  })
+  const [goalSummary, setGoalSummary] = useState({ goals: [] })
   const [topPerformers, setTopPerformers] = useState({ gainers: [], losers: [] })
   const [recentActivities, setRecentActivities] = useState([])
   const [dividendTotal, setDividendTotal] = useState(0)
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
-    setError(null)
-
     try {
       const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData] = await Promise.all([
-        marketDataService.getAllMarketData().catch(err => {
-          console.error('Dashboard market data error:', err)
-          return null
-        }),
+        marketDataService.getAllMarketData().catch(() => null),
         dataSync.loadPortfolioAssets(),
         dataSync.loadInvestmentLogs(),
         dataSync.loadGoals(),
@@ -80,601 +72,449 @@ const Dashboard = () => {
       const usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
       setMarketData(market)
 
-      const assetsRaw = Array.isArray(loadedAssets) ? loadedAssets : safeParseLocalStorage('portfolio_assets', [])
-      const logsRaw = Array.isArray(loadedLogs) ? loadedLogs : safeParseLocalStorage('investment_logs', [])
-      const goalsRaw = Array.isArray(loadedGoals) ? loadedGoals : safeParseLocalStorage('investment_goals', [])
+      const assetsRaw = Array.isArray(loadedAssets) ? loadedAssets : []
+      const logsRaw = Array.isArray(loadedLogs) ? loadedLogs : []
+      const goalsRaw = Array.isArray(loadedGoals) ? loadedGoals : []
 
-      // Calculate AssetStatus TOTAL value
       const currentYear = new Date().getFullYear()
       const yearAccounts = assetAccountData?.[currentYear] || {}
       let assetTotalValue = 0
-      Object.values(yearAccounts).forEach(accountCategories => {
-        Object.values(accountCategories).forEach(value => {
-          assetTotalValue += Number(value || 0)
-        })
+      Object.values(yearAccounts).forEach(cats => {
+        Object.values(cats).forEach(v => { assetTotalValue += Number(v || 0) })
       })
       setAssetStatusTotal(assetTotalValue)
 
       const { totals, allocation, assetsMap, performance, accountBreakdown } = buildPortfolioSummary(assetsRaw, usdToKrw)
-
-      setPortfolioSummary({
-        totalValueKRW: totals.totalValueKRW,
-        totalValueUSD: totals.totalValueUSD,
-        totalProfitKRW: totals.totalProfitKRW,
-        profitPercent: totals.profitPercent
-      })
-
+      setPortfolioSummary(totals)
       setAccountSummary(accountBreakdown)
       setAllocationData(allocation)
 
-      // Top 수익/손실 종목
       const sorted = [...performance].sort((a, b) => b.profitPercent - a.profitPercent)
       setTopPerformers({
         gainers: sorted.filter(p => p.profitPercent > 0).slice(0, 3),
         losers: sorted.filter(p => p.profitPercent < 0).slice(-3).reverse()
       })
 
-      // 배당금 총계
       const dividendData = await dataSync.loadUserSetting('dividend_transactions')
-      const yearlyDividends = (dividendData || []).filter(d =>
-        new Date(d.date).getFullYear() === currentYear
-      )
+      const yearlyDividends = (dividendData || []).filter(d => new Date(d.date).getFullYear() === currentYear)
       const totalDividend = yearlyDividends.reduce((sum, d) => {
-        const amountKRW = d.currency === 'USD' ? d.amount * usdToKrw : d.amount
-        return sum + amountKRW
+        return sum + (d.currency === 'USD' ? d.amount * usdToKrw : d.amount)
       }, 0)
       setDividendTotal(totalDividend)
 
       const history = buildPortfolioHistory(logsRaw, usdToKrw, assetsMap, totals.totalValueKRW)
       setPortfolioHistory(history)
 
-      const goals = summarizeGoals(goalsRaw)
-      setGoalSummary(goals)
-
-      // 최근 활동 통합 (거래 + 배당 + 목표)
-      const activities = buildRecentActivities(logsRaw, dividendData || [], goalsRaw, assetsMap, usdToKrw)
-      setRecentActivities(activities)
-
+      setGoalSummary(summarizeGoals(goalsRaw))
+      setRecentActivities(buildRecentActivities(logsRaw, dividendData || [], assetsMap, usdToKrw))
     } catch (err) {
       console.error('Dashboard load error:', err)
-      setError('대시보드를 로드하는 중 문제가 발생했습니다.')
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [loadDashboardData])
+  useEffect(() => { loadDashboardData() }, [loadDashboardData])
 
   const marketHighlights = useMemo(() => buildMarketHighlights(marketData), [marketData])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[70vh]">
-        <div className="text-center space-y-3">
-          <RefreshCw className="w-10 h-10 text-primary-600 animate-spin mx-auto" />
-          <p className="text-gray-600 dark:text-gray-400 text-sm">대시보드 데이터를 준비하고 있습니다...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-[70vh]">
-        <div className="text-center space-y-3">
-          <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
-          <p className="text-rose-600">{error}</p>
-          <button onClick={loadDashboardData} className="btn-primary">
-            다시 시도
-          </button>
+      <div className="cyber-dashboard min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="cyber-hub-ring cyber-hub-ring-outer w-20 h-20 mx-auto mb-4" />
+          <p className="text-cyan-400 text-sm">Loading Dashboard...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* 퀵 액션 바 */}
-      <QuickActionBar
-        onRefresh={loadDashboardData}
-        navigate={navigate}
-      />
+    <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold neon-text-cyan">Investment Dashboard</h1>
+          <p className="text-cyan-300/60 text-sm mt-1">Portfolio Analysis & Performance</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => navigate('/portfolio')} className="cyber-btn flex items-center gap-2">
+            <Plus className="w-4 h-4" /> 자산추가
+          </button>
+          <button onClick={() => navigate('/investment-log')} className="cyber-btn flex items-center gap-2">
+            <FileText className="w-4 h-4" /> 거래기록
+          </button>
+          <button onClick={loadDashboardData} className="cyber-btn flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
 
-      {/* 헤더 요약 */}
-      <HeaderSummary
-        totals={portfolioSummary}
-        accountSummary={accountSummary}
-        assetStatusTotal={assetStatusTotal}
-      />
-
-      {/* 시장 지표 스트립 */}
-      {marketHighlights && <MarketStrip data={marketHighlights} />}
-
-      {/* 포트폴리오 차트 + 자산 배분 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <ChartCard
-          title="포트폴리오 추이"
-          subtitle="최근 6개월 평가액"
-        >
-          {portfolioHistory.length > 0 ? (
-            <ResponsiveContainer width="100%" height={260}>
+      {/* Main Grid */}
+      <div className="grid grid-cols-12 gap-4 sm:gap-6">
+        {/* Left Column - Charts */}
+        <div className="col-span-12 lg:col-span-3 space-y-4">
+          {/* Portfolio History Chart */}
+          <div className="cyber-card cyber-card-glow p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Growth Rate</h3>
+            </div>
+            <ResponsiveContainer width="100%" height={150}>
               <AreaChart data={portfolioHistory}>
                 <defs>
-                  <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  <linearGradient id="cyberGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                <YAxis
-                  stroke="#94a3b8"
-                  fontSize={12}
-                  tickFormatter={value => formatCompactCurrency(value)}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.1)" />
+                <XAxis dataKey="month" stroke="#4a6d7c" fontSize={10} />
+                <YAxis stroke="#4a6d7c" fontSize={10} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} />
                 <Tooltip
-                  formatter={(value) => [formatCurrency(value, 'KRW'), '평가액']}
-                  labelFormatter={label => label}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+                  labelStyle={{ color: '#00d4ff' }}
+                  formatter={(v) => [formatCurrency(v, 'KRW'), 'Value']}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#3b82f6"
-                  strokeWidth={2.5}
-                  fill="url(#portfolioGradient)"
-                />
+                <Area type="monotone" dataKey="value" stroke="#00d4ff" strokeWidth={2} fill="url(#cyberGradient)" />
               </AreaChart>
             </ResponsiveContainer>
-          ) : (
-            <EmptyState message="포트폴리오 데이터가 없습니다" />
-          )}
-        </ChartCard>
+          </div>
 
-        <ChartCard
-          title="자산 배분"
-          subtitle="유형별 비중"
-        >
-          {allocationData.length > 0 ? (
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={allocationData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={3}
-                  >
-                    {allocationData.map(entry => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value, 'KRW')} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="w-full sm:w-auto space-y-2">
-                {allocationData.map(item => (
-                  <div key={item.name} className="flex items-center justify-between gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                      <span className="text-gray-700 dark:text-gray-300">{item.name}</span>
-                    </div>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {((item.value / portfolioSummary.totalValueKRW) * 100).toFixed(1)}%
-                    </span>
+          {/* Account Summary Table */}
+          <div className="cyber-card cyber-card-glow p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Wallet className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Account Summary</h3>
+            </div>
+            <div className="cyber-table overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr>
+                    <th className="text-left">Account</th>
+                    <th className="text-right">Value</th>
+                    <th className="text-right">Return</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accountSummary.slice(0, 5).map(acc => (
+                    <tr key={acc.account}>
+                      <td className="text-cyan-200">{acc.account}</td>
+                      <td className="text-right text-white">{formatCompact(acc.totalValueKRW)}</td>
+                      <td className={`text-right ${acc.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                        {acc.profitPercent >= 0 ? '+' : ''}{acc.profitPercent.toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Center - Hub */}
+        <div className="col-span-12 lg:col-span-6">
+          {/* Center Hub */}
+          <div className="cyber-card cyber-card-glow p-6 mb-4">
+            <div className="flex flex-col lg:flex-row items-center gap-6">
+              {/* Left Stats */}
+              <div className="flex-1 space-y-3 w-full lg:w-auto">
+                <StatBox
+                  icon={Wallet}
+                  label="Total Portfolio"
+                  value={formatCurrency(portfolioSummary.totalValueKRW, 'KRW')}
+                  sub={`USD ${formatCurrency(portfolioSummary.totalValueUSD, 'USD')}`}
+                  color="cyan"
+                />
+                <StatBox
+                  icon={BarChart3}
+                  label="Asset Status TOTAL"
+                  value={formatCurrency(assetStatusTotal, 'KRW')}
+                  color="cyan"
+                />
+              </div>
+
+              {/* Center Ring */}
+              <div className="cyber-hub flex-shrink-0">
+                <div className="cyber-hub-ring cyber-hub-ring-outer" />
+                <div className="cyber-hub-ring cyber-hub-ring-middle" />
+                <div className="cyber-hub-ring cyber-hub-ring-inner" />
+                <div className="cyber-hub-center">
+                  <span className="text-cyan-400 text-xs uppercase tracking-wider mb-1">Portfolio</span>
+                  <span className={`text-2xl font-bold ${portfolioSummary.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                    {portfolioSummary.profitPercent >= 0 ? '+' : ''}{portfolioSummary.profitPercent.toFixed(2)}%
+                  </span>
+                  <span className="text-cyan-300/60 text-xs mt-1">Total Return</span>
+                </div>
+              </div>
+
+              {/* Right Stats */}
+              <div className="flex-1 space-y-3 w-full lg:w-auto">
+                <StatBox
+                  icon={TrendingUp}
+                  label="Total Profit"
+                  value={formatCurrency(portfolioSummary.totalProfitKRW, 'KRW')}
+                  positive={portfolioSummary.totalProfitKRW >= 0}
+                />
+                <StatBox
+                  icon={PiggyBank}
+                  label="Annual Dividend"
+                  value={formatCurrency(dividendTotal, 'KRW')}
+                  sub={`Monthly ${formatCurrency(dividendTotal / 12, 'KRW')}`}
+                  color="gold"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Market Strip */}
+          {marketHighlights && (
+            <div className="cyber-card cyber-card-glow p-4 mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Globe className="w-4 h-4 text-cyan-400" />
+                <span className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Market Overview</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {marketHighlights.map(item => (
+                  <div key={item.label} className="cyber-stat-item text-center">
+                    <p className="text-cyan-300/60 text-xs mb-1">{item.label}</p>
+                    <p className="text-white font-bold text-sm">{item.value}</p>
+                    <p className={`text-xs flex items-center justify-center gap-1 mt-1 ${item.change >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                      {item.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                      {Math.abs(item.change).toFixed(2)}%
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
-          ) : (
-            <EmptyState message="자산 데이터가 없습니다" />
           )}
-        </ChartCard>
-      </div>
 
-      {/* Top 수익/손실 + 목표 진행 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <ChartCard
-          title="Top 수익/손실"
-          subtitle="수익률 기준"
-        >
-          <div className="space-y-4">
-            {/* 수익 종목 */}
-            <div>
-              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1">
-                <TrendingUp className="w-3.5 h-3.5" /> 수익 TOP
-              </p>
-              {topPerformers.gainers.length > 0 ? (
-                <div className="space-y-2">
-                  {topPerformers.gainers.map(item => (
-                    <div key={item.symbol} className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-2">
-                      <div>
-                        <span className="font-semibold text-gray-900 dark:text-white">{item.symbol}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">{item.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                        <ArrowUpRight className="w-4 h-4" />
-                        +{item.profitPercent.toFixed(1)}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">수익 종목이 없습니다</p>
-              )}
-            </div>
-
-            {/* 손실 종목 */}
-            <div>
-              <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-2 flex items-center gap-1">
-                <TrendingDown className="w-3.5 h-3.5" /> 손실 TOP
-              </p>
-              {topPerformers.losers.length > 0 ? (
-                <div className="space-y-2">
-                  {topPerformers.losers.map(item => (
-                    <div key={item.symbol} className="flex items-center justify-between bg-rose-50 dark:bg-rose-900/20 rounded-lg px-3 py-2">
-                      <div>
-                        <span className="font-semibold text-gray-900 dark:text-white">{item.symbol}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">{item.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold">
-                        <ArrowDownRight className="w-4 h-4" />
-                        {item.profitPercent.toFixed(1)}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">손실 종목이 없습니다</p>
-              )}
-            </div>
-          </div>
-        </ChartCard>
-
-        <ChartCard
-          title="목표 진행"
-          subtitle={`${goalSummary.totalGoals}개 목표 관리 중`}
-        >
-          {goalSummary.goals.length > 0 ? (
-            <div className="space-y-3">
-              {goalSummary.goals.slice(0, 4).map(goal => (
-                <div key={goal.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-900 dark:text-white truncate">{goal.name}</span>
-                    <span className="text-gray-600 dark:text-gray-400 font-semibold">{goal.progress?.toFixed(0) || 0}%</span>
+          {/* Top Performers */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="cyber-card cyber-card-glow p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400 font-semibold text-xs uppercase">Top Gainers</span>
+              </div>
+              <div className="space-y-2">
+                {topPerformers.gainers.length > 0 ? topPerformers.gainers.map(item => (
+                  <div key={item.symbol} className="flex items-center justify-between text-sm">
+                    <span className="text-cyan-200">{item.symbol}</span>
+                    <span className="neon-text-green">+{item.profitPercent.toFixed(1)}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        goal.progress >= 100 ? 'bg-emerald-500' :
-                        goal.progress >= 70 ? 'bg-blue-500' :
-                        goal.progress >= 40 ? 'bg-amber-500' : 'bg-gray-400'
-                      }`}
-                      style={{ width: `${Math.min(goal.progress || 0, 100)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                    <span>{formatCurrency(goal.currentAmount || 0, goal.currency)}</span>
-                    <span>{formatCurrency(goal.targetAmount || 0, goal.currency)}</span>
-                  </div>
-                </div>
-              ))}
-              {goalSummary.goals.length > 4 && (
-                <button
-                  onClick={() => navigate('/goals')}
-                  className="w-full text-center text-sm text-primary-600 dark:text-primary-400 hover:underline mt-2"
-                >
-                  + {goalSummary.goals.length - 4}개 더 보기
-                </button>
-              )}
+                )) : <p className="text-cyan-300/40 text-xs">No gainers</p>}
+              </div>
             </div>
-          ) : (
-            <EmptyState message="등록된 목표가 없습니다" />
-          )}
-        </ChartCard>
-      </div>
-
-      {/* 최근 활동 타임라인 */}
-      <ChartCard
-        title="최근 활동"
-        subtitle="거래, 배당, 목표 달성 등"
-      >
-        {recentActivities.length > 0 ? (
-          <div className="space-y-3">
-            {recentActivities.slice(0, 8).map((activity, idx) => (
-              <ActivityItem key={idx} activity={activity} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState message="최근 활동이 없습니다" />
-        )}
-      </ChartCard>
-    </div>
-  )
-}
-
-// 퀵 액션 바
-const QuickActionBar = ({ onRefresh, navigate }) => {
-  const actions = [
-    { label: '자산 추가', icon: Plus, color: 'bg-blue-500 hover:bg-blue-600', path: '/portfolio' },
-    { label: '거래 기록', icon: FileText, color: 'bg-emerald-500 hover:bg-emerald-600', path: '/investment-log' },
-    { label: '목표 설정', icon: Target, color: 'bg-purple-500 hover:bg-purple-600', path: '/goals' },
-  ]
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-      {actions.map(action => (
-        <button
-          key={action.label}
-          onClick={() => navigate(action.path)}
-          className={`${action.color} text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors shadow-sm`}
-        >
-          <action.icon className="w-4 h-4" />
-          <span className="hidden sm:inline">{action.label}</span>
-        </button>
-      ))}
-      <button
-        onClick={onRefresh}
-        className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
-      >
-        <RefreshCw className="w-4 h-4" />
-        <span className="hidden sm:inline">새로고침</span>
-      </button>
-    </div>
-  )
-}
-
-// 헤더 요약 - 총평가액, TOTAL, 수익금, 계좌별
-const HeaderSummary = ({ totals, accountSummary, assetStatusTotal }) => {
-  return (
-    <div className="card bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
-      <div className="space-y-4">
-        {/* 상단: 포트폴리오 스냅샷, TOTAL, 총 수익금 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* 포트폴리오 스냅샷 (현재 총 평가액) */}
-          <div className="flex flex-col">
-            <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">포트폴리오 스냅샷</p>
-            <h1 className="text-2xl font-bold truncate">
-              {formatCurrency(totals.totalValueKRW, 'KRW')}
-            </h1>
-            <p className="text-xs text-slate-300 mt-1">
-              현재 총 평가액 <span className="hidden lg:inline">(USD 환산 {formatCurrency(totals.totalValueUSD, 'USD')})</span>
-            </p>
-          </div>
-
-          {/* TOTAL */}
-          <div className="flex flex-col">
-            <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">TOTAL</p>
-            <h1 className="text-2xl font-bold truncate">
-              {formatCurrency(assetStatusTotal, 'KRW')}
-            </h1>
-            <p className="text-xs text-emerald-300 mt-1">
-              자산현황 TOTAL
-            </p>
-          </div>
-
-          {/* 총 수익금 */}
-          <div className="flex flex-col">
-            <p className="text-xs uppercase tracking-wide text-slate-300 mb-1">총 수익금</p>
-            <h1 className={`text-2xl font-bold truncate ${totals.totalProfitKRW >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-              {formatCurrency(totals.totalProfitKRW, 'KRW')}
-            </h1>
-            <p className={`text-xs mt-1 ${totals.totalProfitKRW >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-              {totals.profitPercent >= 0 ? '+' : ''}{totals.profitPercent.toFixed(2)}%
-            </p>
+            <div className="cyber-card cyber-card-glow p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingDown className="w-4 h-4 text-rose-400" />
+                <span className="text-rose-400 font-semibold text-xs uppercase">Top Losers</span>
+              </div>
+              <div className="space-y-2">
+                {topPerformers.losers.length > 0 ? topPerformers.losers.map(item => (
+                  <div key={item.symbol} className="flex items-center justify-between text-sm">
+                    <span className="text-cyan-200">{item.symbol}</span>
+                    <span className="neon-text-red">{item.profitPercent.toFixed(1)}%</span>
+                  </div>
+                )) : <p className="text-cyan-300/40 text-xs">No losers</p>}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 하단: 계좌별 카드 그리드 */}
-        {accountSummary && accountSummary.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {accountSummary.map((account) => (
-              <AccountCard
-                key={account.account}
-                label={account.account}
-                value={formatCurrency(account.totalValueKRW, 'KRW')}
-                positive={account.profitKRW >= 0}
-                sub={`${account.profitPercent >= 0 ? '+' : ''}${account.profitPercent.toFixed(2)}%`}
-              />
-            ))}
+        {/* Right Column */}
+        <div className="col-span-12 lg:col-span-3 space-y-4">
+          {/* Asset Allocation */}
+          <div className="cyber-card cyber-card-glow p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Asset Allocation</h3>
+            </div>
+            {allocationData.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={150}>
+                  <PieChart>
+                    <Pie
+                      data={allocationData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={40}
+                      outerRadius={60}
+                      paddingAngle={3}
+                    >
+                      {allocationData.map((entry, idx) => (
+                        <Cell key={entry.name} fill={CYBER_COLORS[idx % CYBER_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+                      formatter={(v) => formatCurrency(v, 'KRW')}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-2 mt-3">
+                  {allocationData.map((item, idx) => (
+                    <div key={item.name} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ background: CYBER_COLORS[idx % CYBER_COLORS.length] }} />
+                        <span className="text-cyan-200">{item.name}</span>
+                      </div>
+                      <span className="text-white">{((item.value / portfolioSummary.totalValueKRW) * 100).toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : <p className="text-cyan-300/40 text-xs text-center py-8">No allocation data</p>}
           </div>
-        )}
-      </div>
-    </div>
-  )
-}
 
-// 시장 지표 스트립
-const MarketStrip = ({ data }) => {
-  return (
-    <div className="bg-blue-50 dark:bg-gray-800 border border-blue-100 dark:border-gray-700 rounded-xl p-3 sm:p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-        <span className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300">오늘의 시장</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-        {data.map(item => (
-          <div key={item.label} className="bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm">
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{item.label}</p>
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-sm font-bold text-gray-900 dark:text-white">{item.value}</p>
-              <span className={`text-xs font-semibold flex items-center gap-0.5 ${
-                item.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-              }`}>
-                {item.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {Math.abs(item.change).toFixed(2)}%
-              </span>
+          {/* Goals Progress */}
+          <div className="cyber-card cyber-card-glow p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Goal Progress</h3>
+            </div>
+            <div className="space-y-3">
+              {goalSummary.goals.slice(0, 3).map(goal => (
+                <div key={goal.name}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-cyan-200 truncate">{goal.name}</span>
+                    <span className="text-white">{goal.progress?.toFixed(0)}%</span>
+                  </div>
+                  <div className="cyber-progress">
+                    <div className="cyber-progress-bar" style={{ width: `${Math.min(goal.progress || 0, 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+              {goalSummary.goals.length === 0 && <p className="text-cyan-300/40 text-xs text-center py-4">No goals set</p>}
+              {goalSummary.goals.length > 3 && (
+                <button onClick={() => navigate('/goals')} className="text-cyan-400 text-xs hover:underline">
+                  +{goalSummary.goals.length - 3} more goals
+                </button>
+              )}
             </div>
           </div>
-        ))}
+        </div>
+      </div>
+
+      {/* Bottom Section - Recent Activities */}
+      <div className="mt-6">
+        <div className="cyber-card cyber-card-glow p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Recent Activities</h3>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {recentActivities.slice(0, 4).map((act, idx) => (
+              <div key={idx} className="cyber-stat-item">
+                <div className="flex items-center gap-3">
+                  <div className="cyber-icon-circle">
+                    {act.type === 'buy' ? <Plus className="w-4 h-4 text-cyan-400" /> :
+                     act.type === 'sell' ? <DollarSign className="w-4 h-4 text-emerald-400" /> :
+                     <PiggyBank className="w-4 h-4 text-amber-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-cyan-200 text-sm font-medium truncate">{act.title}</p>
+                    <p className="text-cyan-300/50 text-xs">{act.date}</p>
+                  </div>
+                  <span className={`text-sm font-bold ${act.amount >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                    {act.amount >= 0 ? '+' : ''}{formatCompact(act.amount)}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {recentActivities.length === 0 && (
+              <p className="text-cyan-300/40 text-xs col-span-4 text-center py-4">No recent activities</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
-// 활동 아이템
-const ActivityItem = ({ activity }) => {
-  const iconMap = {
-    buy: { icon: Plus, bg: 'bg-blue-100 dark:bg-blue-900/30', color: 'text-blue-600 dark:text-blue-400' },
-    sell: { icon: DollarSign, bg: 'bg-emerald-100 dark:bg-emerald-900/30', color: 'text-emerald-600 dark:text-emerald-400' },
-    dividend: { icon: PiggyBank, bg: 'bg-amber-100 dark:bg-amber-900/30', color: 'text-amber-600 dark:text-amber-400' },
-    goal: { icon: CheckCircle2, bg: 'bg-purple-100 dark:bg-purple-900/30', color: 'text-purple-600 dark:text-purple-400' }
-  }
-
-  const config = iconMap[activity.type] || iconMap.buy
-  const Icon = config.icon
+// Stat Box Component
+const StatBox = ({ icon: Icon, label, value, sub, positive, color = 'default' }) => {
+  const colorClass = color === 'gold' ? 'neon-text-gold' : color === 'cyan' ? 'neon-text-cyan' :
+    (positive !== undefined ? (positive ? 'neon-text-green' : 'neon-text-red') : 'text-white')
 
   return (
-    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-      <div className={`p-2 rounded-full ${config.bg}`}>
-        <Icon className={`w-4 h-4 ${config.color}`} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 dark:text-white">{activity.title}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{activity.description}</p>
-      </div>
-      <div className="text-right flex-shrink-0">
-        <p className={`text-sm font-semibold ${
-          activity.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-        }`}>
-          {activity.amount >= 0 ? '+' : ''}{formatCurrency(activity.amount, 'KRW')}
-        </p>
-        <p className="text-xs text-gray-400 flex items-center gap-1 justify-end">
-          <Clock className="w-3 h-3" />
-          {activity.date}
-        </p>
+    <div className="cyber-stat-item">
+      <div className="flex items-center gap-3">
+        <div className="cyber-icon-circle">
+          <Icon className="w-4 h-4 text-cyan-400" />
+        </div>
+        <div>
+          <p className="text-cyan-300/60 text-xs uppercase tracking-wide">{label}</p>
+          <p className={`text-lg font-bold ${colorClass}`}>{value}</p>
+          {sub && <p className="text-cyan-300/40 text-xs">{sub}</p>}
+        </div>
       </div>
     </div>
   )
 }
 
-// 계좌별 카드
-const AccountCard = ({ label, value, sub, positive }) => (
-  <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-3 hover:bg-white/15 transition-colors">
-    <div className="flex items-center gap-2 mb-2">
-      <Wallet className="w-4 h-4 text-slate-300 flex-shrink-0" />
-      <p className="text-xs font-medium text-slate-200 truncate">{label}</p>
-    </div>
-    <p className="text-sm font-bold text-white truncate mb-1">{value}</p>
-    <p className={`text-xs font-semibold ${positive ? 'text-emerald-300' : 'text-rose-300'}`}>
-      {sub}
-    </p>
-  </div>
-)
+// Color palette for cyber theme
+const CYBER_COLORS = ['#00d4ff', '#00ff88', '#ffd700', '#ff6b6b', '#a855f7', '#06b6d4', '#f97316']
 
-// 빈 상태
-const EmptyState = ({ message }) => (
-  <div className="flex flex-col items-center justify-center h-32 text-center">
-    <Wallet className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />
-    <p className="text-sm text-gray-500 dark:text-gray-400">{message}</p>
-  </div>
-)
+// Utility Functions
+const formatCurrency = (value, currency = 'KRW') => {
+  if (!Number.isFinite(value)) return '-'
+  if (currency === 'USD') return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+  return `${value.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원`
+}
 
-// 유틸리티 함수들
-const safeParseLocalStorage = (key, fallback) => {
-  try {
-    const value = localStorage.getItem(key)
-    if (!value) return fallback
-    return JSON.parse(value)
-  } catch {
-    return fallback
-  }
+const formatCompact = (value) => {
+  if (!Number.isFinite(value)) return '-'
+  const abs = Math.abs(value)
+  if (abs >= 1e8) return `${(value / 1e8).toFixed(1)}억`
+  if (abs >= 1e4) return `${(value / 1e4).toFixed(0)}만`
+  return value.toLocaleString()
 }
 
 const buildPortfolioSummary = (assets, usdToKrw) => {
-  let totalValueKRW = 0
-  let totalValueUSD = 0
-  let totalProfitKRW = 0
-  const allocationMap = {}
-  const assetsMap = {}
-  const accountMap = {}
-  const performance = []
-
-  const palette = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899']
+  let totalValueKRW = 0, totalValueUSD = 0, totalProfitKRW = 0
+  const allocationMap = {}, assetsMap = {}, accountMap = {}, performance = []
 
   assets.forEach(asset => {
-    const quantity = Number(asset.quantity || 0)
-    const currentPrice = Number(asset.currentPrice || asset.avgPrice || 0)
+    const qty = Number(asset.quantity || 0)
+    const curPrice = Number(asset.currentPrice || asset.avgPrice || 0)
     const avgPrice = Number(asset.avgPrice || 0)
     const currency = asset.currency || 'USD'
     const type = asset.type || '기타'
     const account = asset.account || '기본계좌'
 
-    const totalValue = quantity * currentPrice
-    const totalProfit = quantity * (currentPrice - avgPrice)
-
-    const valueKRW = currency === 'USD' ? totalValue * usdToKrw : totalValue
+    const totalVal = qty * curPrice
+    const totalProfit = qty * (curPrice - avgPrice)
+    const valueKRW = currency === 'USD' ? totalVal * usdToKrw : totalVal
     const profitKRW = currency === 'USD' ? totalProfit * usdToKrw : totalProfit
-    const valueUSD = currency === 'KRW' ? totalValue / usdToKrw : totalValue
-    const profitPercent = avgPrice > 0 ? ((currentPrice - avgPrice) / avgPrice) * 100 : 0
+    const valueUSD = currency === 'KRW' ? totalVal / usdToKrw : totalVal
+    const profitPercent = avgPrice > 0 ? ((curPrice - avgPrice) / avgPrice) * 100 : 0
 
     totalValueKRW += valueKRW
     totalProfitKRW += profitKRW
     totalValueUSD += valueUSD
 
-    if (!allocationMap[type]) allocationMap[type] = 0
-    allocationMap[type] += valueKRW
-
-    // 계좌별 집계
-    if (!accountMap[account]) {
-      accountMap[account] = {
-        account,
-        totalValueKRW: 0,
-        profitKRW: 0,
-        profitPercent: 0,
-        assetCount: 0
-      }
-    }
+    allocationMap[type] = (allocationMap[type] || 0) + valueKRW
+    if (!accountMap[account]) accountMap[account] = { account, totalValueKRW: 0, profitKRW: 0 }
     accountMap[account].totalValueKRW += valueKRW
     accountMap[account].profitKRW += profitKRW
-    accountMap[account].assetCount += 1
 
     assetsMap[asset.symbol] = { ...asset, valueKRW, currency, profitKRW, profitPercent }
-
-    performance.push({
-      id: asset.id || asset.symbol,
-      symbol: asset.symbol,
-      name: asset.name || asset.symbol,
-      type,
-      profitKRW,
-      profitPercent: Number(profitPercent.toFixed(2)),
-      totalValueKRW: valueKRW
-    })
+    performance.push({ symbol: asset.symbol, name: asset.name || asset.symbol, profitPercent: Number(profitPercent.toFixed(2)) })
   })
 
-  // 계좌별 수익률 계산
-  Object.values(accountMap).forEach(account => {
-    const investedAmount = account.totalValueKRW - account.profitKRW
-    account.profitPercent = investedAmount > 0
-      ? (account.profitKRW / investedAmount) * 100
-      : 0
+  Object.values(accountMap).forEach(acc => {
+    const invested = acc.totalValueKRW - acc.profitKRW
+    acc.profitPercent = invested > 0 ? (acc.profitKRW / invested) * 100 : 0
   })
 
-  const profitPercent = totalValueKRW - totalProfitKRW !== 0
-    ? (totalProfitKRW / (totalValueKRW - totalProfitKRW)) * 100
-    : 0
-
-  const allocation = Object.entries(allocationMap)
-    .map(([name, value], index) => ({
-      name,
-      value,
-      color: palette[index % palette.length]
-    }))
-    .sort((a, b) => b.value - a.value)
-
+  const profitPercent = totalValueKRW - totalProfitKRW !== 0 ? (totalProfitKRW / (totalValueKRW - totalProfitKRW)) * 100 : 0
+  const allocation = Object.entries(allocationMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
   const accountBreakdown = Object.values(accountMap).sort((a, b) => b.totalValueKRW - a.totalValueKRW)
 
-  return {
-    totals: { totalValueKRW, totalValueUSD, totalProfitKRW, profitPercent },
-    allocation,
-    assetsMap,
-    performance,
-    accountBreakdown
-  }
+  return { totals: { totalValueKRW, totalValueUSD, totalProfitKRW, profitPercent }, allocation, assetsMap, performance, accountBreakdown }
 }
 
 const buildPortfolioHistory = (logs, usdToKrw, assetsMap, currentTotal) => {
@@ -682,162 +522,66 @@ const buildPortfolioHistory = (logs, usdToKrw, assetsMap, currentTotal) => {
   const now = new Date()
   for (let i = 5; i >= 0; i--) {
     const date = subMonths(startOfMonth(now), i)
-    months.push({
-      key: format(date, 'yyyy-MM'),
-      label: format(date, 'M월', { locale: ko })
-    })
+    months.push({ key: format(date, 'yyyy-MM'), label: format(date, 'M월', { locale: ko }) })
   }
 
-  const logsWithCurrency = logs.map(log => {
+  const logsWithKRW = logs.map(log => {
     const asset = assetsMap[log.asset]
-    const quantity = Number(log.quantity || 0)
-    const price = Number(log.price || 0)
-    const total = Number(log.total || quantity * price || 0)
+    const total = Number(log.total || Number(log.quantity || 0) * Number(log.price || 0))
     const currency = asset?.currency || log.currency || 'USD'
-    const totalKRW = currency === 'USD' ? total * usdToKrw : total
-    return { ...log, totalKRW }
+    return { ...log, totalKRW: currency === 'USD' ? total * usdToKrw : total }
   })
 
-  let cumulative = 0
-  const trend = months.map(month => {
-    const monthlyNet = logsWithCurrency
-      .filter(log => log.date && format(new Date(log.date), 'yyyy-MM') === month.key)
-      .reduce((sum, log) => {
-        if (log.type === 'buy') return sum + log.totalKRW
-        if (log.type === 'sell') return sum - log.totalKRW
-        return sum
-      }, 0)
-    cumulative += monthlyNet
-    return { month: month.label, net: monthlyNet, cumulative }
+  let cum = 0
+  const trend = months.map(m => {
+    const net = logsWithKRW.filter(l => l.date && format(new Date(l.date), 'yyyy-MM') === m.key)
+      .reduce((s, l) => s + (l.type === 'buy' ? l.totalKRW : -l.totalKRW), 0)
+    cum += net
+    return { month: m.label, cumulative: cum }
   })
 
-  if (!trend.length) return []
-
-  const finalCumulative = trend[trend.length - 1].cumulative
-  const scale = finalCumulative !== 0 ? currentTotal / finalCumulative : 1
-
-  return trend.map(item => ({
-    month: item.month,
-    value: Math.max(item.cumulative * scale, 0),
-    net: item.net
-  }))
+  const scale = trend.length && trend[trend.length - 1].cumulative ? currentTotal / trend[trend.length - 1].cumulative : 1
+  return trend.map(t => ({ month: t.month, value: Math.max(t.cumulative * scale, 0) }))
 }
 
 const summarizeGoals = (goals) => {
-  if (!goals.length) {
-    return { averageProgress: 0, totalGoals: 0, goals: [] }
-  }
-
-  const processedGoals = goals.map(goal => {
-    const target = Number(goal.targetAmount || 0)
-    const current = Number(goal.currentAmount || 0)
-    const progress = target > 0 ? Math.min((current / target) * 100, 100) : 0
-    return {
-      name: goal.name,
-      category: goal.category,
-      currency: goal.currency || 'KRW',
-      targetAmount: target,
-      currentAmount: current,
-      progress,
-      targetDate: goal.targetDate
-    }
-  })
-
-  const avgProgress = processedGoals.reduce((sum, g) => sum + g.progress, 0) / processedGoals.length
-
+  if (!goals.length) return { goals: [] }
   return {
-    averageProgress: avgProgress,
-    totalGoals: goals.length,
-    goals: processedGoals.sort((a, b) => b.progress - a.progress)
+    goals: goals.map(g => {
+      const target = Number(g.targetAmount || 0)
+      const current = Number(g.currentAmount || 0)
+      return { name: g.name, progress: target > 0 ? Math.min((current / target) * 100, 100) : 0 }
+    }).sort((a, b) => b.progress - a.progress)
   }
 }
 
-const buildRecentActivities = (logs, dividends, goals, assetsMap, usdToKrw) => {
+const buildRecentActivities = (logs, dividends, assetsMap, usdToKrw) => {
   const activities = []
-
-  // 거래 내역
-  logs.slice(0, 10).forEach(log => {
+  logs.slice(0, 5).forEach(log => {
     const asset = assetsMap[log.asset]
-    const currency = asset?.currency || 'USD'
     const total = Number(log.total || 0)
-    const amountKRW = currency === 'USD' ? total * usdToKrw : total
-
+    const amountKRW = (asset?.currency || 'USD') === 'USD' ? total * usdToKrw : total
     activities.push({
-      type: log.type,
-      title: `${log.asset} ${log.type === 'buy' ? '매수' : '매도'}`,
-      description: `${log.quantity}주 × ${formatCurrency(log.price, currency)}`,
+      type: log.type, title: `${log.asset} ${log.type === 'buy' ? '매수' : '매도'}`,
       amount: log.type === 'buy' ? -amountKRW : amountKRW,
       date: log.date ? format(new Date(log.date), 'M/d') : '-',
-      timestamp: new Date(log.date).getTime()
+      ts: new Date(log.date).getTime()
     })
   })
-
-  // 배당금
-  dividends.slice(0, 5).forEach(div => {
-    const amountKRW = div.currency === 'USD' ? div.amount * usdToKrw : div.amount
-    activities.push({
-      type: 'dividend',
-      title: `${div.symbol} 배당금`,
-      description: `배당금 입금`,
-      amount: amountKRW,
-      date: div.date ? format(new Date(div.date), 'M/d') : '-',
-      timestamp: new Date(div.date).getTime()
-    })
+  dividends.slice(0, 3).forEach(d => {
+    const amountKRW = d.currency === 'USD' ? d.amount * usdToKrw : d.amount
+    activities.push({ type: 'dividend', title: `${d.symbol} 배당`, amount: amountKRW, date: d.date ? format(new Date(d.date), 'M/d') : '-', ts: new Date(d.date).getTime() })
   })
-
-  // 시간순 정렬
-  return activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 8)
+  return activities.sort((a, b) => b.ts - a.ts)
 }
 
 const buildMarketHighlights = (marketData) => {
   if (!marketData) return null
-
-  const highlights = []
-
-  if (marketData.stocks?.sp500) {
-    highlights.push({
-      label: 'S&P 500',
-      value: `$${marketData.stocks.sp500.price?.toLocaleString('en-US', { maximumFractionDigits: 0 }) || '-'}`,
-      change: marketData.stocks.sp500.changePercent || 0
-    })
-  }
-
-  if (marketData.crypto?.bitcoin) {
-    highlights.push({
-      label: 'Bitcoin',
-      value: `$${marketData.crypto.bitcoin.price?.toLocaleString('en-US', { maximumFractionDigits: 0 }) || '-'}`,
-      change: marketData.crypto.bitcoin.change24h || 0
-    })
-  }
-
-  if (marketData.currency?.usdKrw) {
-    highlights.push({
-      label: 'USD/KRW',
-      value: `${marketData.currency.usdKrw.rate?.toLocaleString('ko-KR') || '-'}`,
-      change: ((marketData.currency.usdKrw.rate - DEFAULT_USD_KRW) / DEFAULT_USD_KRW) * 100
-    })
-  }
-
-  return highlights.length > 0 ? highlights : null
-}
-
-const formatCurrency = (value, currency = 'KRW') => {
-  if (value === null || value === undefined) return '-'
-  const rounded = Number(value)
-  if (!Number.isFinite(rounded)) return '-'
-
-  if (currency === 'USD') {
-    return `$${rounded.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-  }
-  return `${rounded.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원`
-}
-
-const formatCompactCurrency = (value) => {
-  if (!Number.isFinite(value)) return '-'
-  const abs = Math.abs(value)
-  if (abs >= 1e8) return `${(value / 1e8).toFixed(1)}억`
-  if (abs >= 1e4) return `${(value / 1e4).toFixed(0)}만`
-  return value.toFixed(0)
+  const hl = []
+  if (marketData.stocks?.sp500) hl.push({ label: 'S&P 500', value: `$${marketData.stocks.sp500.price?.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, change: marketData.stocks.sp500.changePercent || 0 })
+  if (marketData.crypto?.bitcoin) hl.push({ label: 'Bitcoin', value: `$${marketData.crypto.bitcoin.price?.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, change: marketData.crypto.bitcoin.change24h || 0 })
+  if (marketData.currency?.usdKrw) hl.push({ label: 'USD/KRW', value: marketData.currency.usdKrw.rate?.toLocaleString('ko-KR'), change: ((marketData.currency.usdKrw.rate - DEFAULT_USD_KRW) / DEFAULT_USD_KRW) * 100 })
+  return hl.length ? hl : null
 }
 
 export default Dashboard
