@@ -769,11 +769,11 @@ const Portfolio = () => {
       </div>
 
       {/* Investment Management Table - Account Based */}
-      <div className="card">
+      <div className="cyber-card cyber-card-glow">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>
-            <h3 className="text-base sm:text-xl font-bold text-gray-900">투자 관리표</h3>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">계좌별 투자 원금 및 손익 현황</p>
+            <h3 className="text-base sm:text-xl font-bold text-cyan-400">투자 관리표</h3>
+            <p className="text-xs sm:text-sm text-cyan-300/60 mt-1">계좌별 투자 원금 및 손익 현황</p>
           </div>
         </div>
 
@@ -781,8 +781,8 @@ const Portfolio = () => {
         <div className="block sm:hidden space-y-3">
           {accountSummary.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="flex flex-col items-center justify-center text-gray-500">
-                <FileText className="w-12 h-12 mb-3 text-gray-300" />
+              <div className="flex flex-col items-center justify-center text-cyan-300/60">
+                <FileText className="w-12 h-12 mb-3 text-cyan-400/30" />
                 <p className="text-base font-medium">보유 자산이 없습니다</p>
                 <p className="text-sm mt-1">먼저 포트폴리오에 자산을 추가하세요</p>
               </div>
@@ -812,59 +812,59 @@ const Portfolio = () => {
                 const profit = evaluationKRW - investmentAmount
 
                 return (
-                  <div key={account.account} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
+                  <div key={account.account} className="border border-cyan-400/30 rounded-lg p-3 bg-slate-800/50 hover:bg-slate-700/50 transition-all">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900">{account.account}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{account.assets.length}개 자산 보유</p>
+                        <p className="text-sm font-bold text-cyan-300">{account.account}</p>
+                        <p className="text-xs text-cyan-300/60 mt-0.5">{account.assets.length}개 자산 보유</p>
                       </div>
                       <button
                         onClick={() => {
                           setEditingAccount(account.account)
                           setShowPrincipalModal(true)
                         }}
-                        className="p-1.5 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
+                        className="p-1.5 hover:bg-cyan-400/20 rounded transition-colors flex-shrink-0"
                         title="원금/예수금 입력"
                       >
-                        <Edit2 className="w-4 h-4 text-primary-600" />
+                        <Edit2 className="w-4 h-4 text-cyan-400" />
                       </button>
                     </div>
 
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">원금</span>
-                        <span className="font-medium text-gray-900">
+                        <span className="text-cyan-300/60">원금</span>
+                        <span className="font-medium text-white">
                           {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(principalData.principal)}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">예수금(잔여)</span>
-                        <span className="font-medium text-gray-900">
+                        <span className="text-cyan-300/60">예수금(잔여)</span>
+                        <span className="font-medium text-white">
                           {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(principalData.remaining)}
                         </span>
                       </div>
-                      <div className="flex justify-between pt-2 border-t border-gray-200">
-                        <span className="text-gray-700 font-medium">투자금</span>
-                        <span className="font-bold text-gray-900">
+                      <div className="flex justify-between pt-2 border-t border-cyan-400/20">
+                        <span className="text-cyan-200 font-medium">투자금</span>
+                        <span className="font-bold text-white">
                           {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(investmentAmount))}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-700 font-medium">평가금액</span>
-                        <span className="font-bold text-gray-900">
+                        <span className="text-cyan-200 font-medium">평가금액</span>
+                        <span className="font-bold text-white">
                           {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(evaluationKRW))}
                         </span>
                       </div>
-                      <div className="flex justify-between pb-2 border-b border-gray-200">
-                        <span className="text-gray-700 font-medium">손익</span>
-                        <span className={`font-bold text-sm ${profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                      <div className="flex justify-between pb-2 border-b border-cyan-400/20">
+                        <span className="text-cyan-200 font-medium">손익</span>
+                        <span className={`font-bold text-sm ${profit >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                           {profit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(profit))}
                         </span>
                       </div>
                       {principalData.note && (
                         <div className="pt-2">
-                          <span className="text-gray-600">비고: </span>
-                          <span className="text-gray-700">{principalData.note}</span>
+                          <span className="text-cyan-300/60">비고: </span>
+                          <span className="text-cyan-200">{principalData.note}</span>
                         </div>
                       )}
                     </div>
@@ -873,12 +873,12 @@ const Portfolio = () => {
               })}
 
               {/* TOTAL Card */}
-              <div className="border-2 border-blue-300 rounded-lg p-3 bg-blue-50">
-                <p className="text-sm font-bold text-blue-900 mb-3 text-center">TOTAL</p>
+              <div className="border-2 border-cyan-400/50 rounded-lg p-3 bg-cyan-500/10">
+                <p className="text-sm font-bold text-cyan-400 mb-3 text-center">TOTAL</p>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-blue-700 font-medium">원금 합계</span>
-                    <span className="font-bold text-blue-900">
+                    <span className="text-cyan-300 font-medium">원금 합계</span>
+                    <span className="font-bold text-white">
                       {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                         accountSummary.reduce((sum, acc) => {
                           const data = accountPrincipals[acc.account] || { principal: 0 }
@@ -888,8 +888,8 @@ const Portfolio = () => {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-blue-700 font-medium">예수금 합계</span>
-                    <span className="font-bold text-blue-900">
+                    <span className="text-cyan-300 font-medium">예수금 합계</span>
+                    <span className="font-bold text-white">
                       {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                         accountSummary.reduce((sum, acc) => {
                           const data = accountPrincipals[acc.account] || { remaining: 0 }
@@ -898,9 +898,9 @@ const Portfolio = () => {
                       )}
                     </span>
                   </div>
-                  <div className="flex justify-between pt-2 border-t border-blue-300">
-                    <span className="text-blue-800 font-bold">총 투자금</span>
-                    <span className="font-bold text-blue-900">
+                  <div className="flex justify-between pt-2 border-t border-cyan-400/30">
+                    <span className="text-cyan-200 font-bold">총 투자금</span>
+                    <span className="font-bold text-white">
                       {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                         Math.round(accountSummary.reduce((sum, acc) => {
                           return sum + acc.assets.reduce((assetSum, asset) => {
@@ -963,19 +963,19 @@ const Portfolio = () => {
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden sm:block overflow-x-auto">
+        <div className="hidden sm:block overflow-x-auto cyber-table">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-blue-100 border-b border-blue-200">
-                <th className="text-center py-3 px-4 font-bold text-blue-900">No.</th>
-                <th className="text-left py-3 px-4 font-bold text-blue-900">계좌명</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900">원금</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900">예수금(잔여)</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900 bg-blue-200">투자금</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900 bg-blue-200">평가금액(원)</th>
-                <th className="text-right py-3 px-4 font-bold text-blue-900 bg-blue-200">손익</th>
-                <th className="text-left py-3 px-4 font-bold text-blue-900">비고</th>
-                <th className="text-center py-3 px-4 font-bold text-blue-900">관리</th>
+              <tr>
+                <th className="text-center">뺈호</th>
+                <th className="text-left">계좌명</th>
+                <th className="text-right">원금</th>
+                <th className="text-right">예수금(잔여)</th>
+                <th className="text-right">투자금</th>
+                <th className="text-right">평가금액(원)</th>
+                <th className="text-right">손익</th>
+                <th className="text-left">비고</th>
+                <th className="text-center">관리</th>
               </tr>
             </thead>
             <tbody>

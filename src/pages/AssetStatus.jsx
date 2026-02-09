@@ -969,11 +969,11 @@ const AssetStatus = () => {
       <div className="space-y-4">
         {/* Month Selector */}
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">월별 상세 현황</h2>
+          <h2 className="text-2xl font-bold text-cyan-400">월별 상세 현황</h2>
           <select
             value={selectedMonthView}
             onChange={(e) => setSelectedMonthView(Number(e.target.value))}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-gray-900 font-medium"
+            className="px-4 py-2 bg-slate-800/50 border border-cyan-400/30 rounded-lg focus:ring-2 focus:ring-cyan-400/50 focus:border-transparent text-cyan-300 font-medium"
           >
             {MONTH_LABELS.map((month, idx) => (
               <option key={idx} value={idx}>{month}</option>
@@ -1111,8 +1111,8 @@ const AssetStatus = () => {
                 <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
                   <div
                     className={`absolute bottom-0 w-full transition-all duration-500 flex items-end justify-center pb-1 ${(calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0
-                        ? 'bg-gradient-to-t from-green-500 to-green-400'
-                        : 'bg-gradient-to-t from-orange-500 to-orange-400'
+                      ? 'bg-gradient-to-t from-green-500 to-green-400'
+                      : 'bg-gradient-to-t from-orange-500 to-orange-400'
                       }`}
                     style={{
                       height: `${Math.min(Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
@@ -1267,10 +1267,10 @@ const AssetStatus = () => {
                       <td
                         key={idx}
                         className={`text-right py-3 px-4 ${category.isAccumulated
-                            ? isJanuary
-                              ? 'bg-yellow-50 font-semibold text-yellow-800 cursor-pointer hover:bg-yellow-100'
-                              : 'bg-indigo-50 font-semibold text-indigo-700'
-                            : 'text-gray-700 cursor-pointer hover:bg-blue-50'
+                          ? isJanuary
+                            ? 'bg-yellow-50 font-semibold text-yellow-800 cursor-pointer hover:bg-yellow-100'
+                            : 'bg-indigo-50 font-semibold text-indigo-700'
+                          : 'text-gray-700 cursor-pointer hover:bg-blue-50'
                           }`}
                         onClick={() => isEditable && handleOpenEditModal(idx)}
                         title={

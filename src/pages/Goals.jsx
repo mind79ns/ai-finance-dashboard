@@ -603,25 +603,25 @@ ${JSON.stringify(context, null, 2)}
             : 0
 
           return (
-            <div key={goal.id} className="card">
+            <div key={goal.id} className="cyber-card cyber-card-glow">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-lg font-semibold text-gray-900">{goal.name}</h3>
+                    <h3 className="text-lg font-semibold text-cyan-300">{goal.name}</h3>
                     {goal.linkedToPortfolio && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700" title={`${goal.linkType === 'assetTotal' ? '자산현황 TOTAL' : goal.linkType === 'profit' ? '포트폴리오 총수익금' : '포트폴리오 총액'}과 자동 연동`}>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-cyan-500/20 text-cyan-400" title={`${goal.linkType === 'assetTotal' ? '자산현황 TOTAL' : goal.linkType === 'profit' ? '포트폴리오 총수익금' : '포트폴리오 총액'}과 자동 연동`}>
                         <LinkIcon className="w-3 h-3" />
                         {goal.linkType === 'assetTotal' ? '자산현황 연동' : goal.linkType === 'profit' ? '수익금 연동' : '총액 연동'}
                       </span>
                     )}
                   </div>
-                  <span className="inline-block mt-1 px-2 py-1 text-xs font-medium rounded bg-primary-50 text-primary-700">
+                  <span className="inline-block mt-1 px-2 py-1 text-xs font-medium rounded bg-fuchsia-500/20 text-fuchsia-400">
                     {goal.category}
                   </span>
                 </div>
                 <button
                   onClick={() => handleDeleteClick(goal)}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-2 text-cyan-300/60 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                   title="목표 삭제"
                 >
                   <Trash2 className="w-5 h-5" />
@@ -632,21 +632,21 @@ ${JSON.stringify(context, null, 2)}
                 {/* Progress Bar */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">진행률</span>
-                    <span className="text-sm font-medium text-primary-600">
+                    <span className="text-sm text-cyan-300/60">진행률</span>
+                    <span className="text-sm font-medium text-cyan-400">
                       {progress.toFixed(1)}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-slate-700/50 rounded-full h-3">
                     <div
-                      className="bg-primary-600 h-3 rounded-full transition-all duration-500"
+                      className="bg-gradient-to-r from-cyan-400 to-fuchsia-400 h-3 rounded-full transition-all duration-500"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-cyan-400/20">
                   <div>
                     <p className="text-xs text-gray-600 mb-1">현재 금액</p>
                     <p className="text-lg font-bold text-gray-900">

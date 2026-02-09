@@ -560,12 +560,12 @@ const InvestmentLog = () => {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+          <div className="flex items-center gap-2 bg-slate-800/50 border border-cyan-400/30 p-1 rounded-lg">
             <button
               onClick={() => setViewMode('list')}
               className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'list'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-cyan-500/20 text-cyan-400'
+                : 'text-cyan-300/60 hover:text-cyan-300'
                 }`}
             >
               <List className="w-4 h-4" />
@@ -574,8 +574,8 @@ const InvestmentLog = () => {
             <button
               onClick={() => setViewMode('calendar')}
               className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'calendar'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-cyan-500/20 text-cyan-400'
+                : 'text-cyan-300/60 hover:text-cyan-300'
                 }`}
             >
               <CalendarDays className="w-4 h-4" />
@@ -587,11 +587,11 @@ const InvestmentLog = () => {
           {viewMode === 'list' && (
             <>
               <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-600" />
+                <Filter className="w-5 h-5 text-cyan-400" />
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="px-3 py-2 bg-slate-800/50 border border-cyan-400/30 text-cyan-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
                 >
                   <option value="all">전체</option>
                   <option value="buy">매수</option>
@@ -601,7 +601,7 @@ const InvestmentLog = () => {
               <select
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="px-3 py-2 bg-slate-800/50 border border-cyan-400/30 text-cyan-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
               >
                 <option value="all">전체 기간</option>
                 <option value="0">1월</option>
@@ -646,21 +646,21 @@ const InvestmentLog = () => {
           <div className="block sm:hidden space-y-3">
             {filteredLogs.length === 0 ? (
               <div className="text-center py-12">
-                <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">거래 내역이 없습니다</p>
+                <CalendarIcon className="w-12 h-12 text-cyan-400/40 mx-auto mb-4" />
+                <p className="text-cyan-300/60">거래 내역이 없습니다</p>
               </div>
             ) : (
               filteredLogs.map((log) => (
-                <div key={log.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
+                <div key={log.id} className="border border-cyan-400/30 rounded-lg p-3 bg-slate-800/50 hover:bg-slate-700/50 transition-all">
                   {/* Header with date and type */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-xs text-gray-600">{log.date}</span>
+                      <CalendarIcon className="w-4 h-4 text-cyan-400/60 flex-shrink-0" />
+                      <span className="text-xs text-cyan-300/60">{log.date}</span>
                     </div>
                     <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full flex-shrink-0 ${log.type === 'buy'
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'bg-emerald-100 text-emerald-700'
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'bg-emerald-100 text-emerald-700'
                       }`}>
                       {log.type === 'buy' ? '매수' : '매도'}
                     </span>
@@ -668,14 +668,14 @@ const InvestmentLog = () => {
 
                   {/* Asset name */}
                   <div className="mb-3">
-                    <p className="text-sm font-bold text-gray-900">{log.asset}</p>
+                    <p className="text-sm font-bold text-cyan-300">{log.asset}</p>
                   </div>
 
                   {/* Transaction details */}
-                  <div className="grid grid-cols-2 gap-2 py-2 border-t border-gray-200 text-xs">
+                  <div className="grid grid-cols-2 gap-2 py-2 border-t border-cyan-400/20 text-xs">
                     <div>
-                      <span className="text-gray-600">수량</span>
-                      <p className="font-medium text-gray-900 mt-0.5">{log.quantity}</p>
+                      <span className="text-cyan-300/60">수량</span>
+                      <p className="font-medium text-white mt-0.5">{log.quantity}</p>
                     </div>
                     <div className="text-right">
                       <span className="text-gray-600">가격</span>
@@ -742,8 +742,8 @@ const InvestmentLog = () => {
                     </td>
                     <td className="py-4 px-4">
                       <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${log.type === 'buy'
-                          ? 'bg-primary-100 text-primary-700'
-                          : 'bg-success/10 text-success'
+                        ? 'bg-primary-100 text-primary-700'
+                        : 'bg-success/10 text-success'
                         }`}>
                         {log.type === 'buy' ? '매수' : '매도'}
                       </span>
@@ -844,8 +844,8 @@ const InvestmentLog = () => {
                   <div key={log.id} className="p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${log.type === 'buy'
-                          ? 'bg-primary-100 text-primary-700'
-                          : 'bg-success/10 text-success'
+                        ? 'bg-primary-100 text-primary-700'
+                        : 'bg-success/10 text-success'
                         }`}>
                         {log.type === 'buy' ? '매수' : '매도'}
                       </span>

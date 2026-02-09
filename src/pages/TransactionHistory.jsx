@@ -959,11 +959,11 @@ const TransactionHistory = () => {
       </div>
 
       {/* 환율 계산기 */}
-      <div className="card bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200">
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-indigo-200">
-          <Calculator className="w-5 h-5 text-indigo-600" />
-          <h3 className="text-lg font-bold text-gray-900">환율 계산기</h3>
-          <span className="text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full ml-2">
+      <div className="cyber-card cyber-card-glow">
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-cyan-400/30">
+          <Calculator className="w-5 h-5 text-cyan-400" />
+          <h3 className="text-lg font-bold text-cyan-400">환율 계산기</h3>
+          <span className="text-xs text-cyan-300 bg-cyan-500/20 px-2 py-1 rounded-full ml-2">
             실시간 환율 적용
           </span>
         </div>
@@ -972,7 +972,7 @@ const TransactionHistory = () => {
           {/* 입력 영역 */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-cyan-300/80 mb-2">
                 기준 통화 선택
               </label>
               <div className="flex gap-2">
@@ -981,8 +981,8 @@ const TransactionHistory = () => {
                     key={currency}
                     onClick={() => setCalcFromCurrency(currency)}
                     className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition-all ${calcFromCurrency === currency
-                      ? 'bg-indigo-600 text-white shadow-lg'
-                      : 'bg-white text-gray-700 border border-gray-300 hover:border-indigo-400'
+                      ? 'bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-lg'
+                      : 'bg-slate-800/50 text-cyan-300 border border-cyan-400/30 hover:border-cyan-400'
                       }`}
                   >
                     {currency === 'KRW' && '₩ 원화'}
@@ -994,7 +994,7 @@ const TransactionHistory = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-cyan-300/80 mb-2">
                 금액 입력
               </label>
               <div className="relative">
@@ -1550,8 +1550,8 @@ const TransactionHistory = () => {
                         key={cat.id}
                         onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
                         className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${isSelected
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                           }`}
                         title={cat.name}
                       >
