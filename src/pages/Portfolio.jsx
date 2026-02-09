@@ -38,6 +38,11 @@ const Portfolio = () => {
   const [accountPrincipals, setAccountPrincipals] = useState({}) // { accountName: { principal, remaining, note } }
   const [showPrincipalModal, setShowPrincipalModal] = useState(false)
   const [editingAccount, setEditingAccount] = useState(null)
+
+  // Chart Pagination
+  const [chartPage, setChartPage] = useState(0)
+  const ITEMS_PER_PAGE = 10
+
   const skipPriceUpdateRef = useRef(false)
 
   // Load portfolio assets and account principals on mount (with Supabase sync)
@@ -1222,39 +1227,90 @@ const Portfolio = () => {
         </div>
       )}
 
-      {/* Performance Chart */}
-      {/* Performance Chart */}
-      <ChartCard title="자산별 수익률" subtitle="현재 보유 자산 성과 비교">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={performanceData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af' }} />
-            <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af' }} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#1e293b',
-                border: '1px solid #374151',
-                borderRadius: '8px',
-                color: '#f3f4f6'
-              }}
-              itemStyle={{ color: '#f3f4f6' }}
-              cursor={{ fill: 'rgba(6, 182, 212, 0.1)' }}
-              formatter={(value, name, props) => {
-                if (name === '수익률') {
-                  return [`${value}%`, `${props.payload.fullName} (${props.payload.name})`]
-                }
-                return [value, name]
-              }}
-              labelFormatter={(label) => {
-                const item = performanceData.find(d => d.name === label)
-                return item ? `${item.fullName} (${item.name})` : label
-              }}
-            />
-            <Legend wrapperStyle={{ color: '#9ca3af' }} />
-            <Bar dataKey="수익률" fill="#06b6d4" radius={[4, 4, 0, 0]} activeBar={{ fill: '#22d3ee' }} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
+      {/* Performance Chart with Pagination */}
+      {(() => {
+        const totalPages = Math.ceil(performanceData.length / ITEMS_PER_PAGE)
+        const paginatedData = performanceData.slice(
+          chartPage * ITEMS_PER_PAGE,
+          (chartPage + 1) * ITEMS_PER_PAGE
+        )
+
+        return (
+          <ChartCard
+            title="자산별 수익률"
+            subtitle="현재 보유 자산 성과 비교"
+            action={
+              totalPages > 1 && (
+                <div className="flex items-center gap-2 bg-slate-800 rounded-lg p-1 border border-cyan-500/30">
+                  <button
+                    onClick={() => setChartPage(p => Math.max(0, p - 1))}
+                    disabled={chartPage === 0}
+                    className="p-1 hover:bg-cyan-500/20 rounded disabled:opacity-30 transition-colors text-cyan-400"
+                  >
+                    ←
+                  </button>
+                  <span className="text-xs text-cyan-300 font-medium px-2">
+                    {chartPage + 1} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setChartPage(p => Math.min(totalPages - 1, p + 1))}
+                    disabled={chartPage === totalPages - 1}
+                    className="p-1 hover:bg-cyan-500/20 rounded disabled:opacity-30 transition-colors text-cyan-400"
+                  >
+                    →
+                  </button>
+                </div>
+              )
+            }
+          >
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={paginatedData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                <XAxis
+                  dataKey="fullName"
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#475569' }}
+                  interval={0}
+                  tickFormatter={(value) => value.length > 8 ? value.substring(0, 8) + '...' : value}
+                />
+                <YAxis
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#475569' }}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(6, 182, 212, 0.05)' }}
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
+                    color: '#f8fafc'
+                  }}
+                  itemStyle={{ color: '#22d3ee' }}
+                  labelStyle={{ color: '#94a3b8', marginBottom: '0.25rem' }}
+                  formatter={(value) => [`${value}%`, '수익률']}
+                />
+                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                <Bar
+                  dataKey="수익률"
+                  fill="#06b6d4"
+                  radius={[4, 4, 0, 0]}
+                  barSize={40}
+                >
+                  {paginatedData.map((entry, index) => (
+                    <cell key={`cell-${index}`} fill={entry.수익률 >= 0 ? '#06b6d4' : '#ef4444'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )
+      })()}
 
       {/* Search and Filter */}
       <div className="cyber-card mb-6">
