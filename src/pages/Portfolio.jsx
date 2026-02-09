@@ -1009,30 +1009,30 @@ const Portfolio = () => {
                 const profit = evaluationKRW - investmentAmount
 
                 return (
-                  <tr key={account.account} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="text-center py-3 px-4 text-gray-900">{index + 1}</td>
+                  <tr key={account.account} className="border-b border-cyan-400/20 hover:bg-cyan-500/5">
+                    <td className="text-center py-3 px-4 text-white">{index + 1}</td>
                     <td className="py-3 px-4">
                       <div>
-                        <p className="font-medium text-gray-900">{account.account}</p>
-                        <p className="text-xs text-gray-500">{account.assets.length}개 자산 보유</p>
+                        <p className="font-medium text-cyan-300">{account.account}</p>
+                        <p className="text-xs text-cyan-300/60">{account.assets.length}개 자산 보유</p>
                       </div>
                     </td>
-                    <td className="text-right py-3 px-4 text-gray-900">
+                    <td className="text-right py-3 px-4 text-white">
                       {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(principalData.principal)}
                     </td>
-                    <td className="text-right py-3 px-4 text-gray-900">
+                    <td className="text-right py-3 px-4 text-white">
                       {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(principalData.remaining)}
                     </td>
-                    <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
+                    <td className="text-right py-3 px-4 font-bold text-cyan-300 bg-cyan-500/10">
                       {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(investmentAmount))}
                     </td>
-                    <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
+                    <td className="text-right py-3 px-4 font-bold text-cyan-300 bg-cyan-500/10">
                       {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(evaluationKRW))}
                     </td>
-                    <td className={`text-right py-3 px-4 font-bold bg-blue-50 ${profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                    <td className={`text-right py-3 px-4 font-bold bg-cyan-500/10 ${profit >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                       {profit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(profit))}
                     </td>
-                    <td className="py-3 px-4 text-gray-700 text-xs">{principalData.note || '-'}</td>
+                    <td className="py-3 px-4 text-cyan-300/60 text-xs">{principalData.note || '-'}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
@@ -1040,10 +1040,10 @@ const Portfolio = () => {
                             setEditingAccount(account.account)
                             setShowPrincipalModal(true)
                           }}
-                          className="p-1 hover:bg-blue-50 rounded transition-colors"
+                          className="p-1 hover:bg-cyan-400/20 rounded transition-colors"
                           title="원금/예수금 입력"
                         >
-                          <Edit2 className="w-4 h-4 text-primary-600" />
+                          <Edit2 className="w-4 h-4 text-cyan-400" />
                         </button>
                       </div>
                     </td>
@@ -1053,9 +1053,9 @@ const Portfolio = () => {
 
               {/* TOTAL Row */}
               {accountSummary.length > 0 && (
-                <tr className="bg-blue-200 border-t-2 border-blue-300 font-bold">
-                  <td colSpan="2" className="text-center py-3 px-4 text-blue-900">TOTAL</td>
-                  <td className="text-right py-3 px-4 text-blue-900">
+                <tr className="bg-cyan-500/20 border-t-2 border-cyan-400/50 font-bold">
+                  <td colSpan="2" className="text-center py-3 px-4 text-cyan-400">TOTAL</td>
+                  <td className="text-right py-3 px-4 text-white">
                     {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                       accountSummary.reduce((sum, acc) => {
                         const data = accountPrincipals[acc.account] || { principal: 0 }
@@ -1063,7 +1063,7 @@ const Portfolio = () => {
                       }, 0)
                     )}
                   </td>
-                  <td className="text-right py-3 px-4 text-blue-900">
+                  <td className="text-right py-3 px-4 text-white">
                     {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                       accountSummary.reduce((sum, acc) => {
                         const data = accountPrincipals[acc.account] || { remaining: 0 }
@@ -1071,7 +1071,7 @@ const Portfolio = () => {
                       }, 0)
                     )}
                   </td>
-                  <td className="text-right py-3 px-4 text-blue-900">
+                  <td className="text-right py-3 px-4 text-cyan-300">
                     {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(
                       Math.round(accountSummary.reduce((sum, acc) => {
                         // Calculate total investment: 보유량 * 평균단가
@@ -1087,10 +1087,10 @@ const Portfolio = () => {
                       }, 0))
                     )}
                   </td>
-                  <td className="text-right py-3 px-4 text-blue-900">
+                  <td className="text-right py-3 px-4 text-cyan-300">
                     {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(totalValueKRW))}
                   </td>
-                  <td className="text-right py-3 px-4 text-blue-900">
+                  <td className="text-right py-3 px-4">
                     {(() => {
                       // Total investment from all assets (보유량 * 평균단가)
                       const totalInvestment = accountSummary.reduce((sum, acc) => {
@@ -1106,7 +1106,7 @@ const Portfolio = () => {
                       }, 0)
                       const totalProfit = totalValueKRW - totalInvestment
                       return (
-                        <span className={totalProfit >= 0 ? 'text-success' : 'text-danger'}>
+                        <span className={totalProfit >= 0 ? 'neon-text-green' : 'neon-text-red'}>
                           {totalProfit >= 0 ? '+' : ''}{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(totalProfit))}
                         </span>
                       )

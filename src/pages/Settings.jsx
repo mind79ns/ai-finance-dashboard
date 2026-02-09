@@ -4,8 +4,8 @@ import DataMigrationPanel from '../components/DataMigrationPanel'
 import backupManager from '../utils/backupManager'
 
 const Settings = () => {
-  // Theme settings
-  const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'light')
+  // Theme settings - always dark mode (no light mode option)
+  const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'dark')
 
   // Currency settings
   const [defaultCurrency, setDefaultCurrency] = useState(() => localStorage.getItem('default_currency') || 'KRW')
@@ -148,36 +148,18 @@ const Settings = () => {
       )}
 
       {/* Theme Settings */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+      <div className="cyber-card cyber-card-glow">
+        <h3 className="text-lg font-semibold text-cyan-400 mb-4 flex items-center gap-2">
+          <Moon className="w-5 h-5 text-cyan-400" />
           테마 설정
         </h3>
         <div className="flex gap-3">
-          <button
-            onClick={() => setTheme('light')}
-            className={`flex-1 p-4 rounded-lg border-2 transition-all ${theme === 'light'
-              ? 'border-primary-500 bg-primary-50'
-              : 'border-gray-200 hover:border-gray-300'
-              }`}
-          >
-            <Sun className={`w-8 h-8 mx-auto mb-2 ${theme === 'light' ? 'text-primary-600' : 'text-gray-400'}`} />
-            <p className={`text-sm font-medium ${theme === 'light' ? 'text-primary-700' : 'text-gray-600'}`}>
-              라이트 모드
+          <div className="flex-1 p-4 rounded-lg border-2 border-cyan-400 bg-cyan-500/20">
+            <Moon className="w-8 h-8 mx-auto mb-2 text-cyan-400" />
+            <p className="text-sm font-medium text-cyan-400 text-center">
+              사이버펑크 다크 모드 (기본)
             </p>
-          </button>
-          <button
-            onClick={() => setTheme('dark')}
-            className={`flex-1 p-4 rounded-lg border-2 transition-all ${theme === 'dark'
-              ? 'border-primary-500 bg-primary-50'
-              : 'border-gray-200 hover:border-gray-300'
-              }`}
-          >
-            <Moon className={`w-8 h-8 mx-auto mb-2 ${theme === 'dark' ? 'text-primary-600' : 'text-gray-400'}`} />
-            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-primary-700' : 'text-gray-600'}`}>
-              다크 모드
-            </p>
-          </button>
+          </div>
         </div>
       </div>
 
