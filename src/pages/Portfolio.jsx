@@ -672,25 +672,25 @@ const Portfolio = () => {
       {/* Portfolio Summary - Premium Design */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* 총 평가액 (원화 기준 통합) */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 p-4 sm:p-6 shadow-xl">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
-          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
+        <div className="relative overflow-hidden rounded-2xl bg-slate-800 border border-blue-500/30 p-4 sm:p-6 shadow-[0_0_15px_rgba(59,130,246,0.15)] group hover:shadow-[0_0_20px_rgba(59,130,246,0.25)] transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-blue-500/10 blur-xl group-hover:bg-blue-500/20 transition-all"></div>
+          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-indigo-500/10 blur-xl group-hover:bg-indigo-500/20 transition-all"></div>
           <div className="relative">
-            <p className="text-xs sm:text-sm font-medium text-blue-100 mb-2">총 평가액 (원화 통합)</p>
-            <p className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
+            <p className="text-xs sm:text-sm font-medium text-blue-400 mb-2 tracking-wider">총 평가액 (원화 통합)</p>
+            <p className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">
               ₩{totalValueKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
             </p>
-            <div className="space-y-2 pt-3 border-t border-blue-400/30">
+            <div className="space-y-2 pt-3 border-t border-blue-500/20">
               {usdAssets.length > 0 && (
-                <div className="flex items-center justify-between text-blue-50">
+                <div className="flex items-center justify-between text-blue-200/70">
                   <span className="text-xs font-medium">🇺🇸 USD</span>
-                  <span className="text-sm font-semibold">${usdTotalValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                  <span className="text-sm font-semibold text-blue-100">${usdTotalValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
                 </div>
               )}
               {krwAssets.length > 0 && (
-                <div className="flex items-center justify-between text-blue-50">
+                <div className="flex items-center justify-between text-blue-200/70">
                   <span className="text-xs font-medium">🇰🇷 KRW</span>
-                  <span className="text-sm font-semibold">₩{krwTotalValue.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</span>
+                  <span className="text-sm font-semibold text-blue-100">₩{krwTotalValue.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</span>
                 </div>
               )}
             </div>
@@ -698,32 +698,32 @@ const Portfolio = () => {
         </div>
 
         {/* 총 수익금 (원화 기준 통합) */}
-        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-xl ${totalProfitKRW >= 0
-          ? 'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700'
-          : 'bg-gradient-to-br from-red-500 via-rose-600 to-pink-700'
+        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-lg transition-all duration-300 ${totalProfitKRW >= 0
+          ? 'bg-slate-800 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]'
+          : 'bg-slate-800 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.15)] hover:shadow-[0_0_20px_rgba(239,68,68,0.25)]'
           }`}>
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
-          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
+          <div className={`absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full blur-xl transition-all opacity-20 ${totalProfitKRW >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+          <div className={`absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full blur-xl transition-all opacity-10 ${totalProfitKRW >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
           <div className="relative">
-            <p className={`text-xs sm:text-sm font-medium mb-2 ${totalProfitKRW >= 0 ? 'text-emerald-100' : 'text-red-100'}`}>
+            <p className={`text-xs sm:text-sm font-medium mb-2 tracking-wider ${totalProfitKRW >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               총 수익금 (원화 통합)
             </p>
-            <p className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
+            <p className={`text-2xl sm:text-4xl font-bold mb-3 sm:mb-4 drop-shadow-md ${totalProfitKRW >= 0 ? 'text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'text-red-300 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}>
               {totalProfitKRW >= 0 ? '+' : ''}₩{totalProfitKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
             </p>
-            <div className={`space-y-2 pt-3 border-t ${totalProfitKRW >= 0 ? 'border-emerald-400/30' : 'border-red-400/30'}`}>
+            <div className={`space-y-2 pt-3 border-t ${totalProfitKRW >= 0 ? 'border-emerald-500/20' : 'border-red-500/20'}`}>
               {usdAssets.length > 0 && (
-                <div className={`flex items-center justify-between ${totalProfitKRW >= 0 ? 'text-emerald-50' : 'text-red-50'}`}>
+                <div className="flex items-center justify-between text-gray-400">
                   <span className="text-xs font-medium">🇺🇸 USD</span>
-                  <span className="text-sm font-semibold">
+                  <span className={`text-sm font-semibold ${usdTotalProfit >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
                     {usdTotalProfit >= 0 ? '+' : ''}${usdTotalProfit.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               )}
               {krwAssets.length > 0 && (
-                <div className={`flex items-center justify-between ${totalProfitKRW >= 0 ? 'text-emerald-50' : 'text-red-50'}`}>
+                <div className="flex items-center justify-between text-gray-400">
                   <span className="text-xs font-medium">🇰🇷 KRW</span>
-                  <span className="text-sm font-semibold">
+                  <span className={`text-sm font-semibold ${krwTotalProfit >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
                     {krwTotalProfit >= 0 ? '+' : ''}₩{krwTotalProfit.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}
                   </span>
                 </div>
@@ -733,32 +733,32 @@ const Portfolio = () => {
         </div>
 
         {/* 평균 수익률 */}
-        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-xl ${totalAvgProfitPercent >= 0
-          ? 'bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-700'
-          : 'bg-gradient-to-br from-orange-500 via-amber-600 to-yellow-700'
+        <div className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-lg transition-all duration-300 ${totalAvgProfitPercent >= 0
+          ? 'bg-slate-800 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:shadow-[0_0_20px_rgba(168,85,247,0.25)]'
+          : 'bg-slate-800 border border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.15)] hover:shadow-[0_0_20px_rgba(249,115,22,0.25)]'
           }`}>
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white opacity-10"></div>
-          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white opacity-5"></div>
+          <div className={`absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full blur-xl transition-all opacity-20 ${totalAvgProfitPercent >= 0 ? 'bg-purple-500' : 'bg-orange-500'}`}></div>
+          <div className={`absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full blur-xl transition-all opacity-10 ${totalAvgProfitPercent >= 0 ? 'bg-purple-500' : 'bg-orange-500'}`}></div>
           <div className="relative">
-            <p className={`text-xs sm:text-sm font-medium mb-2 ${totalAvgProfitPercent >= 0 ? 'text-purple-100' : 'text-orange-100'}`}>
+            <p className={`text-xs sm:text-sm font-medium mb-2 tracking-wider ${totalAvgProfitPercent >= 0 ? 'text-purple-400' : 'text-orange-400'}`}>
               평균 수익률
             </p>
-            <p className="text-2xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
+            <p className={`text-2xl sm:text-4xl font-bold mb-3 sm:mb-4 drop-shadow-md ${totalAvgProfitPercent >= 0 ? 'text-purple-300 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]' : 'text-orange-300 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]'}`}>
               {totalAvgProfitPercent >= 0 ? '+' : ''}{(totalAvgProfitPercent || 0).toFixed(2)}%
             </p>
-            <div className={`space-y-2 pt-3 border-t ${totalAvgProfitPercent >= 0 ? 'border-purple-400/30' : 'border-orange-400/30'}`}>
+            <div className={`space-y-2 pt-3 border-t ${totalAvgProfitPercent >= 0 ? 'border-purple-500/20' : 'border-orange-500/20'}`}>
               {usdAssets.length > 0 && (
-                <div className={`flex items-center justify-between ${totalAvgProfitPercent >= 0 ? 'text-purple-50' : 'text-orange-50'}`}>
+                <div className="flex items-center justify-between text-gray-400">
                   <span className="text-xs font-medium">🇺🇸 USD</span>
-                  <span className="text-sm font-semibold">
+                  <span className={`text-sm font-semibold ${usdAvgProfitPercent >= 0 ? 'text-purple-300' : 'text-orange-300'}`}>
                     {usdAvgProfitPercent >= 0 ? '+' : ''}{(usdAvgProfitPercent || 0).toFixed(2)}%
                   </span>
                 </div>
               )}
               {krwAssets.length > 0 && (
-                <div className={`flex items-center justify-between ${totalAvgProfitPercent >= 0 ? 'text-purple-50' : 'text-orange-50'}`}>
+                <div className="flex items-center justify-between text-gray-400">
                   <span className="text-xs font-medium">🇰🇷 KRW</span>
-                  <span className="text-sm font-semibold">
+                  <span className={`text-sm font-semibold ${krwAvgProfitPercent >= 0 ? 'text-purple-300' : 'text-orange-300'}`}>
                     {krwAvgProfitPercent >= 0 ? '+' : ''}{(krwAvgProfitPercent || 0).toFixed(2)}%
                   </span>
                 </div>
@@ -1132,53 +1132,53 @@ const Portfolio = () => {
         </div>
       </div>
 
-      {/* 계좌별 대시보드 - Premium Design */}
+      {/* 계좌별 대시보드 - Cyberpunk Design */}
       {accountSummary.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">계좌별 현황</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">계좌별 평가액 및 수익 분석 (USD/KRW 분리)</p>
+              <h3 className="text-xl font-bold text-cyan-400">계좌별 현황</h3>
+              <p className="text-sm text-cyan-300/60 mt-1">계좌별 평가액 및 수익 분석</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {accountSummary.map((account) => (
-              <div key={account.account} className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                {/* Header with gradient background */}
-                <div className="bg-gradient-to-r from-slate-700 to-slate-900 p-4">
+              <div key={account.account} className="cyber-card cyber-card-glow overflow-hidden group">
+                {/* Header with deep gradient background */}
+                <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-cyan-500/30 p-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-white text-lg">{account.account}</h4>
-                    <span className="px-2 py-1 bg-white/20 rounded-full text-xs font-medium text-white backdrop-blur-sm">
+                    <h4 className="font-bold text-cyan-300 text-lg tracking-wide">{account.account}</h4>
+                    <span className="px-2 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-xs font-medium text-cyan-400 backdrop-blur-sm">
                       {account.assets.length}개 자산
                     </span>
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-5 space-y-4">
+                <div className="p-5 space-y-4 bg-slate-800/50">
                   {/* USD 자산 */}
                   {account.usdTotalValue > 0 && (
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
+                    <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-500/30 hover:border-blue-400/50 transition-colors">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-lg">🇺🇸</span>
-                        <span className="text-sm font-bold text-blue-900 dark:text-blue-200">USD</span>
+                        <span className="text-sm font-bold text-blue-300">USD</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">평가액</span>
-                          <span className="text-base font-bold text-blue-900 dark:text-blue-100">
+                          <span className="text-xs font-medium text-blue-400/80">평가액</span>
+                          <span className="text-base font-bold text-blue-200">
                             ${account.usdTotalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">수익금</span>
-                          <span className={`text-sm font-bold ${account.usdTotalProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <span className="text-xs font-medium text-blue-400/80">수익금</span>
+                          <span className={`text-sm font-bold ${account.usdTotalProfit >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                             {account.usdTotalProfit >= 0 ? '+' : ''}${account.usdTotalProfit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-blue-200 dark:border-blue-700">
-                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">수익률</span>
-                          <span className={`text-lg font-bold ${account.usdProfitPercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <div className="flex justify-between items-center pt-2 border-t border-blue-500/20">
+                          <span className="text-xs font-medium text-blue-400/80">수익률</span>
+                          <span className={`text-lg font-bold ${account.usdProfitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                             {account.usdProfitPercent >= 0 ? '+' : ''}{account.usdProfitPercent.toFixed(2)}%
                           </span>
                         </div>
@@ -1188,27 +1188,27 @@ const Portfolio = () => {
 
                   {/* KRW 자산 */}
                   {account.krwTotalValue > 0 && (
-                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg p-4 border border-purple-100 dark:border-purple-800">
+                    <div className="bg-purple-900/20 rounded-lg p-4 border border-purple-500/30 hover:border-purple-400/50 transition-colors">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-lg">🇰🇷</span>
-                        <span className="text-sm font-bold text-purple-900 dark:text-purple-200">KRW</span>
+                        <span className="text-sm font-bold text-purple-300">KRW</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">평가액</span>
-                          <span className="text-base font-bold text-purple-900 dark:text-purple-100">
+                          <span className="text-xs font-medium text-purple-400/80">평가액</span>
+                          <span className="text-base font-bold text-purple-200">
                             ₩{Math.round(account.krwTotalValue).toLocaleString('ko-KR')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">수익금</span>
-                          <span className={`text-sm font-bold ${account.krwTotalProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <span className="text-xs font-medium text-purple-400/80">수익금</span>
+                          <span className={`text-sm font-bold ${account.krwTotalProfit >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                             {account.krwTotalProfit >= 0 ? '+' : ''}₩{Math.round(account.krwTotalProfit).toLocaleString('ko-KR')}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-purple-200 dark:border-purple-700">
-                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">수익률</span>
-                          <span className={`text-lg font-bold ${account.krwProfitPercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <div className="flex justify-between items-center pt-2 border-t border-purple-500/20">
+                          <span className="text-xs font-medium text-purple-400/80">수익률</span>
+                          <span className={`text-lg font-bold ${account.krwProfitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                             {account.krwProfitPercent >= 0 ? '+' : ''}{account.krwProfitPercent.toFixed(2)}%
                           </span>
                         </div>
@@ -1223,18 +1223,22 @@ const Portfolio = () => {
       )}
 
       {/* Performance Chart */}
+      {/* Performance Chart */}
       <ChartCard title="자산별 수익률" subtitle="현재 보유 자산 성과 비교">
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={performanceData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="name" stroke="#6b7280" />
-            <YAxis stroke="#6b7280" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#9ca3af' }} />
+            <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af' }} />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px'
+                backgroundColor: '#1e293b',
+                border: '1px solid #374151',
+                borderRadius: '8px',
+                color: '#f3f4f6'
               }}
+              itemStyle={{ color: '#f3f4f6' }}
+              cursor={{ fill: 'rgba(6, 182, 212, 0.1)' }}
               formatter={(value, name, props) => {
                 if (name === '수익률') {
                   return [`${value}%`, `${props.payload.fullName} (${props.payload.name})`]
@@ -1246,24 +1250,24 @@ const Portfolio = () => {
                 return item ? `${item.fullName} (${item.name})` : label
               }}
             />
-            <Legend />
-            <Bar dataKey="수익률" fill="#10b981" radius={[8, 8, 0, 0]} />
+            <Legend wrapperStyle={{ color: '#9ca3af' }} />
+            <Bar dataKey="수익률" fill="#06b6d4" radius={[4, 4, 0, 0]} activeBar={{ fill: '#22d3ee' }} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
 
       {/* Search and Filter */}
-      <div className="card">
+      <div className="cyber-card mb-6">
         <div className="space-y-4">
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-cyan-400/50" />
             <input
               type="text"
               placeholder="종목명 또는 심볼 검색 (예: AAPL, Bitcoin)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-cyan-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 text-white placeholder-gray-500 transition-all"
             />
           </div>
 
@@ -1271,16 +1275,16 @@ const Portfolio = () => {
           <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             {/* Type Filter */}
             <div className="flex flex-wrap items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-600 flex-shrink-0" />
-              <span className="text-xs sm:text-sm font-medium text-gray-700">유형:</span>
+              <Filter className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-cyan-300">유형:</span>
               <div className="flex flex-wrap gap-2">
                 {assetTypes.map(type => (
                   <button
                     key={type}
                     onClick={() => setFilterType(type)}
-                    className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-lg transition-colors min-h-[32px] ${filterType === type
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm rounded-lg transition-colors min-h-[32px] border ${filterType === type
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                      : 'bg-slate-800 text-gray-400 border-gray-700 hover:border-cyan-500/30 hover:text-cyan-200'
                       }`}
                   >
                     {type}
@@ -1291,12 +1295,12 @@ const Portfolio = () => {
 
             {/* Sort Options */}
             <div className="flex items-center gap-2 sm:ml-auto">
-              <SortAsc className="w-4 h-4 text-gray-600 flex-shrink-0" />
-              <span className="text-xs sm:text-sm font-medium text-gray-700">정렬:</span>
+              <SortAsc className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-cyan-300">정렬:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-2.5 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[32px]"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-slate-900 border border-cyan-500/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 text-white min-h-[32px]"
               >
                 <option value="default">기본</option>
                 <option value="value">평가액 높은순</option>
@@ -1308,7 +1312,7 @@ const Portfolio = () => {
 
           {/* Active Filters Info */}
           {(searchQuery || filterType !== '전체' || sortBy !== 'default') && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-cyan-300/60">
               <span>
                 {filteredAssets.length}개 자산 표시 중
                 {searchQuery && ` (검색: "${searchQuery}")`}
@@ -1320,7 +1324,7 @@ const Portfolio = () => {
                   setFilterType('전체')
                   setSortBy('default')
                 }}
-                className="text-primary-600 hover:text-primary-700 underline"
+                className="text-cyan-400 hover:text-cyan-300 underline transition-colors"
               >
                 초기화
               </button>
@@ -1330,14 +1334,14 @@ const Portfolio = () => {
       </div>
 
       {/* Assets Table */}
-      <div className="card">
+      <div className="cyber-card cyber-card-glow">
         <div className="flex flex-col gap-3 mb-4 sm:mb-6">
           <div className="min-w-0">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900">보유 자산</h3>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            <h3 className="text-base sm:text-lg font-semibold text-cyan-400">보유 자산</h3>
+            <p className="text-xs sm:text-sm text-cyan-300/60 mt-1">
               전체 {assets.length}개 자산
               {lastUpdate && (
-                <span className="ml-2 text-xs text-gray-500 hidden sm:inline">
+                <span className="ml-2 text-xs text-cyan-500/50 hidden sm:inline">
                   • 마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
                 </span>
               )}
@@ -1346,7 +1350,7 @@ const Portfolio = () => {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowImportModal(true)}
-              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 hover:border-cyan-500/50 rounded-lg text-cyan-300 transition-colors flex items-center gap-2 text-xs sm:text-sm"
             >
               <Upload className="w-4 h-4" />
               <span className="hidden sm:inline">가져오기</span>
@@ -1354,7 +1358,7 @@ const Portfolio = () => {
             </button>
             <button
               onClick={handleCSVExport}
-              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 hover:border-cyan-500/50 rounded-lg text-cyan-300 transition-colors flex items-center gap-2 text-xs sm:text-sm"
               disabled={assets.length === 0}
             >
               <Download className="w-4 h-4" />
@@ -1366,7 +1370,7 @@ const Portfolio = () => {
             {!selectionMode ? (
               <button
                 onClick={handleToggleSelectionMode}
-                className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 hover:border-cyan-500/50 rounded-lg text-cyan-300 transition-colors flex items-center gap-2 text-xs sm:text-sm"
                 disabled={assets.length === 0}
               >
                 <Trash2 className="w-4 h-4" />
@@ -1377,7 +1381,7 @@ const Portfolio = () => {
               <>
                 <button
                   onClick={handleBulkDelete}
-                  className="btn-danger flex items-center gap-2 text-xs sm:text-sm"
+                  className="px-3 py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-500/30 hover:border-red-500/50 rounded-lg text-red-400 transition-colors flex items-center gap-2 text-xs sm:text-sm"
                   disabled={selectedAssets.length === 0}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -1386,7 +1390,7 @@ const Portfolio = () => {
                 </button>
                 <button
                   onClick={handleToggleSelectionMode}
-                  className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-gray-500/30 hover:border-gray-500/50 rounded-lg text-gray-400 transition-colors flex items-center gap-2 text-xs sm:text-sm"
                 >
                   <X className="w-4 h-4" />
                   취소
@@ -1394,7 +1398,7 @@ const Portfolio = () => {
               </>
             )}
 
-            <button onClick={handleAddAsset} className="btn-primary flex items-center gap-2 text-xs sm:text-sm">
+            <button onClick={handleAddAsset} className="cyber-btn flex items-center gap-2 text-xs sm:text-sm">
               <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">자산 추가</span>
               <span className="sm:hidden">추가</span>
@@ -1406,8 +1410,8 @@ const Portfolio = () => {
         <div className="block sm:hidden space-y-3">
           {filteredAssets.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="flex flex-col items-center justify-center text-gray-500">
-                <Search className="w-12 h-12 mb-3 text-gray-300" />
+              <div className="flex flex-col items-center justify-center text-cyan-300/40">
+                <Search className="w-12 h-12 mb-3 opacity-50" />
                 <p className="text-base font-medium">검색 결과가 없습니다</p>
                 <p className="text-sm mt-1">다른 검색어를 입력하거나 필터를 변경해보세요</p>
               </div>
@@ -1416,7 +1420,7 @@ const Portfolio = () => {
             filteredAssets.map((asset) => {
               const positive = (asset.profitPercent || 0) >= 0
               return (
-                <div key={asset.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
+                <div key={asset.id} className="border border-cyan-500/30 rounded-lg p-3 bg-slate-800 text-white shadow-lg">
                   {/* Header with symbol, name, and selection checkbox */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -1425,74 +1429,74 @@ const Portfolio = () => {
                           type="checkbox"
                           checked={selectedAssets.includes(asset.id)}
                           onChange={() => handleToggleAssetSelection(asset.id)}
-                          className="mt-0.5 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 flex-shrink-0"
+                          className="mt-0.5 w-4 h-4 text-cyan-400 border-gray-600 rounded focus:ring-cyan-500 bg-slate-700 flex-shrink-0"
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900 truncate">{asset.symbol}</p>
-                        <p className="text-xs text-gray-600 truncate mt-0.5">{asset.name}</p>
+                        <p className="text-sm font-bold text-cyan-300 truncate">{asset.symbol}</p>
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{asset.name}</p>
                         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-primary-50 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300">
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-cyan-900/30 text-cyan-300 border border-cyan-500/20">
                             {asset.type}
                           </span>
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-900/30 text-blue-300 border border-blue-500/20">
                             {asset.account || '기본계좌'}
                           </span>
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200">
+                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-slate-700 text-gray-300">
                             {asset.currency}
                           </span>
                         </div>
                       </div>
                     </div>
                     {/* Profit percentage badge */}
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${positive ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-rose-50 dark:bg-rose-900/30'
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${positive ? 'bg-emerald-900/30' : 'bg-red-900/30'
                       }`}>
-                      <span className={`text-base font-bold ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      <span className={`text-base font-bold ${positive ? 'neon-text-green' : 'neon-text-red'}`}>
                         {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>
 
                   {/* Key metrics */}
-                  <div className="grid grid-cols-2 gap-2 py-2 border-t border-gray-200 text-xs">
+                  <div className="grid grid-cols-2 gap-2 py-2 border-t border-cyan-500/20 text-xs text-gray-300">
                     <div>
-                      <span className="text-gray-600">보유량</span>
-                      <p className="font-medium text-gray-900 mt-0.5">{asset.quantity}</p>
+                      <span className="text-gray-500">보유량</span>
+                      <p className="font-medium text-white mt-0.5">{asset.quantity}</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-gray-600">평가액</span>
-                      <p className="font-bold text-gray-900 mt-0.5">{formatCurrency(asset.totalValue, asset.currency)}</p>
+                      <span className="text-gray-500">평가액</span>
+                      <p className="font-bold text-white mt-0.5">{formatCurrency(asset.totalValue, asset.currency)}</p>
                     </div>
                     <div>
-                      <span className="text-gray-600">평균단가</span>
-                      <p className="font-medium text-gray-900 mt-0.5">{formatCurrency(asset.avgPrice, asset.currency)}</p>
+                      <span className="text-gray-500">평균단가</span>
+                      <p className="font-medium text-white mt-0.5">{formatCurrency(asset.avgPrice, asset.currency)}</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-gray-600">현재가</span>
-                      <p className="font-medium text-gray-900 mt-0.5">{formatCurrency(asset.currentPrice, asset.currency)}</p>
+                      <span className="text-gray-500">현재가</span>
+                      <p className="font-medium text-white mt-0.5">{formatCurrency(asset.currentPrice, asset.currency)}</p>
                     </div>
                   </div>
 
                   {/* Profit display */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                    <span className="text-xs text-gray-600">수익금</span>
-                    <span className={`text-sm font-bold ${asset.profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                  <div className="flex items-center justify-between pt-2 border-t border-cyan-500/20">
+                    <span className="text-xs text-gray-500">수익금</span>
+                    <span className={`text-sm font-bold ${asset.profit >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                       {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
                     </span>
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex items-center gap-2 pt-3 border-t border-gray-200 mt-3">
+                  <div className="flex items-center gap-2 pt-3 border-t border-cyan-500/20 mt-3">
                     <button
                       onClick={() => handleViewDetail(asset)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg transition-colors text-xs font-medium"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-cyan-300 rounded-lg transition-colors text-xs font-medium"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       상세
                     </button>
                     <button
                       onClick={() => handleDeleteAsset(asset.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors text-xs font-medium"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded-lg transition-colors text-xs font-medium"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       삭제
@@ -1505,40 +1509,40 @@ const Portfolio = () => {
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden sm:block overflow-x-auto">
+        <div className="hidden sm:block overflow-x-auto cyber-table">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200">
+              <tr className="border-b border-cyan-500/30">
                 {selectionMode && (
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">
+                  <th className="text-center py-3 px-4 text-sm font-medium text-cyan-300/60">
                     <input
                       type="checkbox"
                       checked={selectedAssets.length === filteredAssets.length && filteredAssets.length > 0}
                       onChange={handleSelectAll}
-                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      className="w-4 h-4 text-cyan-500 border-cyan-500/30 rounded focus:ring-cyan-500 bg-slate-800"
                     />
                   </th>
                 )}
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">심볼</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">종목명</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">유형</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">계좌</th>
-                <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">통화</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">보유량</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">평균단가</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">현재가</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">평가액</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">수익금</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">수익률</th>
-                <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">관리</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-cyan-300/60">심볼</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-cyan-300/60">종목명</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-cyan-300/60">유형</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-cyan-300/60">계좌</th>
+                <th className="text-center py-3 px-4 text-sm font-medium text-cyan-300/60">통화</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">보유량</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">평균단가</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">현재가</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">평가액</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">수익금</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">수익률</th>
+                <th className="text-center py-3 px-4 text-sm font-medium text-cyan-300/60">관리</th>
               </tr>
             </thead>
             <tbody>
               {filteredAssets.length === 0 ? (
                 <tr>
                   <td colSpan="12" className="py-12 text-center">
-                    <div className="flex flex-col items-center justify-center text-gray-500">
-                      <Search className="w-12 h-12 mb-3 text-gray-300" />
+                    <div className="flex flex-col items-center justify-center text-cyan-300/40">
+                      <Search className="w-12 h-12 mb-3 opacity-50" />
                       <p className="text-lg font-medium">검색 결과가 없습니다</p>
                       <p className="text-sm mt-1">다른 검색어를 입력하거나 필터를 변경해보세요</p>
                     </div>
@@ -1546,48 +1550,48 @@ const Portfolio = () => {
                 </tr>
               ) : (
                 filteredAssets.map((asset) => (
-                  <tr key={asset.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <tr key={asset.id} className="border-b border-cyan-500/10 hover:bg-cyan-500/5 transition-colors">
                     {selectionMode && (
                       <td className="py-4 px-4 text-center">
                         <input
                           type="checkbox"
                           checked={selectedAssets.includes(asset.id)}
                           onChange={() => handleToggleAssetSelection(asset.id)}
-                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                          className="w-4 h-4 text-cyan-500 border-cyan-500/30 rounded focus:ring-cyan-500 bg-slate-800"
                         />
                       </td>
                     )}
                     <td className="py-4 px-4">
-                      <p className="font-medium text-gray-900">{asset.symbol}</p>
+                      <p className="font-medium text-cyan-300">{asset.symbol}</p>
                     </td>
                     <td className="py-4 px-4">
-                      <p className="text-sm text-gray-700">{asset.name}</p>
+                      <p className="text-sm text-gray-300">{asset.name}</p>
                     </td>
                     <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-primary-50 text-primary-700">
+                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-cyan-900/30 text-cyan-300 border border-cyan-500/20">
                         {asset.type}
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700">
+                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-900/30 text-blue-300 border border-blue-500/20">
                         {asset.account || '기본계좌'}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-slate-700 text-gray-300">
                         {asset.currency}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-700">
+                    <td className="py-4 px-4 text-right text-sm text-gray-300">
                       {asset.quantity}
                     </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-700">
+                    <td className="py-4 px-4 text-right text-sm text-gray-300">
                       {formatCurrency(asset.avgPrice, asset.currency)}
                     </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-700">
+                    <td className="py-4 px-4 text-right text-sm text-gray-300">
                       {formatCurrency(asset.currentPrice, asset.currency)}
                     </td>
-                    <td className="py-4 px-4 text-right text-sm font-medium text-gray-900">
+                    <td className="py-4 px-4 text-right text-sm font-medium text-white">
                       {formatCurrency(asset.totalValue, asset.currency)}
                       {asset.currency === 'KRW' && (
                         <div className="text-xs text-gray-500">
@@ -1596,12 +1600,12 @@ const Portfolio = () => {
                       )}
                     </td>
                     <td className="py-4 px-4 text-right text-sm">
-                      <span className={asset.profit >= 0 ? 'text-success' : 'text-danger'}>
+                      <span className={asset.profit >= 0 ? 'neon-text-green' : 'neon-text-red'}>
                         {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-right text-sm font-medium">
-                      <span className={(asset.profitPercent || 0) >= 0 ? 'text-success' : 'text-danger'}>
+                      <span className={(asset.profitPercent || 0) >= 0 ? 'neon-text-green' : 'neon-text-red'}>
                         {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(2)}%
                       </span>
                     </td>
@@ -1609,17 +1613,17 @@ const Portfolio = () => {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleViewDetail(asset)}
-                          className="p-1 hover:bg-primary-50 rounded transition-colors"
+                          className="p-1 hover:bg-cyan-500/20 rounded transition-colors group"
                           title="상세 보기"
                         >
-                          <Eye className="w-4 h-4 text-primary-600" />
+                          <Eye className="w-4 h-4 text-cyan-500 group-hover:text-cyan-400" />
                         </button>
                         <button
                           onClick={() => handleDeleteAsset(asset.id)}
-                          className="p-1 hover:bg-red-50 rounded transition-colors"
+                          className="p-1 hover:bg-red-500/20 rounded transition-colors group"
                           title="삭제"
                         >
-                          <Trash2 className="w-4 h-4 text-danger" />
+                          <Trash2 className="w-4 h-4 text-red-500 group-hover:text-red-400" />
                         </button>
                       </div>
                     </td>
@@ -1633,18 +1637,18 @@ const Portfolio = () => {
 
       {/* Add Asset Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-cyan-500/30 rounded-lg max-w-md w-full p-6 shadow-2xl shadow-cyan-500/10">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">자산 추가</h3>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-xl font-bold text-white">자산 추가</h3>
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-white transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   심볼 / 티커
                 </label>
                 <input
@@ -1654,12 +1658,12 @@ const Portfolio = () => {
                   onChange={handleInputChange}
                   required
                   placeholder="예: AAPL, BTC, 삼성전자"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   자산명
                 </label>
                 <input
@@ -1669,13 +1673,13 @@ const Portfolio = () => {
                   onChange={handleInputChange}
                   required
                   placeholder="예: Apple Inc."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     자산 유형
                   </label>
                   <select
@@ -1683,7 +1687,7 @@ const Portfolio = () => {
                     value={formData.type}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white"
                   >
                     <option value="주식">주식</option>
                     <option value="ETF">ETF</option>
@@ -1694,7 +1698,7 @@ const Portfolio = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     통화
                   </label>
                   <select
@@ -1702,7 +1706,7 @@ const Portfolio = () => {
                     value={formData.currency}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white"
                   >
                     <option value="USD">USD ($)</option>
                     <option value="KRW">KRW (₩)</option>
@@ -1712,7 +1716,7 @@ const Portfolio = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     계좌
                   </label>
                   <select
@@ -1720,7 +1724,7 @@ const Portfolio = () => {
                     value={formData.account}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white"
                   >
                     {accountOptions.length > 0 ? (
                       accountOptions.map(account => (
@@ -1741,13 +1745,13 @@ const Portfolio = () => {
                       value={formData.customAccountName}
                       onChange={handleInputChange}
                       required
-                      className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="mt-2 w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500"
                     />
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     카테고리
                   </label>
                   <select
@@ -1755,7 +1759,7 @@ const Portfolio = () => {
                     value={formData.category}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white"
                   >
                     <option value="해외주식">해외주식</option>
                     <option value="국내주식">국내주식</option>
@@ -1769,7 +1773,7 @@ const Portfolio = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     보유 수량
                   </label>
                   <input
@@ -1781,12 +1785,12 @@ const Portfolio = () => {
                     step="0.000001"
                     min="0"
                     placeholder="10"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     평균 매수가
                   </label>
                   <input
@@ -1798,13 +1802,13 @@ const Portfolio = () => {
                     step="0.01"
                     min="0"
                     placeholder="150.00"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500"
                   />
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs text-blue-800">
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+                <p className="text-xs text-blue-300">
                   <strong>실시간 시세:</strong> BTC, ETH, BNB, SOL은 자동으로 실시간 가격이 업데이트됩니다.
                 </p>
               </div>
@@ -1813,13 +1817,13 @@ const Portfolio = () => {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-slate-800 transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 btn-primary"
+                  className="flex-1 cyber-btn"
                 >
                   추가
                 </button>
@@ -1831,11 +1835,11 @@ const Portfolio = () => {
 
       {/* CSV Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-cyan-500/30 rounded-lg max-w-2xl w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">📤 데이터 가져오기/내보내기</h3>
-              <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-xl font-bold text-white">📤 데이터 가져오기/내보내기</h3>
+              <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-white transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -1843,20 +1847,20 @@ const Portfolio = () => {
             <div className="space-y-6">
               {/* Import Section */}
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">📥 CSV 파일 가져오기</h4>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
-                  <p className="text-sm text-blue-800 mb-2">
+                <h4 className="font-semibold text-cyan-300 mb-3">📥 CSV 파일 가져오기</h4>
+                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-3">
+                  <p className="text-sm text-blue-300 mb-2">
                     <strong>CSV 형식:</strong> Symbol, Name, Type, Quantity, AvgPrice, Currency
                   </p>
-                  <p className="text-xs text-blue-700">
+                  <p className="text-xs text-blue-400">
                     예시: AAPL, Apple Inc., 주식, 10, 150.50, USD
                   </p>
-                  <p className="text-xs text-blue-700 mt-1">
+                  <p className="text-xs text-blue-400 mt-1">
                     💡 Currency: USD (해외주식), KRW (국내주식)
                   </p>
                 </div>
 
-                <label className="btn-primary flex items-center justify-center gap-2 cursor-pointer">
+                <label className="cyber-btn flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto">
                   <Upload className="w-5 h-5" />
                   CSV 파일 선택
                   <input
@@ -1870,12 +1874,12 @@ const Portfolio = () => {
 
               {/* Export Section */}
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">📤 데이터 내보내기</h4>
+                <h4 className="font-semibold text-cyan-300 mb-3">📤 데이터 내보내기</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleCSVExport}
                     disabled={assets.length === 0}
-                    className="btn-secondary flex items-center justify-center gap-2"
+                    className="px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 rounded-lg text-cyan-300 transition-colors flex items-center justify-center gap-2"
                   >
                     <FileText className="w-5 h-5" />
                     CSV 다운로드
@@ -1883,7 +1887,7 @@ const Portfolio = () => {
                   <button
                     onClick={handleJSONExport}
                     disabled={assets.length === 0}
-                    className="btn-secondary flex items-center justify-center gap-2"
+                    className="px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 rounded-lg text-cyan-300 transition-colors flex items-center justify-center gap-2"
                   >
                     <Download className="w-5 h-5" />
                     JSON 다운로드
@@ -1895,9 +1899,9 @@ const Portfolio = () => {
               </div>
 
               {/* Template Download */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-2">📋 CSV 템플릿 샘플</h4>
-                <pre className="text-xs bg-white p-3 rounded border border-gray-200 overflow-x-auto">
+              <div className="bg-slate-800 border border-gray-700 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-300 mb-2">📋 CSV 템플릿 샘플</h4>
+                <pre className="text-xs bg-slate-950 p-3 rounded border border-gray-800 text-gray-300 overflow-x-auto font-mono">
                   {`Symbol,Name,Type,Quantity,AvgPrice,Currency
 AAPL,Apple Inc.,주식,10,150.50,USD
 TSLA,Tesla Inc.,주식,5,242.15,USD
@@ -1975,15 +1979,15 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-2xl">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 rounded-2xl max-w-lg w-full shadow-2xl border border-cyan-500/30">
+        <div className="bg-gradient-to-r from-blue-900 to-indigo-900 px-6 py-4 rounded-t-2xl border-b border-blue-500/30">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold text-white">
                 {accountName} - 원금/예수금 관리
               </h3>
-              <p className="text-sm text-blue-100 mt-1">투자 원금 및 잔여 예수금을 입력하세요</p>
+              <p className="text-sm text-blue-200 mt-1">투자 원금 및 잔여 예수금을 입력하세요</p>
             </div>
             <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
               <X className="w-6 h-6" />
@@ -1995,7 +1999,7 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
           {/* Principal and Remaining */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 원금 (원) <span className="text-red-500">*</span>
               </label>
               <input
@@ -2007,13 +2011,13 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
                 step="1"
                 min="0"
                 placeholder="10000000"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500"
               />
               <p className="text-xs text-gray-500 mt-1">초기 투입 금액</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 예수금 (원) <span className="text-red-500">*</span>
               </label>
               <input
@@ -2025,23 +2029,23 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
                 step="1"
                 min="0"
                 placeholder="2000000"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500"
               />
               <p className="text-xs text-gray-500 mt-1">현재 잔여 금액</p>
             </div>
           </div>
 
           {/* Info about manual input */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900 mb-1">📝 원금/예수금은 참고용 입력값입니다</p>
-            <p className="text-xs text-blue-700">
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+            <p className="text-sm font-medium text-blue-300 mb-1">📝 원금/예수금은 참고용 입력값입니다</p>
+            <p className="text-xs text-blue-400">
               실제 투자금과 평가금액은 포트폴리오의 보유 자산 데이터에서 자동 계산됩니다
             </p>
           </div>
 
           {/* Note */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               비고
             </label>
             <textarea
@@ -2050,18 +2054,18 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
               onChange={handleChange}
               rows="3"
               placeholder="메모나 특이사항을 입력하세요"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-2.5 bg-slate-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500 resize-none"
             />
           </div>
 
           {/* Info Box */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <p className="text-sm text-amber-900 font-medium mb-2">📊 자동 계산 항목 안내</p>
-            <ul className="text-xs text-amber-800 space-y-1">
+          <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-4">
+            <p className="text-sm text-amber-500 font-medium mb-2">📊 자동 계산 항목 안내</p>
+            <ul className="text-xs text-amber-400 space-y-1">
               <li>• <strong>투자금</strong>: 이 계좌 보유 자산의 총 매수금액 (보유량 × 평균단가)</li>
               <li>• <strong>평가금액</strong>: 이 계좌 보유 자산의 현재 시가총액 (보유량 × 현재가)</li>
               <li>• <strong>손익</strong>: 평가금액 - 투자금 (실제 수익/손실)</li>
-              <li className="pt-1 border-t border-amber-300 mt-2">💡 USD 자산은 실시간 환율로 원화 환산됩니다</li>
+              <li className="pt-1 border-t border-amber-500/20 mt-2">💡 USD 자산은 실시간 환율로 원화 환산됩니다</li>
             </ul>
           </div>
 
@@ -2070,13 +2074,13 @@ const AccountPrincipalModal = ({ accountName, principalData, onSave, onClose }) 
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+              className="flex-1 px-4 py-2.5 border border-gray-700 rounded-lg text-gray-300 hover:bg-slate-800 transition-colors font-medium"
             >
               취소
             </button>
             <button
               type="submit"
-              className="flex-1 btn-primary"
+              className="flex-1 cyber-btn"
             >
               저장
             </button>
