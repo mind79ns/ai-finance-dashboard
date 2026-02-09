@@ -266,11 +266,11 @@ const InvestmentLog = () => {
     // 신규 자산 정보 생성 (매수이고 기존 자산이 없을 때)
     const newAssetDetails = formData.type === 'buy' && !existingAsset
       ? {
-          name: (formData.customAssetName || '').trim() || normalizedAssetSymbol,
-          type: (formData.customAssetType || '주식'),
-          currency: (formData.customAssetCurrency || 'USD').toUpperCase(),
-          account: accountForNewAsset
-        }
+        name: (formData.customAssetName || '').trim() || normalizedAssetSymbol,
+        type: (formData.customAssetType || '주식'),
+        currency: (formData.customAssetCurrency || 'USD').toUpperCase(),
+        account: accountForNewAsset
+      }
       : null
 
     const newLog = {
@@ -533,24 +533,24 @@ const InvestmentLog = () => {
   const selectedDateLogs = viewMode === 'calendar' ? getLogsForDate(selectedDate) : []
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card">
-          <p className="text-sm text-gray-600 mb-1">총 매수금액</p>
-          <p className="text-2xl font-bold text-primary-600">
+    <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
+      {/* Stats Cards - Cyberpunk Style */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="cyber-card">
+          <p className="text-sm text-cyan-300/60 mb-1">총 매수금액</p>
+          <p className="text-2xl font-bold text-rose-400">
             ${monthlyStats.totalBuy.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="card">
-          <p className="text-sm text-gray-600 mb-1">총 매도금액</p>
-          <p className="text-2xl font-bold text-success">
+        <div className="cyber-card">
+          <p className="text-sm text-cyan-300/60 mb-1">총 매도금액</p>
+          <p className="text-2xl font-bold text-emerald-400">
             ${monthlyStats.totalSell.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="card">
-          <p className="text-sm text-gray-600 mb-1">총 거래 건수</p>
-          <p className="text-2xl font-bold text-gray-900">
+        <div className="cyber-card">
+          <p className="text-sm text-cyan-300/60 mb-1">총 거래 건수</p>
+          <p className="text-2xl font-bold text-cyan-300">
             {monthlyStats.transactions}건
           </p>
         </div>
@@ -563,22 +563,20 @@ const InvestmentLog = () => {
           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                viewMode === 'list'
+              className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'list'
                   ? 'bg-white text-primary-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
             >
               <List className="w-4 h-4" />
               리스트
             </button>
             <button
               onClick={() => setViewMode('calendar')}
-              className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                viewMode === 'calendar'
+              className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'calendar'
                   ? 'bg-white text-primary-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
             >
               <CalendarDays className="w-4 h-4" />
               캘린더
@@ -660,11 +658,10 @@ const InvestmentLog = () => {
                       <CalendarIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       <span className="text-xs text-gray-600">{log.date}</span>
                     </div>
-                    <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full flex-shrink-0 ${
-                      log.type === 'buy'
+                    <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full flex-shrink-0 ${log.type === 'buy'
                         ? 'bg-primary-100 text-primary-700'
                         : 'bg-emerald-100 text-emerald-700'
-                    }`}>
+                      }`}>
                       {log.type === 'buy' ? '매수' : '매도'}
                     </span>
                   </div>
@@ -744,11 +741,10 @@ const InvestmentLog = () => {
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                        log.type === 'buy'
+                      <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${log.type === 'buy'
                           ? 'bg-primary-100 text-primary-700'
                           : 'bg-success/10 text-success'
-                      }`}>
+                        }`}>
                         {log.type === 'buy' ? '매수' : '매도'}
                       </span>
                     </td>
@@ -847,11 +843,10 @@ const InvestmentLog = () => {
                 selectedDateLogs.map((log) => (
                   <div key={log.id} className="p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                        log.type === 'buy'
+                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${log.type === 'buy'
                           ? 'bg-primary-100 text-primary-700'
                           : 'bg-success/10 text-success'
-                      }`}>
+                        }`}>
                         {log.type === 'buy' ? '매수' : '매도'}
                       </span>
                       <span className="text-sm font-semibold text-gray-900">{log.asset}</span>
@@ -1066,37 +1061,37 @@ const InvestmentLog = () => {
                           value={formData.customAssetName}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
-                      <select
-                        name="selectedAccount"
-                        value={formData.selectedAccount}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      >
-                        {accountOptions.map(account => (
-                          <option key={account} value={account}>
-                            {account}
-                          </option>
-                        ))}
-                        <option value="__custom__">새 계좌 직접 입력</option>
-                      </select>
-                      {formData.selectedAccount === '__custom__' && (
-                        <input
-                          type="text"
-                          name="customAccountName"
-                          placeholder="새 계좌 이름 입력"
-                          value={formData.customAccountName}
-                          onChange={handleInputChange}
-                          required
-                          className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
-                      )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
+                        <select
+                          name="selectedAccount"
+                          value={formData.selectedAccount}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          {accountOptions.map(account => (
+                            <option key={account} value={account}>
+                              {account}
+                            </option>
+                          ))}
+                          <option value="__custom__">새 계좌 직접 입력</option>
+                        </select>
+                        {formData.selectedAccount === '__custom__' && (
+                          <input
+                            type="text"
+                            name="customAccountName"
+                            placeholder="새 계좌 이름 입력"
+                            value={formData.customAccountName}
+                            onChange={handleInputChange}
+                            required
+                            className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">유형</label>
                         <select

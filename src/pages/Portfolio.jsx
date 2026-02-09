@@ -649,23 +649,23 @@ const Portfolio = () => {
   const assetTypes = ['전체', ...new Set(assets.map(a => a.type))]
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">포트폴리오</h2>
+          <h2 className="text-xl sm:text-2xl font-bold neon-text-cyan">포트폴리오</h2>
           {lastUpdate && (
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            <p className="text-xs sm:text-sm text-cyan-300/60 mt-1">
               마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
             </p>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="text-right mr-2 sm:mr-3">
-            <p className="text-xs text-gray-600">환율 (USD/KRW)</p>
-            <p className="text-sm font-medium text-gray-900">₩{exchangeRate.toLocaleString()}</p>
+            <p className="text-xs text-cyan-300/60">환율 (USD/KRW)</p>
+            <p className="text-sm font-medium text-cyan-300">₩{exchangeRate.toLocaleString()}</p>
           </div>
-          {loading && <RefreshCw className="w-5 h-5 text-primary-600 animate-spin" />}
+          {loading && <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin" />}
         </div>
       </div>
 

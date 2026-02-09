@@ -897,21 +897,21 @@ const AssetStatus = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with year filter */}
-      <div className="flex items-center justify-between">
+    <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
+      {/* Header with year filter - Cyberpunk Style */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">자산 현황</h1>
-          <p className="text-gray-600 mt-1">월별 수입/지출 및 계좌별 자산 현황</p>
+          <h1 className="text-3xl font-bold neon-text-cyan">자산 현황</h1>
+          <p className="text-cyan-300/60 mt-1">월별 수입/지출 및 계좌별 자산 현황</p>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-gray-600" />
+            <Calendar className="w-5 h-5 text-cyan-400" />
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="px-4 py-2 bg-slate-800/50 border border-cyan-400/30 text-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-400/50 focus:border-transparent"
             >
               {availableYears.map(year => (
                 <option key={year} value={year}>{year}년</option>
@@ -921,7 +921,7 @@ const AssetStatus = () => {
 
           <button
             onClick={() => setShowAddYearModal(true)}
-            className="btn-primary flex items-center gap-2"
+            className="cyber-btn flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             신규 연도 추가
@@ -1110,11 +1110,10 @@ const AssetStatus = () => {
                 </div>
                 <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
                   <div
-                    className={`absolute bottom-0 w-full transition-all duration-500 flex items-end justify-center pb-1 ${
-                      (calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0
+                    className={`absolute bottom-0 w-full transition-all duration-500 flex items-end justify-center pb-1 ${(calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0
                         ? 'bg-gradient-to-t from-green-500 to-green-400'
                         : 'bg-gradient-to-t from-orange-500 to-orange-400'
-                    }`}
+                      }`}
                     style={{
                       height: `${Math.min(Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
                     }}
@@ -1267,13 +1266,12 @@ const AssetStatus = () => {
                     return (
                       <td
                         key={idx}
-                        className={`text-right py-3 px-4 ${
-                          category.isAccumulated
+                        className={`text-right py-3 px-4 ${category.isAccumulated
                             ? isJanuary
                               ? 'bg-yellow-50 font-semibold text-yellow-800 cursor-pointer hover:bg-yellow-100'
                               : 'bg-indigo-50 font-semibold text-indigo-700'
                             : 'text-gray-700 cursor-pointer hover:bg-blue-50'
-                        }`}
+                          }`}
                         onClick={() => isEditable && handleOpenEditModal(idx)}
                         title={
                           category.isAccumulated
@@ -1416,12 +1414,12 @@ const AssetStatus = () => {
             <ComposedChart data={chartData}>
               <defs>
                 <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05}/>
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
@@ -1501,8 +1499,8 @@ const AssetStatus = () => {
             <ComposedChart data={chartData}>
               <defs>
                 <linearGradient id="accumulatedGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" vertical={false} />

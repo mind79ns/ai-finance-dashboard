@@ -944,16 +944,16 @@ const TransactionHistory = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
+      {/* Header - Cyberpunk Style */}
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-green-100 rounded-lg">
-            <Receipt className="w-6 h-6 text-green-600" />
+          <div className="p-3 bg-emerald-500/20 border border-emerald-400/30 rounded-lg">
+            <Receipt className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">입금 및 출금 자동계산</h2>
-            <p className="text-sm text-gray-600">화폐별 입력 및 누적 관리 (환율 자동 적용)</p>
+            <h2 className="text-2xl font-bold neon-text-cyan">입금 및 출금 자동계산</h2>
+            <p className="text-sm text-cyan-300/60">화폐별 입력 및 누적 관리 (환율 자동 적용)</p>
           </div>
         </div>
       </div>
@@ -1440,8 +1440,8 @@ const TransactionHistory = () => {
                       key={currency}
                       onClick={() => setDividendFormData(prev => ({ ...prev, currency }))}
                       className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-all ${dividendFormData.currency === currency
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
                       {currency === 'USD' ? '$ USD' : '₩ KRW'}
@@ -1549,11 +1549,10 @@ const TransactionHistory = () => {
                       <button
                         key={cat.id}
                         onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
-                        className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${
-                          isSelected
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${isSelected
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
+                          }`}
                         title={cat.name}
                       >
                         <div

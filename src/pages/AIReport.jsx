@@ -1011,16 +1011,16 @@ ${assetsList}
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
+      {/* Header - Cyberpunk Style */}
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary-100 rounded-lg">
-            <Sparkles className="w-6 h-6 text-primary-600" />
+          <div className="p-3 bg-purple-500/20 border border-purple-400/30 rounded-lg">
+            <Sparkles className="w-6 h-6 text-purple-400" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">AI 분석 리포트</h2>
-            <p className="text-sm text-gray-600">AI 기반 시장 분석 및 포트폴리오 진단</p>
+            <h2 className="text-2xl font-bold neon-text-cyan">AI 분석 리포트</h2>
+            <p className="text-sm text-cyan-300/60">AI 기반 시장 분석 및 포트폴리오 진단</p>
           </div>
         </div>
         <AIStrategyBadge />

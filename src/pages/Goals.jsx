@@ -567,27 +567,27 @@ ${JSON.stringify(context, null, 2)}
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
+      {/* Header - Cyberpunk Style */}
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary-100 rounded-lg">
-            <Target className="w-6 h-6 text-primary-600" />
+          <div className="p-3 bg-purple-500/20 border border-purple-400/30 rounded-lg">
+            <Target className="w-6 h-6 text-purple-400" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">투자 목표 관리</h2>
-            <p className="text-sm text-gray-600 flex items-center gap-2">
+            <h2 className="text-2xl font-bold neon-text-cyan">투자 목표 관리</h2>
+            <p className="text-sm text-cyan-300/60 flex items-center gap-2">
               나의 재무 목표 달성 현황
               {portfolioAssets.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded-full">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-emerald-500/20 text-emerald-400 rounded-full border border-emerald-400/30">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
                   실시간 연동
                 </span>
               )}
             </p>
           </div>
         </div>
-        <button onClick={handleAddGoal} className="btn-primary flex items-center gap-2">
+        <button onClick={handleAddGoal} className="cyber-btn flex items-center gap-2">
           <Plus className="w-5 h-5" />
           목표 추가
         </button>

@@ -40,10 +40,10 @@ const Market = () => {
 
   if (loading && !marketData) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="cyber-dashboard min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">실시간 시장 데이터 로딩 중...</p>
+          <div className="cyber-hub-ring cyber-hub-ring-outer w-12 h-12 mx-auto mb-4" />
+          <p className="text-cyan-400">실시간 시장 데이터 로딩 중...</p>
         </div>
       </div>
     )
@@ -51,12 +51,12 @@ const Market = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="cyber-dashboard min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-danger mx-auto mb-4" />
-          <p className="text-gray-900 font-medium mb-2">데이터 로드 실패</p>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button onClick={handleRefresh} className="btn-primary">
+          <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+          <p className="text-white font-medium mb-2">데이터 로드 실패</p>
+          <p className="text-cyan-300/60 mb-4">{error}</p>
+          <button onClick={handleRefresh} className="cyber-btn">
             다시 시도
           </button>
         </div>
@@ -81,14 +81,14 @@ const Market = () => {
     : '데이터 없음'
 
   return (
-    <div className="space-y-6">
+    <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">실시간 시장 데이터</h2>
-          <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold neon-text-cyan">실시간 시장 데이터</h2>
+          <div className="flex items-center gap-3 text-sm text-cyan-300/60 mt-1">
             <span>마지막 업데이트: {lastUpdatedLabel}</span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-cyan-400/50">
               Finnhub · CoinGecko · ExchangeRate API
             </span>
           </div>
@@ -96,7 +96,7 @@ const Market = () => {
         <button
           onClick={handleRefresh}
           disabled={loading}
-          className="btn-secondary flex items-center gap-2"
+          className="cyber-btn flex items-center gap-2"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           새로고침
@@ -108,41 +108,37 @@ const Market = () => {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeCategory === 'all'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeCategory === 'all'
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             전체
           </button>
           <button
             onClick={() => setActiveCategory('stocks')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeCategory === 'stocks'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeCategory === 'stocks'
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             주식/ETF
           </button>
           <button
             onClick={() => setActiveCategory('crypto')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeCategory === 'crypto'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeCategory === 'crypto'
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             암호화폐
           </button>
           <button
             onClick={() => setActiveCategory('currency')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              activeCategory === 'currency'
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeCategory === 'currency'
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             환율
           </button>
@@ -307,9 +303,8 @@ const IndexCard = ({ name, subtitle, data }) => {
       <p className="text-2xl font-bold text-gray-900 mb-2">
         ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
-      <div className={`flex items-center gap-1 text-sm ${
-        data.isPositive ? 'text-success' : 'text-danger'
-      }`}>
+      <div className={`flex items-center gap-1 text-sm ${data.isPositive ? 'text-success' : 'text-danger'
+        }`}>
         {data.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
         <span>
           {data.isPositive ? '+' : ''}{change.toFixed(2)} ({data.isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
@@ -369,9 +364,8 @@ const CryptoCard = ({ crypto }) => {
       <p className="text-2xl font-bold text-gray-900 mb-2">
         ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
-      <div className={`flex items-center gap-1 text-sm ${
-        crypto.isPositive ? 'text-success' : 'text-danger'
-      }`}>
+      <div className={`flex items-center gap-1 text-sm ${crypto.isPositive ? 'text-success' : 'text-danger'
+        }`}>
         {crypto.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
         <span>
           {crypto.isPositive ? '+' : ''}{change24h.toFixed(2)}% (24h)
