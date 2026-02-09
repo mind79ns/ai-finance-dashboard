@@ -104,53 +104,32 @@ const Market = () => {
       </div>
 
       {/* Category Filter */}
-      <div className="card">
+      <div className="cyber-card mb-6">
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setActiveCategory('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeCategory === 'all'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            전체
-          </button>
-          <button
-            onClick={() => setActiveCategory('stocks')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeCategory === 'stocks'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            주식/ETF
-          </button>
-          <button
-            onClick={() => setActiveCategory('crypto')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeCategory === 'crypto'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            암호화폐
-          </button>
-          <button
-            onClick={() => setActiveCategory('currency')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeCategory === 'currency'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            환율
-          </button>
+          {['all', 'stocks', 'crypto', 'currency'].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${activeCategory === cat
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                : 'bg-slate-800 text-gray-400 border border-transparent hover:bg-slate-700 hover:text-gray-200'
+                }`}
+            >
+              {cat === 'all' && '전체'}
+              {cat === 'stocks' && '주식/ETF'}
+              {cat === 'crypto' && '암호화폐'}
+              {cat === 'currency' && '환율'}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Data Source Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>📡 실시간 데이터:</strong> Finnhub (미국 주식 ETF), CoinGecko (암호화폐), ExchangeRate API (환율)
+      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6 backdrop-blur-sm">
+        <p className="text-sm text-blue-200">
+          <strong className="text-blue-400">📡 실시간 데이터:</strong> Finnhub (미국 주식 ETF), CoinGecko (암호화폐), ExchangeRate API (환율)
         </p>
-        <p className="text-xs text-blue-700 mt-1">
+        <p className="text-xs text-blue-300/70 mt-1">
           💡 SPY, QQQ, DIA, GLD ETF로 주요 지수 시장 추세를 실시간 반영합니다
         </p>
       </div>
@@ -158,9 +137,12 @@ const Market = () => {
       {/* Stock Indices */}
       {marketData?.stocks && (activeCategory === 'all' || activeCategory === 'stocks') && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">주요 지수 ETF (실시간)</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="w-1 h-6 bg-cyan-500 rounded-sm"></span>
+              주요 지수 ETF (실시간)
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
               <Info className="w-3 h-3" />
               <span>데이터 출처: Finnhub (2분 자동 갱신)</span>
             </div>
@@ -198,9 +180,12 @@ const Market = () => {
       {/* Cryptocurrencies */}
       {marketData?.crypto && (activeCategory === 'all' || activeCategory === 'crypto') && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">암호화폐 (실시간)</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center justify-between mb-4 mt-8">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="w-1 h-6 bg-purple-500 rounded-sm"></span>
+              암호화폐 (실시간)
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
               <Info className="w-3 h-3" />
               <span>데이터 출처: CoinGecko (무료 API, 2분 갱신)</span>
             </div>
@@ -221,16 +206,19 @@ const Market = () => {
 
       {/* Currency Rates */}
       {marketData?.currency && (activeCategory === 'all' || activeCategory === 'currency') && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">환율 (실시간)</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="cyber-card mt-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="w-1 h-6 bg-green-500 rounded-sm"></span>
+              환율 (실시간)
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
               <Info className="w-3 h-3" />
               <span>데이터 출처: ExchangeRate API (USD 기준)</span>
             </div>
           </div>
           {currencyFallback && (
-            <div className="mb-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-xs text-orange-700">
+            <div className="mb-3 rounded-lg border border-orange-500/30 bg-orange-900/20 px-4 py-3 text-xs text-orange-300">
               환율 API 응답이 없어 기본 환율을 표시합니다. 최신 환율 반영을 위해 API 키/네트워크 상태를 확인하세요.
             </div>
           )}
@@ -266,17 +254,17 @@ const Market = () => {
 const IndexCard = ({ name, subtitle, data }) => {
   if (!data || data.error || data.price === 0 || data.price === undefined || data.price === null) {
     return (
-      <div className="card bg-gray-50">
-        <p className="text-sm text-gray-600 mb-1">{name}</p>
+      <div className="cyber-card bg-slate-900/50">
+        <p className="text-sm text-gray-400 mb-1">{name}</p>
         {subtitle && <p className="text-xs text-gray-500 mb-2">{subtitle}</p>}
-        <p className="text-xs text-orange-600 mb-2">
+        <p className="text-xs text-orange-400 mb-2">
           {data?.error || 'Finnhub API 키가 필요합니다'}
         </p>
         <a
           href="https://finnhub.io/register"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-primary-600 underline"
+          className="text-xs text-cyan-400 hover:text-cyan-300 underline"
         >
           무료 API 키 발급받기 →
         </a>
@@ -295,15 +283,15 @@ const IndexCard = ({ name, subtitle, data }) => {
   ].filter(point => Number.isFinite(point.value))
 
   return (
-    <div className="card hover:shadow-md transition-shadow">
+    <div className="cyber-card hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-300 group">
       <div className="mb-2">
-        <p className="text-sm text-gray-600">{name}</p>
+        <p className="text-sm text-gray-400 group-hover:text-cyan-300 transition-colors">{name}</p>
         {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
       </div>
-      <p className="text-2xl font-bold text-gray-900 mb-2">
+      <p className="text-2xl font-bold text-white mb-2">
         ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
-      <div className={`flex items-center gap-1 text-sm ${data.isPositive ? 'text-success' : 'text-danger'
+      <div className={`flex items-center gap-1 text-sm ${data.isPositive ? 'text-emerald-400' : 'text-rose-400'
         }`}>
         {data.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
         <span>
@@ -349,10 +337,10 @@ const CryptoCard = ({ crypto }) => {
   }).filter(point => Number.isFinite(point.value))
 
   return (
-    <div className="card hover:shadow-md transition-shadow">
+    <div className="cyber-card hover:shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-all duration-300 group">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="font-medium text-gray-900">{crypto.name}</p>
+          <p className="font-medium text-white group-hover:text-purple-300 transition-colors">{crypto.name}</p>
           <p className="text-xs text-gray-500">{crypto.symbol}</p>
         </div>
         {crypto.marketCap && (
@@ -361,10 +349,10 @@ const CryptoCard = ({ crypto }) => {
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold text-gray-900 mb-2">
+      <p className="text-2xl font-bold text-white mb-2">
         ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
-      <div className={`flex items-center gap-1 text-sm ${crypto.isPositive ? 'text-success' : 'text-danger'
+      <div className={`flex items-center gap-1 text-sm ${crypto.isPositive ? 'text-emerald-400' : 'text-rose-400'
         }`}>
         {crypto.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
         <span>
@@ -397,10 +385,10 @@ const CurrencyCard = ({ pair, name, data }) => {
   const displayRate = data.rate || 0
 
   return (
-    <div className="p-4 bg-gray-50 rounded-lg">
-      <p className="text-xs text-gray-600 mb-1">{pair}</p>
-      <p className="text-sm font-medium text-gray-700 mb-2">{name}</p>
-      <p className="text-xl font-bold text-gray-900">
+    <div className="p-4 bg-slate-900/50 rounded-lg border border-cyan-500/20 hover:border-cyan-500/50 transition-colors">
+      <p className="text-xs text-gray-400 mb-1">{pair}</p>
+      <p className="text-sm font-medium text-cyan-200 mb-2">{name}</p>
+      <p className="text-xl font-bold text-white">
         {displayRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
       </p>
     </div>

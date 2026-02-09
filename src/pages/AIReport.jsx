@@ -1015,8 +1015,8 @@ ${assetsList}
       {/* Header - Cyberpunk Style */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-purple-500/20 border border-purple-400/30 rounded-lg">
-            <Sparkles className="w-6 h-6 text-purple-400" />
+          <div className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg cyber-card-glow">
+            <Sparkles className="w-6 h-6 text-cyan-400" />
           </div>
           <div>
             <h2 className="text-2xl font-bold neon-text-cyan">AI 분석 리포트</h2>
@@ -1027,66 +1027,69 @@ ${assetsList}
       </div>
 
       {/* AI Model Selection */}
-      <div className="card bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 border-purple-200 dark:border-purple-700">
+      <div className="cyber-card mb-8">
         <div className="flex items-start gap-4">
-          <div className="p-2 bg-white dark:bg-gray-700 rounded-lg">
-            <Zap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+          <div className="p-2 bg-slate-800 rounded-lg border border-purple-500/30">
+            <Zap className="w-6 h-6 text-purple-400" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">💡 AI 모델 선택</h3>
+            <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+              💡 AI 모델 선택
+              <span className="text-xs font-normal text-gray-400 bg-slate-800 px-2 py-0.5 rounded border border-gray-700">작업에 최적화된 모델을 선택하세요</span>
+            </h3>
             <div className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button
                   onClick={() => setSelectedAI('auto')}
-                  className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'auto'
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900'
-                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-purple-300'
+                  className={`p-3 rounded-lg border transition-all text-left group ${selectedAI === 'auto'
+                    ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                    : 'border-gray-700 bg-slate-800 hover:border-purple-500/50 hover:bg-slate-700'
                     }`}
                 >
-                  <div className="text-left">
-                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">🤖 자동 선택</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <div>
+                    <p className="font-semibold text-sm text-white group-hover:text-purple-300 transition-colors">🤖 자동 선택</p>
+                    <p className="text-xs text-gray-400 mt-1">
                       작업에 맞게 AI 자동 배정
                     </p>
-                    <p className="text-xs text-purple-600 mt-1">💰 비용 최적화</p>
+                    <p className="text-xs text-purple-400 mt-1">💰 비용 최적화</p>
                   </div>
                 </button>
 
                 <button
                   onClick={() => setSelectedAI('gpt')}
-                  className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'gpt'
-                    ? 'border-green-500 bg-green-50 dark:bg-green-900'
-                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-green-300'
+                  className={`p-3 rounded-lg border transition-all text-left group ${selectedAI === 'gpt'
+                    ? 'border-green-500 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]'
+                    : 'border-gray-700 bg-slate-800 hover:border-green-500/50 hover:bg-slate-700'
                     }`}
                 >
-                  <div className="text-left">
-                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">🧠 GPT-5.2</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <div>
+                    <p className="font-semibold text-sm text-white group-hover:text-green-300 transition-colors">🧠 GPT-5.2</p>
+                    <p className="text-xs text-gray-400 mt-1">
                       최신 플래그십 (Dec 2025)
                     </p>
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">⭐ 최고 성능</p>
+                    <p className="text-xs text-green-400 mt-1">⭐ 최고 성능</p>
                   </div>
                 </button>
 
                 <button
                   onClick={() => setSelectedAI('gemini')}
-                  className={`p-3 rounded-lg border-2 transition-all ${selectedAI === 'gemini'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900'
-                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-blue-300'
+                  className={`p-3 rounded-lg border transition-all text-left group ${selectedAI === 'gemini'
+                    ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_10px_rgba(59,130,246,0.2)]'
+                    : 'border-gray-700 bg-slate-800 hover:border-blue-500/50 hover:bg-slate-700'
                     }`}
                 >
-                  <div className="text-left">
-                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">⚡ Gemini 3 Pro</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <div>
+                    <p className="font-semibold text-sm text-white group-hover:text-blue-300 transition-colors">⚡ Gemini 3 Pro</p>
+                    <p className="text-xs text-gray-400 mt-1">
                       Deep Think 지원 (Nov 2025)
                     </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">🚀 추론 강화</p>
+                    <p className="text-xs text-blue-400 mt-1">🚀 추론 강화</p>
                   </div>
                 </button>
               </div>
 
-              <div className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 p-2 rounded">
-                <strong>현재 선택:</strong> {
+              <div className="text-xs text-gray-400 bg-slate-800/50 p-2 rounded border border-gray-700">
+                <strong className="text-cyan-400">현재 선택:</strong> {
                   selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
                     selectedAI === 'gpt' ? '🧠 GPT-5.2 (최신 플래그십)' :
                       '⚡ Gemini 3 Pro Preview (Deep Think)'
@@ -1098,100 +1101,49 @@ ${assetsList}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('market')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'market'
-            ? 'text-primary-600 border-b-2 border-primary-600'
-            : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          시장 리포트
-        </button>
-        <button
-          onClick={() => setActiveTab('portfolio')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'portfolio'
-            ? 'text-primary-600 border-b-2 border-primary-600'
-            : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          포트폴리오 진단
-        </button>
-        <button
-          onClick={() => setActiveTab('stock')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'stock'
-            ? 'text-primary-600 border-b-2 border-primary-600'
-            : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          📊 종목 분석
-        </button>
-        <button
-          onClick={() => setActiveTab('risk')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'risk'
-            ? 'text-primary-600 border-b-2 border-primary-600'
-            : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          리스크 진단
-        </button>
-        <button
-          onClick={() => setActiveTab('rebalancing')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'rebalancing'
-            ? 'text-primary-600 border-b-2 border-primary-600'
-            : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          리밸런싱 제안
-        </button>
-        <button
-          onClick={() => setActiveTab('chat')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'chat'
-            ? 'text-primary-600 border-b-2 border-primary-600'
-            : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          AI 상담
-        </button>
-        <button
-          onClick={() => setActiveTab('timing')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'timing'
-            ? 'text-primary-600 border-b-2 border-primary-600'
-            : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          🔮 매매 타이밍
-        </button>
-        <button
-          onClick={() => setActiveTab('news')}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'news'
-            ? 'text-primary-600 border-b-2 border-primary-600'
-            : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          📰 뉴스 요약
-        </button>
+      <div className="flex gap-2 border-b border-gray-700 overflow-x-auto pb-1 mb-6">
+        {[
+          { id: 'market', label: '시장 리포트' },
+          { id: 'portfolio', label: '포트폴리오 진단' },
+          { id: 'stock', label: '📊 종목 분석' },
+          { id: 'risk', label: '리스크 진단' },
+          { id: 'rebalancing', label: '리밸런싱 제안' },
+          { id: 'chat', label: 'AI 상담' },
+          { id: 'timing', label: '🔮 매매 타이밍' },
+          { id: 'news', label: '📰 뉴스 요약' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 font-medium transition-all duration-300 whitespace-nowrap rounded-t-lg ${activeTab === tab.id
+              ? 'text-cyan-300 border-b-2 border-cyan-500 bg-slate-800/50'
+              : 'text-gray-500 hover:text-gray-300 hover:bg-slate-800/30'
+              }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Market Report Tab */}
       {activeTab === 'market' && (
-        <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-blue-800">
-              <strong>🧠 GPT-5 사용:</strong> 상세한 시장 분석 및 투자 전략을 제공합니다 (고급 분석)
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-cyan-500/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-cyan-200">
+              <strong className="text-cyan-400">🧠 GPT-5 사용:</strong> 상세한 시장 분석 및 투자 전략을 제공합니다 (고급 분석)
             </p>
           </div>
           {marketInsights && (
-            <div className="card border border-blue-100 bg-blue-50/60">
-              <h4 className="text-sm font-semibold text-blue-900 mb-2">데이터 기반 시장 요약</h4>
-              <ul className="space-y-1 text-xs text-blue-800">
+            <div className="cyber-card border border-blue-500/30 bg-blue-900/20">
+              <h4 className="text-sm font-semibold text-blue-300 mb-2">데이터 기반 시장 요약</h4>
+              <ul className="space-y-1 text-xs text-blue-200">
                 {marketInsights.quickHighlights.slice(0, 4).map((item, idx) => (
                   <li key={idx}>• {item}</li>
                 ))}
               </ul>
               {marketInsights.riskSignals.length > 0 && (
-                <div className="mt-3 text-xs text-orange-800 bg-white/80 rounded-lg p-3 border border-orange-200">
-                  <p className="font-medium mb-1">⚠️ 감지된 리스크</p>
+                <div className="mt-3 text-xs text-orange-200 bg-orange-900/30 rounded-lg p-3 border border-orange-500/30">
+                  <p className="font-medium mb-1 text-orange-400">⚠️ 감지된 리스크</p>
                   <ul className="space-y-1">
                     {marketInsights.riskSignals.slice(0, 3).map((signal, idx) => (
                       <li key={idx}>- {signal}</li>
@@ -1199,7 +1151,7 @@ ${assetsList}
                   </ul>
                 </div>
               )}
-              <p className="text-[11px] text-blue-700 mt-3">
+              <p className="text-[11px] text-blue-400/70 mt-3">
                 실시간 데이터 기반 자동 요약입니다. 추가적인 경제 지표와 뉴스 확인을 권장합니다.
               </p>
             </div>
@@ -1208,7 +1160,7 @@ ${assetsList}
             <button
               onClick={generateMarketReport}
               disabled={loading}
-              className="btn-primary flex items-center gap-2"
+              className="cyber-btn flex items-center gap-2"
             >
               {loading ? (
                 <>
@@ -1227,14 +1179,14 @@ ${assetsList}
                 <button
                   type="button"
                   onClick={() => copyToClipboard(marketReport)}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
                 >
                   복사
                 </button>
                 <button
                   type="button"
                   onClick={() => downloadReport('market_report', marketReport)}
-                  className="px-3 py-1.5 text-xs font-medium text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/10 transition-colors"
                 >
                   다운로드
                 </button>
@@ -1243,14 +1195,14 @@ ${assetsList}
           </div>
 
           {marketReport && (
-            <div className="card">
+            <div className="cyber-card">
               <div className="flex items-center gap-2 mb-4">
-                <FileText className="w-5 h-5 text-primary-600" />
-                <h3 className="text-lg font-semibold text-gray-900">시장 분석 리포트</h3>
+                <FileText className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-lg font-semibold text-white">시장 분석 리포트</h3>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
+              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
-                  className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500"
+                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-cyan-300 prose-strong:text-cyan-200"
                   remarkPlugins={[remarkGfm]}
                 >
                   {marketReport}
@@ -1260,9 +1212,9 @@ ${assetsList}
           )}
 
           {!marketReport && !loading && (
-            <div className="card text-center py-12">
-              <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">AI 시장 리포트를 생성하려면 버튼을 클릭하세요</p>
+            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+              <Sparkles className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">AI 시장 리포트를 생성하려면 버튼을 클릭하세요</p>
             </div>
           )}
         </div>
@@ -1270,18 +1222,18 @@ ${assetsList}
 
       {/* Portfolio Analysis Tab */}
       {activeTab === 'portfolio' && (
-        <div className="space-y-4">
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-purple-800">
-              <strong>🧠 GPT-5 사용:</strong> 심층 포트폴리오 분석 및 최적화 전략을 제공합니다 (전문가급 분석)
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-purple-500/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-purple-200">
+              <strong className="text-purple-400">🧠 GPT-5 사용:</strong> 심층 포트폴리오 분석 및 최적화 전략을 제공합니다 (전문가급 분석)
             </p>
           </div>
           {portfolioInsights && (
-            <div className="card border border-purple-100 bg-purple-50/60">
-              <h4 className="text-sm font-semibold text-purple-900 mb-2">핵심 포트폴리오 인사이트</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-purple-800">
+            <div className="cyber-card border border-purple-500/30 bg-purple-900/20">
+              <h4 className="text-sm font-semibold text-purple-300 mb-2">핵심 포트폴리오 인사이트</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-purple-200">
                 <div>
-                  <p className="font-medium mb-1">성과 요약</p>
+                  <p className="font-medium mb-1 text-purple-400">성과 요약</p>
                   <ul className="space-y-1">
                     {portfolioInsights.quickHighlights.slice(0, 3).map((item, idx) => (
                       <li key={idx}>• {item}</li>
@@ -1289,7 +1241,7 @@ ${assetsList}
                   </ul>
                 </div>
                 <div>
-                  <p className="font-medium mb-1">리스크 포인트</p>
+                  <p className="font-medium mb-1 text-purple-400">리스크 포인트</p>
                   <ul className="space-y-1">
                     {portfolioInsights.riskAlerts.length
                       ? portfolioInsights.riskAlerts.slice(0, 3).map((item, idx) => (
@@ -1301,8 +1253,8 @@ ${assetsList}
                 </div>
               </div>
               {portfolioInsights.goalHighlights.length > 0 && (
-                <div className="mt-3 text-xs text-purple-800 bg-white/70 rounded-lg p-3 border border-purple-100">
-                  <p className="font-medium mb-1">목표 진행</p>
+                <div className="mt-3 text-xs text-purple-200 bg-purple-900/30 rounded-lg p-3 border border-purple-500/30">
+                  <p className="font-medium mb-1 text-purple-400">목표 진행</p>
                   <ul className="space-y-1">
                     {portfolioInsights.goalHighlights.slice(0, 2).map((item, idx) => (
                       <li key={idx}>- {item}</li>
@@ -1316,7 +1268,7 @@ ${assetsList}
             <button
               onClick={generatePortfolioAnalysis}
               disabled={loading}
-              className="btn-primary flex items-center gap-2"
+              className="cyber-btn flex items-center gap-2"
             >
               {loading ? (
                 <>
@@ -1335,14 +1287,14 @@ ${assetsList}
                 <button
                   type="button"
                   onClick={() => copyToClipboard(portfolioAnalysis)}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
                 >
                   복사
                 </button>
                 <button
                   type="button"
                   onClick={() => downloadReport('portfolio_analysis', portfolioAnalysis)}
-                  className="px-3 py-1.5 text-xs font-medium text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium text-purple-400 border border-purple-500/30 rounded-lg hover:bg-purple-500/10 transition-colors"
                 >
                   다운로드
                 </button>
@@ -1351,14 +1303,14 @@ ${assetsList}
           </div>
 
           {portfolioAnalysis && (
-            <div className="card">
+            <div className="cyber-card">
               <div className="flex items-center gap-2 mb-4">
-                <FileText className="w-5 h-5 text-primary-600" />
-                <h3 className="text-lg font-semibold text-gray-900">포트폴리오 진단 결과</h3>
+                <FileText className="w-5 h-5 text-purple-400" />
+                <h3 className="text-lg font-semibold text-white">포트폴리오 진단 결과</h3>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
+              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
-                  className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500"
+                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-purple-300 prose-strong:text-purple-200"
                   remarkPlugins={[remarkGfm]}
                 >
                   {portfolioAnalysis}
@@ -1368,9 +1320,9 @@ ${assetsList}
           )}
 
           {!portfolioAnalysis && !loading && (
-            <div className="card text-center py-12">
-              <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">AI 포트폴리오 진단을 시작하려면 버튼을 클릭하세요</p>
+            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+              <Sparkles className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">AI 포트폴리오 진단을 시작하려면 버튼을 클릭하세요</p>
             </div>
           )}
         </div>
@@ -1378,16 +1330,16 @@ ${assetsList}
 
       {/* Stock Analysis Tab */}
       {activeTab === 'stock' && (
-        <div className="space-y-4">
-          <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-teal-800">
-              <strong>🔍 종목 심층 분석:</strong> Perplexity에서 최신 실시간 정보 검색 (2025년 기준)
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-teal-500/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-teal-200">
+              <strong className="text-teal-400">🔍 종목 심층 분석:</strong> Perplexity에서 최신 실시간 정보 검색 (2025년 기준)
             </p>
           </div>
 
           {/* 종목 선택 */}
-          <div className="card">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">📊 보유 종목에서 선택</h4>
+          <div className="cyber-card">
+            <h4 className="text-sm font-medium text-gray-300 mb-3">📊 보유 종목에서 선택</h4>
             {portfolioData && portfolioData.assets && portfolioData.assets.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {portfolioData.assets.map((asset) => (
@@ -1398,14 +1350,14 @@ ${assetsList}
                       setCustomStockCode('')
                       setCustomStockName('')
                     }}
-                    className={`p-3 rounded-lg border-2 transition-all text-left ${selectedStock?.symbol === asset.symbol
-                      ? 'border-teal-500 bg-teal-50'
-                      : 'border-gray-200 bg-white hover:border-teal-300'
+                    className={`p-3 rounded-lg border transition-all text-left ${selectedStock?.symbol === asset.symbol
+                      ? 'border-teal-500 bg-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.2)]'
+                      : 'border-slate-700 bg-slate-800 hover:border-teal-500/50 hover:bg-slate-700'
                       }`}
                   >
-                    <p className="font-semibold text-sm text-gray-900">{asset.symbol}</p>
-                    <p className="text-xs text-gray-600 mt-1 truncate">{asset.name}</p>
-                    <p className={`text-xs mt-1 font-medium ${asset.profitPercent >= 0 ? 'text-success' : 'text-danger'
+                    <p className="font-semibold text-sm text-white">{asset.symbol}</p>
+                    <p className="text-xs text-gray-400 mt-1 truncate">{asset.name}</p>
+                    <p className={`text-xs mt-1 font-medium ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
                       }`}>
                       {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(1)}%
                     </p>
@@ -1422,17 +1374,17 @@ ${assetsList}
 
           {/* OR 구분선 */}
           <div className="flex items-center gap-4">
-            <div className="flex-1 h-px bg-gray-300"></div>
+            <div className="flex-1 h-px bg-slate-700"></div>
             <span className="text-sm font-medium text-gray-500">또는</span>
-            <div className="flex-1 h-px bg-gray-300"></div>
+            <div className="flex-1 h-px bg-slate-700"></div>
           </div>
 
           {/* 직접 입력 */}
-          <div className="card">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">✏️ 종목 직접 입력</h4>
+          <div className="cyber-card">
+            <h4 className="text-sm font-medium text-gray-300 mb-3">✏️ 종목 직접 입력</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-2">종목 코드</label>
+                <label className="block text-xs text-gray-400 mb-2">종목 코드</label>
                 <input
                   type="text"
                   value={customStockCode}
@@ -1441,11 +1393,11 @@ ${assetsList}
                     setSelectedStock(null)
                   }}
                   placeholder="예: 005930, AAPL, TSLA"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm text-white placeholder-gray-600"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-2">종목명</label>
+                <label className="block text-xs text-gray-400 mb-2">종목명</label>
                 <input
                   type="text"
                   value={customStockName}
@@ -1454,7 +1406,7 @@ ${assetsList}
                     setSelectedStock(null)
                   }}
                   placeholder="예: 삼성전자, Apple Inc., Tesla"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm text-white placeholder-gray-600"
                 />
               </div>
             </div>
@@ -1467,15 +1419,15 @@ ${assetsList}
           {(selectedStock || (customStockCode && customStockName)) && (
             <>
               {selectedStock && (
-                <div className="card bg-gradient-to-br from-teal-50 to-blue-50 border-teal-200">
+                <div className="cyber-card bg-gradient-to-br from-teal-900/20 to-blue-900/20 border-teal-500/30">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-900">{selectedStock.symbol}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{selectedStock.name}</p>
+                      <h3 className="text-lg font-bold text-white neon-text-cyan">{selectedStock.symbol}</h3>
+                      <p className="text-sm text-gray-400 mt-1">{selectedStock.name}</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
                         <div>
                           <p className="text-xs text-gray-500">현재가</p>
-                          <p className="font-semibold text-gray-900">
+                          <p className="font-semibold text-white">
                             {selectedStock.currency === 'KRW'
                               ? `₩${selectedStock.currentPrice.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`
                               : `$${selectedStock.currentPrice.toFixed(2)}`
@@ -1484,17 +1436,17 @@ ${assetsList}
                         </div>
                         <div>
                           <p className="text-xs text-gray-500">수익률</p>
-                          <p className={`font-semibold ${selectedStock.profitPercent >= 0 ? 'text-success' : 'text-danger'}`}>
+                          <p className={`font-semibold ${selectedStock.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {selectedStock.profitPercent >= 0 ? '+' : ''}{selectedStock.profitPercent.toFixed(2)}%
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500">보유 수량</p>
-                          <p className="font-semibold text-gray-900">{selectedStock.quantity}</p>
+                          <p className="font-semibold text-white">{selectedStock.quantity}</p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500">자산 유형</p>
-                          <p className="font-semibold text-gray-900">{selectedStock.type}</p>
+                          <p className="font-semibold text-white">{selectedStock.type}</p>
                         </div>
                       </div>
                     </div>
@@ -1503,14 +1455,14 @@ ${assetsList}
               )}
 
               {!selectedStock && customStockCode && customStockName && (
-                <div className="card bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+                <div className="cyber-card bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border-purple-500/30">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-lg">
-                      <TrendingUp className="w-6 h-6 text-purple-600" />
+                    <div className="p-2 bg-slate-800 rounded-lg border border-purple-500/30">
+                      <TrendingUp className="w-6 h-6 text-purple-400" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900">{customStockCode}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{customStockName}</p>
+                      <h3 className="text-lg font-bold text-white neon-text-purple">{customStockCode}</h3>
+                      <p className="text-sm text-gray-400 mt-1">{customStockName}</p>
                     </div>
                   </div>
                 </div>
@@ -1526,22 +1478,22 @@ ${assetsList}
                     const perplexityUrl = `https://www.perplexity.ai/search/new?q=${encodeURIComponent(searchQuery)}`
                     window.open(perplexityUrl, '_blank', 'noopener,noreferrer')
                   }}
-                  className="btn-primary flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 px-8 py-3"
+                  className="cyber-btn flex items-center justify-center gap-2 px-8 py-3 text-base shadow-[0_0_15px_rgba(6,182,212,0.4)]"
                 >
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                   </svg>
                   🔍 Perplexity에서 최신 정보 검색
                 </button>
               </div>
 
-              <div className="card text-center py-8 border-2 border-dashed border-gray-300 bg-gradient-to-br from-blue-50 to-purple-50">
+              <div className="cyber-card text-center py-8 border-dashed border-gray-700 bg-slate-900/30">
                 <div className="max-w-2xl mx-auto">
-                  <Sparkles className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-                  <p className="text-gray-700 font-medium mb-2">
+                  <Sparkles className="w-12 h-12 text-purple-400 mx-auto mb-4" />
+                  <p className="text-gray-300 font-medium mb-2">
                     Perplexity에서 최신 실시간 정보를 확인하세요
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-500">
                     위 버튼을 클릭하면 새 창에서 Perplexity AI가 2025년 최신 데이터를 기반으로<br />
                     종목 분석, 실적, 전망 등을 실시간으로 검색합니다.
                   </p>
@@ -1551,9 +1503,9 @@ ${assetsList}
           )}
 
           {!selectedStock && !(customStockCode && customStockName) && (
-            <div className="card text-center py-12 border-2 border-dashed border-teal-200">
-              <TrendingUp className="w-12 h-12 text-teal-400 mx-auto mb-4" />
-              <p className="text-gray-600 font-medium">분석할 종목을 선택하거나 직접 입력해주세요</p>
+            <div className="cyber-card text-center py-12 border-dashed border-teal-500/30">
+              <TrendingUp className="w-12 h-12 text-teal-500/50 mx-auto mb-4" />
+              <p className="text-gray-400 font-medium">분석할 종목을 선택하거나 직접 입력해주세요</p>
               <p className="text-sm text-gray-500 mt-2">
                 위 보유 종목 목록에서 선택하거나, 종목 코드와 이름을 직접 입력하세요
               </p>
@@ -1564,16 +1516,16 @@ ${assetsList}
 
       {/* Risk Analysis Tab */}
       {activeTab === 'risk' && (
-        <div className="space-y-4">
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-orange-800">
-              <strong>📊 자동 계산:</strong> 포트폴리오의 변동성, 샤프지수, 집중도를 분석합니다
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-orange-500/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-orange-200">
+              <strong className="text-orange-400">📊 자동 계산:</strong> 포트폴리오의 변동성, 샤프지수, 집중도를 분석합니다
             </p>
           </div>
           <button
             onClick={generateRiskAnalysis}
             disabled={loading || !portfolioData}
-            className="btn-primary flex items-center gap-2"
+            className="cyber-btn flex items-center gap-2"
           >
             {loading ? (
               <>
@@ -1589,14 +1541,14 @@ ${assetsList}
           </button>
 
           {riskAnalysis && !riskAnalysis.error && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="card">
-                  <h4 className="text-sm font-medium text-gray-600 mb-3">수익률 지표</h4>
+                <div className="cyber-card">
+                  <h4 className="text-sm font-medium text-gray-400 mb-3">수익률 지표</h4>
                   <div className="space-y-3">
                     <div>
                       <p className="text-xs text-gray-500">가중 평균 수익률</p>
-                      <p className="text-2xl font-bold text-gray-900">
+                      <p className="text-2xl font-bold text-white">
                         {Number.isFinite(riskAnalysis.avgReturn)
                           ? `${riskAnalysis.avgReturn >= 0 ? '+' : ''}${formatNumber(riskAnalysis.avgReturn, 2)}%`
                           : 'N/A'}
@@ -1604,7 +1556,7 @@ ${assetsList}
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">샤프 비율 (Sharpe Ratio)</p>
-                      <p className="text-2xl font-bold text-primary-600">
+                      <p className="text-2xl font-bold text-cyan-400">
                         {formatNumber(riskAnalysis.sharpeRatio, 2)}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
@@ -1618,17 +1570,17 @@ ${assetsList}
                   </div>
                 </div>
 
-                <div className="card">
-                  <h4 className="text-sm font-medium text-gray-600 mb-3">리스크 지표</h4>
+                <div className="cyber-card">
+                  <h4 className="text-sm font-medium text-gray-400 mb-3">리스크 지표</h4>
                   <div className="space-y-3">
                     <div>
                       <p className="text-xs text-gray-500">변동성 (Volatility)</p>
                       <p
                         className={`text-2xl font-bold ${riskAnalysis.riskLevel === 'High'
-                          ? 'text-danger'
+                          ? 'text-rose-500'
                           : riskAnalysis.riskLevel === 'Medium'
-                            ? 'text-warning'
-                            : 'text-success'
+                            ? 'text-orange-400'
+                            : 'text-emerald-400'
                           }`}
                       >
                         {Number.isFinite(riskAnalysis.volatility)
@@ -1641,12 +1593,12 @@ ${assetsList}
                       <p className="text-xs text-gray-500">분산 점수</p>
                       <p
                         className={`text-lg font-bold ${riskAnalysis.diversificationScore === 'Excellent'
-                          ? 'text-success'
+                          ? 'text-emerald-400'
                           : riskAnalysis.diversificationScore === 'Good'
-                            ? 'text-success'
+                            ? 'text-emerald-400'
                             : riskAnalysis.diversificationScore === 'Fair'
-                              ? 'text-warning'
-                              : 'text-danger'
+                              ? 'text-orange-400'
+                              : 'text-rose-500'
                           }`}
                       >
                         {riskAnalysis.diversificationScore}
@@ -1660,18 +1612,18 @@ ${assetsList}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="card">
-                  <h4 className="text-sm font-medium text-gray-600 mb-3">잠재 손실 추정</h4>
+                <div className="cyber-card">
+                  <h4 className="text-sm font-medium text-gray-400 mb-3">잠재 손실 추정</h4>
                   <div className="space-y-3">
                     <div>
                       <p className="text-xs text-gray-500">1σ 기준 예상 하락폭</p>
-                      <p className="text-xl font-semibold text-gray-900">
+                      <p className="text-xl font-semibold text-white">
                         {formatCurrency(riskAnalysis.expectedDrawdown, 'KRW')}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">95% VaR (단순 추정)</p>
-                      <p className="text-xl font-semibold text-gray-900">
+                      <p className="text-xl font-semibold text-white">
                         {formatCurrency(riskAnalysis.valueAtRisk, 'KRW')}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
@@ -1681,12 +1633,12 @@ ${assetsList}
                   </div>
                 </div>
 
-                <div className="card">
-                  <h4 className="text-sm font-medium text-gray-600 mb-3">집중도 & 노출</h4>
-                  <div className="space-y-2 text-sm text-gray-700">
+                <div className="cyber-card">
+                  <h4 className="text-sm font-medium text-gray-400 mb-3">집중도 & 노출</h4>
+                  <div className="space-y-2 text-sm text-gray-300">
                     {riskAnalysis.largestPosition ? (
                       <p>
-                        최대 보유 자산: <strong>{riskAnalysis.largestPosition.symbol}</strong>{' '}
+                        최대 보유 자산: <strong className="text-white">{riskAnalysis.largestPosition.symbol}</strong>{' '}
                         ({formatNumber(riskAnalysis.largestPosition.weight * 100, 1)}% 비중,
                         수익률 {formatNumber(riskAnalysis.largestPosition.profitPercent, 1)}%)
                       </p>
@@ -1695,7 +1647,7 @@ ${assetsList}
                     )}
                     {riskAnalysis.weakestAsset ? (
                       <p>
-                        부진 자산: <strong>{riskAnalysis.weakestAsset.symbol}</strong>{' '}
+                        부진 자산: <strong className="text-white">{riskAnalysis.weakestAsset.symbol}</strong>{' '}
                         ({formatNumber(riskAnalysis.weakestAsset.profitPercent, 1)}%)
                       </p>
                     ) : (
@@ -1706,7 +1658,7 @@ ${assetsList}
                         <p className="text-xs text-gray-500 mb-1">상위 통화 노출</p>
                         <ul className="space-y-1">
                           {riskAnalysis.currencyExposure.slice(0, 3).map(item => (
-                            <li key={item.currency} className="text-xs text-gray-600">
+                            <li key={item.currency} className="text-xs text-gray-400">
                               {item.currency}: {formatNumber(item.percent, 1)}%
                             </li>
                           ))}
@@ -1720,14 +1672,14 @@ ${assetsList}
               </div>
 
               {riskAnalysis.insights && riskAnalysis.insights.length > 0 && (
-                <div className="card border-l-4 border-orange-300 bg-orange-50">
-                  <h4 className="text-sm font-semibold text-orange-900 mb-2">리스크 주요 포인트</h4>
-                  <ul className="space-y-1 text-xs text-orange-800">
+                <div className="cyber-card border-l-4 border-orange-500 bg-orange-900/20">
+                  <h4 className="text-sm font-semibold text-orange-400 mb-2">리스크 주요 포인트</h4>
+                  <ul className="space-y-1 text-xs text-orange-300">
                     {riskAnalysis.insights.map((item, idx) => (
                       <li key={idx}>• {item}</li>
                     ))}
                   </ul>
-                  <p className="text-[11px] text-orange-700 mt-3">
+                  <p className="text-[11px] text-orange-400/70 mt-3">
                     자동 계산 지표는 참고용이며, 실제 의사결정 시 추가 데이터 확인과 전문가 상담이 필요합니다.
                   </p>
                 </div>
@@ -1735,22 +1687,22 @@ ${assetsList}
 
               {/* AI 해석 */}
               {riskAnalysis.aiInterpretation && (
-                <div className="card bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500">
+                <div className="cyber-card bg-gradient-to-r from-indigo-900/30 to-purple-900/30 border-l-4 border-indigo-500">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-indigo-300 flex items-center gap-2">
                       <Sparkles className="w-4 h-4" />
                       🧠 AI 리스크 해석
                     </h4>
                     <div className="flex gap-2">
                       <button
                         onClick={() => copyToClipboard(riskAnalysis.aiInterpretation)}
-                        className="text-xs text-indigo-600 hover:underline"
+                        className="text-xs text-indigo-400 hover:text-indigo-200"
                       >
                         복사
                       </button>
                       <button
                         onClick={() => downloadReport('risk_analysis_ai', riskAnalysis.aiInterpretation)}
-                        className="text-xs text-indigo-600 hover:underline"
+                        className="text-xs text-indigo-400 hover:text-indigo-200"
                       >
                         다운로드
                       </button>
@@ -1758,7 +1710,7 @@ ${assetsList}
                   </div>
                   <div className="markdown-body">
                     <ReactMarkdown
-                      className="prose prose-slate max-w-none leading-relaxed marker:text-indigo-500"
+                      className="prose prose-invert max-w-none leading-relaxed prose-strong:text-indigo-300"
                       remarkPlugins={[remarkGfm]}
                     >
                       {riskAnalysis.aiInterpretation}
@@ -1770,16 +1722,16 @@ ${assetsList}
           )}
 
           {riskAnalysis && riskAnalysis.error && (
-            <div className="card text-center py-12">
+            <div className="cyber-card text-center py-12">
               <AlertTriangle className="w-12 h-12 text-orange-400 mx-auto mb-4" />
-              <p className="text-gray-600">{riskAnalysis.error}</p>
+              <p className="text-gray-400">{riskAnalysis.error}</p>
             </div>
           )}
 
           {!riskAnalysis && !loading && (
-            <div className="card text-center py-12">
-              <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">리스크 진단을 시작하려면 버튼을 클릭하세요</p>
+            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+              <AlertTriangle className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">리스크 진단을 시작하려면 버튼을 클릭하세요</p>
             </div>
           )}
         </div>
@@ -1787,28 +1739,28 @@ ${assetsList}
 
       {/* Rebalancing Tab */}
       {activeTab === 'rebalancing' && (
-        <div className="space-y-4">
-          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-indigo-800">
-              <strong>🧠 GPT-5.2 + 자동 계산:</strong> 목표 비율을 설정하면 AI가 리밸런싱 전략을 제안하고, 매매 금액을 자동으로 계산합니다
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-indigo-500/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-indigo-200">
+              <strong className="text-indigo-400">🧠 GPT-5.2 + 자동 계산:</strong> 목표 비율을 설정하면 AI가 리밸런싱 전략을 제안하고, 매매 금액을 자동으로 계산합니다
             </p>
           </div>
 
           {/* 목표 비율 설정 UI */}
           {portfolioData?.assets?.length > 0 && (
-            <div className="card bg-white border border-gray-200">
+            <div className="cyber-card">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold text-gray-900">🎯 목표 자산 배분 설정</h4>
+                <h4 className="text-sm font-semibold text-white">🎯 목표 자산 배분 설정</h4>
                 <div className="flex gap-2">
                   <button
                     onClick={initTargetAllocation}
-                    className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                    className="text-xs px-3 py-1 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition-colors"
                   >
                     현재 비율로 초기화
                   </button>
                   <button
                     onClick={() => setShowRebalanceCalc(!showRebalanceCalc)}
-                    className="text-xs px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200"
+                    className="text-xs px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/30 transition-colors"
                   >
                     {showRebalanceCalc ? '계산 숨기기' : '매매 금액 계산'}
                   </button>
@@ -1822,14 +1774,14 @@ ${assetsList}
                   const targetPercent = targetAllocation[asset.symbol] ?? currentPercent
 
                   return (
-                    <div key={asset.symbol} className="flex items-center gap-4 p-2 bg-gray-50 rounded-lg">
+                    <div key={asset.symbol} className="flex items-center gap-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-indigo-500/30 transition-colors">
                       <div className="w-24 flex-shrink-0">
-                        <p className="text-sm font-medium text-gray-900">{asset.symbol}</p>
+                        <p className="text-sm font-medium text-indigo-300">{asset.symbol}</p>
                         <p className="text-xs text-gray-500">{formatCurrency(asset.valueKRW || 0, 'KRW')}</p>
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 w-16">현재 {currentPercent.toFixed(1)}%</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-400 w-16">현재 {currentPercent.toFixed(1)}%</span>
                           <input
                             type="range"
                             min="0"
@@ -1840,7 +1792,7 @@ ${assetsList}
                               ...prev,
                               [asset.symbol]: parseFloat(e.target.value)
                             }))}
-                            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400"
                           />
                           <input
                             type="number"
@@ -1852,14 +1804,14 @@ ${assetsList}
                               ...prev,
                               [asset.symbol]: parseFloat(e.target.value) || 0
                             }))}
-                            className="w-16 px-2 py-1 text-sm border border-gray-300 rounded text-center"
+                            className="w-16 px-2 py-1 text-sm bg-slate-900 border border-slate-600 rounded text-center text-white focus:outline-none focus:border-indigo-500"
                           />
                           <span className="text-xs text-gray-500">%</span>
                         </div>
                       </div>
                       <div className="w-20 text-right">
                         {targetPercent !== currentPercent && (
-                          <span className={`text-xs font-medium ${targetPercent > currentPercent ? 'text-green-600' : 'text-red-600'}`}>
+                          <span className={`text-xs font-medium ${targetPercent > currentPercent ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {targetPercent > currentPercent ? '▲' : '▼'} {Math.abs(targetPercent - currentPercent).toFixed(1)}%
                           </span>
                         )}
@@ -1870,11 +1822,11 @@ ${assetsList}
               </div>
 
               {/* 목표 비율 합계 */}
-              <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+              <div className="mt-4 p-3 bg-slate-800 rounded-lg border border-slate-700">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">목표 비율 합계:</span>
+                  <span className="text-gray-400">목표 비율 합계:</span>
                   <span className={`font-semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
-                    ? 'text-green-600' : 'text-orange-600'
+                    ? 'text-emerald-400' : 'text-orange-400'
                     }`}>
                     {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
                     {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 1 &&
@@ -1887,31 +1839,31 @@ ${assetsList}
 
           {/* 매매 금액 계산 결과 */}
           {showRebalanceCalc && calculateRebalanceTrades.length > 0 && (
-            <div className="card bg-gradient-to-r from-green-50 to-blue-50 border-l-4 border-green-500">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">💰 리밸런싱 매매 금액</h4>
+            <div className="cyber-card bg-gradient-to-r from-emerald-900/20 to-blue-900/20 border-l-4 border-emerald-500">
+              <h4 className="text-sm font-semibold text-white mb-3">💰 리밸런싱 매매 금액</h4>
               <div className="space-y-2">
                 {calculateRebalanceTrades.map(trade => (
-                  <div key={trade.symbol} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                  <div key={trade.symbol} className="flex items-center justify-between p-2 bg-slate-800/80 rounded-lg border border-slate-700">
                     <div>
-                      <span className="font-medium text-gray-900">{trade.symbol}</span>
-                      <span className="text-xs text-gray-500 ml-2">
+                      <span className="font-medium text-gray-200">{trade.symbol}</span>
+                      <span className="text-xs text-gray-400 ml-2">
                         {trade.currentPercent.toFixed(1)}% → {trade.targetPercent.toFixed(1)}%
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className={`font-semibold ${trade.action === 'BUY' ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className={`font-semibold ${trade.action === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {trade.action === 'BUY' ? '📈 매수' : '📉 매도'}
                       </span>
-                      <p className={`text-sm font-bold ${trade.action === 'BUY' ? 'text-green-700' : 'text-red-700'}`}>
+                      <p className={`text-sm font-bold ${trade.action === 'BUY' ? 'text-emerald-500' : 'text-rose-500'}`}>
                         {formatCurrency(Math.abs(trade.tradeAmount), 'KRW')}
                       </p>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between text-sm">
-                <span className="text-gray-600">총 매수 금액:</span>
-                <span className="font-semibold text-green-600">
+              <div className="mt-3 pt-3 border-t border-slate-700 flex justify-between text-sm">
+                <span className="text-gray-400">총 매수 금액:</span>
+                <span className="font-semibold text-emerald-400">
                   {formatCurrency(
                     calculateRebalanceTrades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.tradeAmount, 0),
                     'KRW'
@@ -1925,8 +1877,8 @@ ${assetsList}
           {allocationChartData.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* 현재 자산 배분 파이 차트 */}
-              <div className="card">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">📊 현재 자산 배분</h4>
+              <div className="cyber-card">
+                <h4 className="text-sm font-semibold text-gray-300 mb-3">📊 현재 자산 배분</h4>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -1941,11 +1893,12 @@ ${assetsList}
                         dataKey="value"
                       >
                         {allocationChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                          <Cell key={`cell-${index}`} fill={entry.fill} stroke="rgba(0,0,0,0.5)" />
                         ))}
                       </Pie>
                       <Tooltip
                         formatter={(value) => formatCurrency(value, 'KRW')}
+                        contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#334155', color: '#e2e8f0' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -1953,17 +1906,20 @@ ${assetsList}
               </div>
 
               {/* 현재 vs 목표 비교 바 차트 */}
-              <div className="card">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">📈 현재 vs 목표 비율</h4>
+              <div className="cyber-card">
+                <h4 className="text-sm font-semibold text-gray-300 mb-3">📈 현재 vs 목표 비율</h4>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={rebalanceChartData} layout="vertical">
-                      <XAxis type="number" domain={[0, 100]} unit="%" />
-                      <YAxis type="category" dataKey="name" width={60} />
-                      <Tooltip formatter={(value) => `${value}%`} />
-                      <Legend />
-                      <Bar dataKey="current" name="현재" fill="#94A3B8" />
-                      <Bar dataKey="target" name="목표" fill="#6366F1" />
+                      <XAxis type="number" domain={[0, 100]} unit="%" stroke="#94a3b8" fontSize={12} />
+                      <YAxis type="category" dataKey="name" width={60} stroke="#94a3b8" fontSize={12} />
+                      <Tooltip
+                        formatter={(value) => `${value}%`}
+                        contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#334155', color: '#e2e8f0' }}
+                      />
+                      <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                      <Bar dataKey="current" name="현재" fill="#94a3b8" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="target" name="목표" fill="#6366f1" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1972,11 +1928,11 @@ ${assetsList}
           )}
 
           {portfolioInsights && (
-            <div className="card border border-indigo-100 bg-indigo-50/60">
-              <h4 className="text-sm font-semibold text-indigo-900 mb-2">리밸런싱 참고 지표</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-indigo-900">
+            <div className="cyber-card border border-indigo-500/30 bg-indigo-900/20">
+              <h4 className="text-sm font-semibold text-indigo-300 mb-2">리밸런싱 참고 지표</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-indigo-200">
                 <div>
-                  <p className="font-medium mb-1">과도 비중</p>
+                  <p className="font-medium mb-1 text-indigo-400">과도 비중</p>
                   <ul className="space-y-1">
                     {portfolioInsights.overweightTypes.length
                       ? portfolioInsights.overweightTypes.map((item, idx) => (
@@ -1987,7 +1943,7 @@ ${assetsList}
                   </ul>
                 </div>
                 <div>
-                  <p className="font-medium mb-1">부족 비중</p>
+                  <p className="font-medium mb-1 text-indigo-400">부족 비중</p>
                   <ul className="space-y-1">
                     {portfolioInsights.underweightTypes.length
                       ? portfolioInsights.underweightTypes.map((item, idx) => (
@@ -1999,8 +1955,8 @@ ${assetsList}
                 </div>
               </div>
               {portfolioInsights.currencyExposure.length > 0 && (
-                <div className="mt-3 text-xs text-indigo-900">
-                  <p className="font-medium mb-1">통화 노출 상위</p>
+                <div className="mt-3 text-xs text-indigo-200">
+                  <p className="font-medium mb-1 text-indigo-400">통화 노출 상위</p>
                   <ul className="space-y-1">
                     {portfolioInsights.currencyExposure.slice(0, 3).map((item, idx) => (
                       <li key={idx}>- {item.currency}: {formatNumber(item.percent, 1)}%</li>
@@ -2013,7 +1969,7 @@ ${assetsList}
           <button
             onClick={generateRebalancingSuggestion}
             disabled={loading || !portfolioData}
-            className="btn-primary flex items-center gap-2"
+            className="cyber-btn flex items-center gap-2"
           >
             {loading ? (
               <>
@@ -2027,19 +1983,20 @@ ${assetsList}
               </>
             )}
           </button>
+
           {rebalancingSuggestion && (
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => copyToClipboard(rebalancingSuggestion)}
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
               >
                 복사
               </button>
               <button
                 type="button"
                 onClick={() => downloadReport('rebalancing_plan', rebalancingSuggestion)}
-                className="px-3 py-1.5 text-xs font-medium text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+                className="px-3 py-1.5 text-xs font-medium text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10 transition-colors"
               >
                 다운로드
               </button>
@@ -2047,14 +2004,14 @@ ${assetsList}
           )}
 
           {rebalancingSuggestion && (
-            <div className="card">
+            <div className="cyber-card">
               <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-primary-600" />
-                <h3 className="text-lg font-semibold text-gray-900">리밸런싱 전략 제안</h3>
+                <TrendingUp className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-lg font-semibold text-white">리밸런싱 전략 제안</h3>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-6 shadow-sm">
+              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
-                  className="prose prose-slate max-w-none leading-relaxed marker:text-primary-500"
+                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-emerald-300 prose-strong:text-emerald-200"
                   remarkPlugins={[remarkGfm]}
                 >
                   {rebalancingSuggestion}
@@ -2064,9 +2021,9 @@ ${assetsList}
           )}
 
           {!rebalancingSuggestion && !loading && (
-            <div className="card text-center py-12">
-              <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">리밸런싱 제안을 생성하려면 버튼을 클릭하세요</p>
+            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+              <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">리밸런싱 제안을 생성하려면 버튼을 클릭하세요</p>
             </div>
           )}
         </div>
@@ -2074,28 +2031,28 @@ ${assetsList}
 
       {/* AI Timing Analysis Tab */}
       {activeTab === 'timing' && (
-        <div className="space-y-4">
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-purple-800">
-              <strong>🔮 AI 매매 타이밍:</strong> 원하는 종목을 선택하여 기술적 분석 기반 매수/매도 신호를 AI가 분석합니다.
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-purple-500/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-purple-200">
+              <strong className="text-purple-400">🔮 AI 매매 타이밍:</strong> 원하는 종목을 선택하여 기술적 분석 기반 매수/매도 신호를 AI가 분석합니다.
             </p>
           </div>
 
           {/* 종목 선택 UI */}
-          <div className="card bg-white border border-gray-200 mb-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">📋 분석할 종목 선택</h4>
+          <div className="cyber-card mb-4">
+            <h4 className="text-sm font-semibold text-gray-300 mb-3">📋 분석할 종목 선택</h4>
 
             {/* 보유 종목에서 선택 */}
             {portfolioData?.assets?.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs text-gray-600 mb-2">보유 종목에서 선택:</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                <p className="text-xs text-gray-500 mb-2">보유 종목에서 선택:</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                   {portfolioData.assets.map(asset => (
                     <label
                       key={asset.symbol}
                       className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
-                        ? 'bg-purple-100 border-purple-300 border'
-                        : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                        ? 'bg-purple-500/20 border-purple-500/50 border'
+                        : 'bg-slate-800 hover:bg-slate-700 border border-transparent'
                         }`}
                     >
                       <input
@@ -2113,9 +2070,9 @@ ${assetsList}
                             setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== asset.symbol))
                           }
                         }}
-                        className="w-4 h-4 text-purple-600"
+                        className="w-4 h-4 text-purple-500 bg-slate-700 border-slate-600 rounded focus:ring-purple-500 focus:ring-offset-slate-800"
                       />
-                      <span className="text-xs font-medium text-gray-800">{asset.symbol}</span>
+                      <span className="text-xs font-medium text-gray-300">{asset.symbol}</span>
                     </label>
                   ))}
                 </div>
@@ -2129,7 +2086,7 @@ ${assetsList}
                 value={customAISymbol}
                 onChange={(e) => setCustomAISymbol(e.target.value.toUpperCase())}
                 placeholder="종목 심볼 입력 (예: AAPL)"
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="flex-1 px-3 py-2 text-sm bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-600"
               />
               <button
                 onClick={() => {
@@ -2141,7 +2098,7 @@ ${assetsList}
                     setCustomAISymbol('')
                   }
                 }}
-                className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
               >
                 추가
               </button>
@@ -2149,15 +2106,15 @@ ${assetsList}
 
             {/* 선택된 종목 표시 */}
             {selectedStocksForAI.length > 0 && (
-              <div className="mt-3">
-                <p className="text-xs text-gray-600 mb-2">선택된 종목 ({selectedStocksForAI.length}개):</p>
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <p className="text-xs text-gray-500 mb-2">선택된 종목 ({selectedStocksForAI.length}개):</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedStocksForAI.map(stock => (
-                    <span key={stock.symbol} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                    <span key={stock.symbol} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-900/40 text-purple-300 border border-purple-500/30 text-xs rounded-full">
                       {stock.symbol}
                       <button
                         onClick={() => setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== stock.symbol))}
-                        className="text-purple-600 hover:text-purple-900"
+                        className="text-purple-400 hover:text-white ml-1"
                       >
                         ×
                       </button>
@@ -2165,7 +2122,7 @@ ${assetsList}
                   ))}
                   <button
                     onClick={() => setSelectedStocksForAI([])}
-                    className="text-xs text-gray-500 hover:text-gray-700"
+                    className="text-xs text-gray-500 hover:text-gray-300 ml-1"
                   >
                     전체 해제
                   </button>
@@ -2177,7 +2134,7 @@ ${assetsList}
           <button
             onClick={generateTimingAnalysis}
             disabled={loading}
-            className="btn-primary flex items-center gap-2"
+            className="cyber-btn flex items-center gap-2"
           >
             {loading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -2188,19 +2145,19 @@ ${assetsList}
           </button>
 
           {timingAnalysis && (
-            <div className="card bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-500">
+            <div className="cyber-card bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-l-4 border-purple-500">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-purple-900">🔮 AI 매매 타이밍 분석</h4>
+                <h4 className="text-sm font-semibold text-purple-300">🔮 AI 매매 타이밍 분석</h4>
                 <div className="flex gap-2">
                   <button
                     onClick={() => copyToClipboard(timingAnalysis)}
-                    className="text-xs text-purple-600 hover:underline"
+                    className="text-xs text-purple-400 hover:text-purple-200"
                   >
                     복사
                   </button>
                   <button
                     onClick={() => downloadReport('timing_analysis', timingAnalysis)}
-                    className="text-xs text-purple-600 hover:underline"
+                    className="text-xs text-purple-400 hover:text-purple-200"
                   >
                     다운로드
                   </button>
@@ -2208,7 +2165,7 @@ ${assetsList}
               </div>
               <div className="markdown-body">
                 <ReactMarkdown
-                  className="prose prose-slate max-w-none leading-relaxed marker:text-purple-500"
+                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-purple-300 prose-strong:text-purple-200"
                   remarkPlugins={[remarkGfm]}
                 >
                   {timingAnalysis}
@@ -2218,9 +2175,9 @@ ${assetsList}
           )}
 
           {!timingAnalysis && !loading && (
-            <div className="card text-center py-12">
-              <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">AI 매매 타이밍 분석을 생성하려면 버튼을 클릭하세요</p>
+            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+              <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">AI 매매 타이밍 분석을 생성하려면 버튼을 클릭하세요</p>
               <p className="text-xs text-gray-500 mt-2">보유 종목의 기술적 분석 및 매수/매도 신호를 AI가 제공합니다</p>
             </div>
           )}
@@ -2229,17 +2186,17 @@ ${assetsList}
 
       {/* AI News Summary Tab */}
       {activeTab === 'news' && (
-        <div className="space-y-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-amber-800">
-              <strong>📰 AI 뉴스 요약:</strong> 보유 종목 관련 최신 동향과 뉴스를 AI가 분석 및 요약합니다.
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-amber-500/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-amber-200">
+              <strong className="text-amber-400">📰 AI 뉴스 요약:</strong> 보유 종목 관련 최신 동향과 뉴스를 AI가 분석 및 요약합니다.
             </p>
           </div>
 
           <button
             onClick={generateNewsSummary}
             disabled={loading}
-            className="btn-primary flex items-center gap-2"
+            className="cyber-btn flex items-center gap-2"
           >
             {loading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -2250,19 +2207,19 @@ ${assetsList}
           </button>
 
           {newsSummary && (
-            <div className="card bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500">
+            <div className="cyber-card bg-gradient-to-r from-amber-900/20 to-orange-900/20 border-l-4 border-amber-500">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-amber-900">📰 AI 뉴스 요약</h4>
+                <h4 className="text-sm font-semibold text-amber-300">📰 AI 뉴스 요약</h4>
                 <div className="flex gap-2">
                   <button
                     onClick={() => copyToClipboard(newsSummary)}
-                    className="text-xs text-amber-600 hover:underline"
+                    className="text-xs text-amber-400 hover:text-amber-200"
                   >
                     복사
                   </button>
                   <button
                     onClick={() => downloadReport('news_summary', newsSummary)}
-                    className="text-xs text-amber-600 hover:underline"
+                    className="text-xs text-amber-400 hover:text-amber-200"
                   >
                     다운로드
                   </button>
@@ -2270,7 +2227,7 @@ ${assetsList}
               </div>
               <div className="markdown-body">
                 <ReactMarkdown
-                  className="prose prose-slate max-w-none leading-relaxed marker:text-amber-500"
+                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-amber-300 prose-strong:text-amber-200"
                   remarkPlugins={[remarkGfm]}
                 >
                   {newsSummary}
@@ -2280,9 +2237,9 @@ ${assetsList}
           )}
 
           {!newsSummary && !loading && (
-            <div className="card text-center py-12">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">AI 뉴스 요약을 생성하려면 버튼을 클릭하세요</p>
+            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+              <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">AI 뉴스 요약을 생성하려면 버튼을 클릭하세요</p>
               <p className="text-xs text-gray-500 mt-2">보유 종목 관련 최신 동향 및 뉴스를 AI가 분석합니다</p>
             </div>
           )}
@@ -2290,11 +2247,11 @@ ${assetsList}
       )}
 
       {/* Report History */}
-      <div className="card">
+      <div className="cyber-card mt-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Archive className="w-5 h-5 text-primary-600" />
-            <h3 className="text-lg font-semibold text-gray-900">최근 생성된 AI 리포트</h3>
+            <Archive className="w-5 h-5 text-indigo-400" />
+            <h3 className="text-lg font-semibold text-white">최근 생성된 AI 리포트</h3>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">
@@ -2302,7 +2259,7 @@ ${assetsList}
             </span>
             <button
               type="button"
-              className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+              className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
               onClick={downloadHistory}
             >
               전체 히스토리 다운로드
@@ -2313,39 +2270,44 @@ ${assetsList}
       </div>
 
       {historyViewer.open && historyViewer.entry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-3xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 bg-slate-800/50">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{historyViewer.entry.summary}</h3>
-                <p className="text-xs text-gray-500 mt-1">
+                <h3 className="text-lg font-semibold text-white">{historyViewer.entry.summary}</h3>
+                <p className="text-xs text-gray-400 mt-1">
                   {new Date(historyViewer.entry.createdAt).toLocaleString('ko-KR')} · {historyViewer.entry.type}
                 </p>
               </div>
               <button
                 type="button"
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-white"
                 onClick={() => setHistoryViewer({ open: false, entry: null })}
               >
                 ✖
               </button>
             </div>
-            <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
-              <div className="markdown-body text-sm text-gray-800">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{historyViewer.entry.content}</ReactMarkdown>
+            <div className="px-6 py-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="markdown-body text-sm text-gray-300">
+                <ReactMarkdown
+                  className="prose prose-invert max-w-none leading-relaxed"
+                  remarkPlugins={[remarkGfm]}
+                >
+                  {historyViewer.entry.content}
+                </ReactMarkdown>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-700 bg-slate-800/30">
               <button
                 type="button"
-                className="btn-secondary"
+                className="px-4 py-2 text-sm font-medium text-gray-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
                 onClick={() => copyToClipboard(historyViewer.entry.content)}
               >
                 복사
               </button>
               <button
                 type="button"
-                className="btn-primary"
+                className="cyber-btn px-4 py-2 text-sm"
                 onClick={() => {
                   try {
                     const baseName = (historyViewer.entry.summary || 'ai_report').replace(/\s+/g, '_')
@@ -2369,7 +2331,7 @@ ${assetsList}
               </button>
               <button
                 type="button"
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white"
                 onClick={() => setHistoryViewer({ open: false, entry: null })}
               >
                 닫기
@@ -2381,25 +2343,25 @@ ${assetsList}
 
       {/* AI Chat Tab */}
       {activeTab === 'chat' && (
-        <div className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm text-green-800">
-              <strong>🧠 GPT-5 사용:</strong> 투자 전문가 수준의 맞춤형 상담을 제공합니다
+        <div className="space-y-6">
+          <div className="bg-slate-800/50 border border-emerald-500/20 rounded-lg p-4">
+            <p className="text-sm text-emerald-200">
+              <strong className="text-emerald-400">🧠 GPT-5 사용:</strong> 투자 전문가 수준의 맞춤형 상담을 제공합니다
             </p>
           </div>
           {cashflowInsights && (
-            <div className="card border border-green-100 bg-green-50/60">
-              <h4 className="text-sm font-semibold text-green-900 mb-2">자산 현황 요약</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-green-900">
+            <div className="cyber-card border border-emerald-500/30 bg-emerald-900/20">
+              <h4 className="text-sm font-semibold text-emerald-300 mb-2">자산 현황 요약</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-emerald-200">
                 <div>
-                  <p className="font-medium mb-1">누적 자산 & 연간 흐름</p>
+                  <p className="font-medium mb-1 text-emerald-400">누적 자산 & 연간 흐름</p>
                   <ul className="space-y-1">
                     <li>• 총자산: {formatCurrency(cashflowInsights.totalAssets, 'KRW')}</li>
                     <li>• 연간 순변화: {formatCurrency(cashflowInsights.annualNetChange, 'KRW')}</li>
                   </ul>
                 </div>
                 <div>
-                  <p className="font-medium mb-1">월평균 수입/지출</p>
+                  <p className="font-medium mb-1 text-emerald-400">월평균 수입/지출</p>
                   <ul className="space-y-1">
                     <li>• 수입: {formatCurrency(cashflowInsights.averageMonthlyIncome, 'KRW')}</li>
                     <li>• 지출: {formatCurrency(cashflowInsights.averageMonthlyExpense, 'KRW')}</li>
@@ -2407,8 +2369,8 @@ ${assetsList}
                 </div>
               </div>
               {cashflowInsights.latestMonth && (
-                <div className="mt-3 text-xs text-green-900">
-                  <p className="font-medium mb-1">최근 월({cashflowInsights.latestMonth.label})</p>
+                <div className="mt-3 text-xs text-emerald-200">
+                  <p className="font-medium mb-1 text-emerald-400">최근 월({cashflowInsights.latestMonth.label})</p>
                   <ul className="space-y-1">
                     <li>- 수입: {formatCurrency(cashflowInsights.latestMonth.income, 'KRW')}</li>
                     <li>- 지출: {formatCurrency(cashflowInsights.latestMonth.expense, 'KRW')}</li>
@@ -2418,56 +2380,56 @@ ${assetsList}
               )}
             </div>
           )}
-          <div className="card">
-            <div className="flex flex-col h-[600px]">
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-                {chatMessages.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">AI에게 투자 관련 질문을 해보세요</p>
-                    <p className="text-sm text-gray-500 mt-2">예: &quot;지금 S&amp;P 500에 투자하는 것이 좋을까요?&quot;</p>
-                  </div>
-                ) : (
-                  chatMessages.map((msg, idx) => (
+          <div className="cyber-card h-[700px] flex flex-col p-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto space-y-4 p-4 custom-scrollbar">
+              {chatMessages.length === 0 ? (
+                <div className="text-center py-20">
+                  <Sparkles className="w-16 h-16 text-gray-600 mx-auto mb-6" />
+                  <p className="text-gray-300 text-lg font-medium">AI에게 투자 관련 질문을 해보세요</p>
+                  <p className="text-sm text-gray-500 mt-2">예: &quot;지금 S&amp;P 500에 투자하는 것이 좋을까요?&quot;</p>
+                </div>
+              ) : (
+                chatMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
                     <div
-                      key={idx}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${msg.role === 'user'
+                        ? 'bg-indigo-600 text-white rounded-br-none'
+                        : 'bg-slate-700 text-gray-100 rounded-bl-none'
+                        }`}
                     >
-                      <div
-                        className={`max-w-[80%] rounded-lg px-4 py-3 ${msg.role === 'user'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
-                          }`}
-                      >
-                        <pre className="whitespace-pre-wrap text-sm font-sans">
-                          {msg.content}
-                        </pre>
-                      </div>
-                    </div>
-                  ))
-                )}
-                {loading && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-100 rounded-lg px-4 py-3">
-                      <RefreshCw className="w-5 h-5 animate-spin text-gray-600" />
+                      <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
+                        {msg.content}
+                      </pre>
                     </div>
                   </div>
-                )}
-              </div>
+                ))
+              )}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-slate-700 rounded-2xl rounded-bl-none px-5 py-4 shadow-md">
+                    <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
+                  </div>
+                </div>
+              )}
+            </div>
 
-              <form onSubmit={handleChatSubmit} className="flex gap-2">
+            <div className="p-4 bg-slate-800 border-t border-slate-700">
+              <form onSubmit={handleChatSubmit} className="flex gap-3">
                 <input
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="질문을 입력하세요..."
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="flex-1 px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-gray-500"
                   disabled={loading}
                 />
                 <button
                   type="submit"
                   disabled={loading || !chatInput.trim()}
-                  className="btn-primary px-6"
+                  className="cyber-btn px-6 py-3 rounded-xl"
                 >
                   전송
                 </button>
