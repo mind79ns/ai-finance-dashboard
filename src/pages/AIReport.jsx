@@ -941,7 +941,7 @@ ${assetsList}
   const renderHistory = () => {
     if (!analysisHistory.length) {
       return (
-        <div className="border border-dashed border-gray-200 rounded-lg p-4 text-sm text-gray-500">
+        <div className="border border-dashed border-slate-700 rounded-lg p-4 text-sm text-gray-500">
           아직 생성된 AI 리포트 기록이 없습니다.
         </div>
       )
@@ -950,10 +950,10 @@ ${assetsList}
     return (
       <div className="space-y-3">
         {analysisHistory.slice(0, 5).map(entry => (
-          <div key={entry.id} className="border border-gray-200 rounded-lg p-4 bg-white space-y-3">
+          <div key={entry.id} className="border border-slate-700 rounded-lg p-4 bg-slate-800/60 space-y-3 hover:border-cyan-500/30 transition-colors">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <span className="text-sm font-semibold text-gray-900">{entry.summary}</span>
+                <span className="text-sm font-semibold text-cyan-300">{entry.summary}</span>
                 <p className="text-xs text-gray-500 mt-1 capitalize">
                   타입: {entry.type}
                 </p>
@@ -963,25 +963,25 @@ ${assetsList}
                 {new Date(entry.createdAt).toLocaleString('ko-KR')}
               </span>
             </div>
-            <div className="text-xs text-gray-600 line-clamp-4 whitespace-pre-line">{entry.content}</div>
+            <div className="text-xs text-gray-400 line-clamp-4 whitespace-pre-line">{entry.content}</div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="px-3 py-1.5 text-xs font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50"
+                className="px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/10 transition-colors"
                 onClick={() => setHistoryViewer({ open: true, entry })}
               >
                 전체 보기
               </button>
               <button
                 type="button"
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
                 onClick={() => copyToClipboard(entry.content, '클립보드에 복사되었습니다.', '복사에 실패했습니다. 브라우저 권한을 확인하세요.')}
               >
                 복사
               </button>
               <button
                 type="button"
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
                 onClick={() => {
                   try {
                     const baseName = (entry.summary || 'ai_report').replace(/\s+/g, '_')
