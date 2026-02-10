@@ -1113,10 +1113,10 @@ ${assetsList}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button
                   onClick={() => setSelectedAI('auto')}
-                  className={`p - 3 rounded - lg border transition - all text - left group ${selectedAI === 'auto'
-                      ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
-                      : 'border-gray-700 bg-slate-800 hover:border-purple-500/50 hover:bg-slate-700'
-                    } `}
+                  className={`p-3 rounded-lg border transition-all text-left group ${selectedAI === 'auto'
+                    ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                    : 'border-gray-700 bg-slate-800 hover:border-purple-500/50 hover:bg-slate-700'
+                    }`}
                 >
                   <div>
                     <p className="font-semibold text-sm text-white group-hover:text-purple-300 transition-colors">🤖 자동 선택</p>
@@ -1129,10 +1129,10 @@ ${assetsList}
 
                 <button
                   onClick={() => setSelectedAI('gpt')}
-                  className={`p - 3 rounded - lg border transition - all text - left group ${selectedAI === 'gpt'
-                      ? 'border-green-500 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]'
-                      : 'border-gray-700 bg-slate-800 hover:border-green-500/50 hover:bg-slate-700'
-                    } `}
+                  className={`p-3 rounded-lg border transition-all text-left group ${selectedAI === 'gpt'
+                    ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,112,0.3)]'
+                    : 'border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:border-amber-500/50'
+                    }`}
                 >
                   <div>
                     <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🧠 GPT-4o</p>
@@ -1145,13 +1145,13 @@ ${assetsList}
 
                 <button
                   onClick={() => setSelectedAI('gemini')}
-                  className={`flex items - center gap - 3 px - 4 py - 3 rounded - xl border transition - all ${selectedAI === 'gemini'
-                      ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                      : 'border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:border-blue-500/50'
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${selectedAI === 'gemini'
+                    ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                    : 'border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:border-blue-500/50'
                     } group`}
                 >
-                  <div className={`p - 2 rounded - lg ${selectedAI === 'gemini' ? 'bg-blue-500/20' : 'bg-slate-700 group-hover:bg-blue-500/20'} `}>
-                    <TrendingUp className={`w - 5 h - 5 ${selectedAI === 'gemini' ? 'text-blue-400' : 'text-gray-400 group-hover:text-blue-400'} `} />
+                  <div className={`p-2 rounded-lg ${selectedAI === 'gemini' ? 'bg-blue-500/20' : 'bg-slate-700 group-hover:bg-blue-500/20'}`}>
+                    <TrendingUp className={`w-5 h-5 ${selectedAI === 'gemini' ? 'text-blue-400' : 'text-gray-400 group-hover:text-blue-400'}`} />
                   </div>
                   <div>
                     <p className="font-semibold text-sm text-white group-hover:text-blue-300 transition-colors">⚡ Gemini 1.5 Pro</p>
@@ -1190,10 +1190,10 @@ ${assetsList}
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px - 4 py - 2 font - medium transition - all duration - 300 whitespace - nowrap rounded - t - lg ${activeTab === tab.id
-                ? 'text-cyan-300 border-b-2 border-cyan-500 bg-slate-800/50'
-                : 'text-gray-500 hover:text-gray-300 hover:bg-slate-800/30'
-              } `}
+            className={`px-4 py-2 font-medium transition-all duration-300 whitespace-nowrap rounded-t-lg ${activeTab === tab.id
+              ? 'text-cyan-300 border-b-2 border-cyan-500 bg-slate-800/50'
+              : 'text-gray-500 hover:text-gray-300 hover:bg-slate-800/30'
+              }`}
           >
             {tab.label}
           </button>
@@ -1426,8 +1426,8 @@ ${assetsList}
                       setCustomStockName('')
                     }}
                     className={`p - 3 rounded - lg border transition - all text - left ${selectedStock?.symbol === asset.symbol
-                        ? 'border-teal-500 bg-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.2)]'
-                        : 'border-slate-700 bg-slate-800 hover:border-teal-500/50 hover:bg-slate-700'
+                      ? 'border-teal-500 bg-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.2)]'
+                      : 'border-slate-700 bg-slate-800 hover:border-teal-500/50 hover:bg-slate-700'
                       } `}
                   >
                     <p className="font-semibold text-sm text-white">{asset.symbol}</p>
@@ -1679,10 +1679,10 @@ ${assetsList}
                         <p className="text-xs text-gray-500">변동성 (Volatility)</p>
                         <p
                           className={`text - 2xl font - bold ${riskAnalysis.riskLevel === 'High'
-                              ? 'text-rose-500'
-                              : riskAnalysis.riskLevel === 'Medium'
-                                ? 'text-orange-400'
-                                : 'text-emerald-400'
+                            ? 'text-rose-500'
+                            : riskAnalysis.riskLevel === 'Medium'
+                              ? 'text-orange-400'
+                              : 'text-emerald-400'
                             } `}
                         >
                           {Number.isFinite(riskAnalysis.volatility)
@@ -1695,12 +1695,12 @@ ${assetsList}
                         <p className="text-xs text-gray-500">분산 점수</p>
                         <p
                           className={`text - lg font - bold ${riskAnalysis.diversificationScore === 'Excellent'
+                            ? 'text-emerald-400'
+                            : riskAnalysis.diversificationScore === 'Good'
                               ? 'text-emerald-400'
-                              : riskAnalysis.diversificationScore === 'Good'
-                                ? 'text-emerald-400'
-                                : riskAnalysis.diversificationScore === 'Fair'
-                                  ? 'text-orange-400'
-                                  : 'text-rose-500'
+                              : riskAnalysis.diversificationScore === 'Fair'
+                                ? 'text-orange-400'
+                                : 'text-rose-500'
                             } `}
                         >
                           {riskAnalysis.diversificationScore}
@@ -1930,7 +1930,7 @@ ${assetsList}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">목표 비율 합계:</span>
                     <span className={`font - semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
-                        ? 'text-emerald-400' : 'text-orange-400'
+                      ? 'text-emerald-400' : 'text-orange-400'
                       } `}>
                       {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
                       {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 1 &&
@@ -2157,8 +2157,8 @@ ${assetsList}
                       <label
                         key={asset.symbol}
                         className={`flex items - center gap - 2 p - 2 rounded - lg cursor - pointer transition - all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
-                            ? 'bg-purple-500/20 border-purple-500/50 border'
-                            : 'bg-slate-800 hover:bg-slate-700 border border-transparent'
+                          ? 'bg-purple-500/20 border-purple-500/50 border'
+                          : 'bg-slate-800 hover:bg-slate-700 border border-transparent'
                           } `}
                       >
                         <input
@@ -2508,8 +2508,8 @@ ${assetsList}
                     >
                       <div
                         className={`max - w - [85 %] rounded - 2xl px - 5 py - 4 shadow - md ${msg.role === 'user'
-                            ? 'bg-indigo-600 text-white rounded-br-none'
-                            : 'bg-slate-700 text-gray-100 rounded-bl-none'
+                          ? 'bg-indigo-600 text-white rounded-br-none'
+                          : 'bg-slate-700 text-gray-100 rounded-bl-none'
                           } `}
                       >
                         <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
