@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Download, Trash2 } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Download, Trash2, MoveDown, MoveUp } from 'lucide-react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import ChartCard from '../components/ChartCard'
@@ -112,6 +112,12 @@ const InvestmentLog = () => {
 
     loadInitialData()
   }, [])
+
+  // Helper to get asset name from portfolio assets
+  const getAssetName = (symbol) => {
+    const asset = portfolioAssets.find(a => a.symbol === symbol)
+    return asset ? asset.name : ''
+  }
 
   const filteredLogs = logs.filter(log => {
     if (filterType !== 'all' && log.type !== filterType) return false
@@ -535,24 +541,49 @@ const InvestmentLog = () => {
   return (
     <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
       {/* Stats Cards - Cyberpunk Style */}
+      {/* Stats Cards - Cyberpunk Style */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="cyber-card">
-          <p className="text-sm text-cyan-300/60 mb-1">총 매수금액</p>
-          <p className="text-2xl font-bold text-rose-400">
-            ${monthlyStats.totalBuy.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
+        <div className="cyber-card cyber-card-glow flex flex-col justify-between relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <MoveDown className="w-16 h-16 text-rose-500" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-cyan-300/60 mb-1">총 매수금액</p>
+            <p className="text-2xl font-bold text-rose-400 drop-shadow-sm">
+              ${monthlyStats.totalBuy.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div className="h-1 w-full bg-slate-800 rounded-full mt-3 overflow-hidden">
+            <div className="h-full bg-rose-500/50 w-3/4 blur-sm transform origin-left"></div>
+          </div>
         </div>
-        <div className="cyber-card">
-          <p className="text-sm text-cyan-300/60 mb-1">총 매도금액</p>
-          <p className="text-2xl font-bold text-emerald-400">
-            ${monthlyStats.totalSell.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
+        <div className="cyber-card cyber-card-glow flex flex-col justify-between relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <MoveUp className="w-16 h-16 text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-cyan-300/60 mb-1">총 매도금액</p>
+            <p className="text-2xl font-bold text-emerald-400 drop-shadow-sm">
+              ${monthlyStats.totalSell.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div className="h-1 w-full bg-slate-800 rounded-full mt-3 overflow-hidden">
+            <div className="h-full bg-emerald-500/50 w-3/4 blur-sm transform origin-left"></div>
+          </div>
         </div>
-        <div className="cyber-card">
-          <p className="text-sm text-cyan-300/60 mb-1">총 거래 건수</p>
-          <p className="text-2xl font-bold text-cyan-300">
-            {monthlyStats.transactions}건
-          </p>
+        <div className="cyber-card cyber-card-glow flex flex-col justify-between relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <List className="w-16 h-16 text-cyan-500" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-cyan-300/60 mb-1">총 거래 건수</p>
+            <p className="text-2xl font-bold text-cyan-300 drop-shadow-sm">
+              {monthlyStats.transactions}건
+            </p>
+          </div>
+          <div className="h-1 w-full bg-slate-800 rounded-full mt-3 overflow-hidden">
+            <div className="h-full bg-cyan-500/50 w-3/4 blur-sm transform origin-left"></div>
+          </div>
         </div>
       </div>
 
@@ -604,18 +635,9 @@ const InvestmentLog = () => {
                 className="px-3 py-2 bg-slate-800/50 border border-cyan-400/30 text-cyan-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
               >
                 <option value="all">전체 기간</option>
-                <option value="0">1월</option>
-                <option value="1">2월</option>
-                <option value="2">3월</option>
-                <option value="3">4월</option>
-                <option value="4">5월</option>
-                <option value="5">6월</option>
-                <option value="6">7월</option>
-                <option value="7">8월</option>
-                <option value="8">9월</option>
-                <option value="9">10월</option>
-                <option value="10">11월</option>
-                <option value="11">12월</option>
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(month => (
+                  <option key={month} value={month}>{month + 1}월</option>
+                ))}
               </select>
             </>
           )}
@@ -651,16 +673,16 @@ const InvestmentLog = () => {
               </div>
             ) : (
               filteredLogs.map((log) => (
-                <div key={log.id} className="border border-cyan-400/30 rounded-lg p-3 bg-slate-800/50 hover:bg-slate-700/50 transition-all">
+                <div key={log.id} className="border border-cyan-500/30 rounded-lg p-3 bg-slate-800/50 hover:bg-slate-700/50 transition-all shadow-lg hover:shadow-cyan-500/10">
                   {/* Header with date and type */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4 text-cyan-400/60 flex-shrink-0" />
-                      <span className="text-xs text-cyan-300/60">{log.date}</span>
+                      <CalendarIcon className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                      <span className="text-xs text-cyan-300/80">{log.date}</span>
                     </div>
                     <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full flex-shrink-0 ${log.type === 'buy'
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'bg-emerald-100 text-emerald-700'
+                      ? 'bg-rose-500/20 text-rose-300'
+                      : 'bg-emerald-500/20 text-emerald-300'
                       }`}>
                       {log.type === 'buy' ? '매수' : '매도'}
                     </span>
@@ -668,44 +690,50 @@ const InvestmentLog = () => {
 
                   {/* Asset name */}
                   <div className="mb-3">
-                    <p className="text-sm font-bold text-cyan-300">{log.asset}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1 h-8 bg-cyan-500 rounded-full"></div>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-bold text-cyan-300">{log.asset}</p>
+                        <p className="text-xs text-slate-400">{getAssetName(log.asset)}</p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Transaction details */}
-                  <div className="grid grid-cols-2 gap-2 py-2 border-t border-cyan-400/20 text-xs">
+                  <div className="grid grid-cols-2 gap-2 py-2 border-t border-cyan-500/20 text-xs">
                     <div>
-                      <span className="text-cyan-300/60">수량</span>
-                      <p className="font-medium text-white mt-0.5">{log.quantity}</p>
+                      <span className="text-cyan-300/60 block mb-1">수량</span>
+                      <p className="font-medium text-slate-200">{log.quantity}</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-gray-600">가격</span>
-                      <p className="font-medium text-gray-900 mt-0.5">
+                      <span className="text-cyan-300/60 block mb-1">가격</span>
+                      <p className="font-medium text-slate-200">
                         ${log.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
 
                   {/* Total amount */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                    <span className="text-xs text-gray-600">총액</span>
-                    <span className="text-sm font-bold text-gray-900">
+                  <div className="flex items-center justify-between pt-2 border-t border-cyan-500/20 mt-1">
+                    <span className="text-xs text-cyan-300/60">총액</span>
+                    <span className="text-sm font-bold text-cyan-300 shadow-cyan-500/20 drop-shadow-sm">
                       ${log.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
 
                   {/* Note */}
                   {log.note && (
-                    <div className="pt-2 border-t border-gray-200 mt-2">
-                      <span className="text-xs text-gray-600">메모: </span>
-                      <span className="text-xs text-gray-700">{log.note}</span>
+                    <div className="pt-2 border-t border-cyan-500/20 mt-2">
+                      <span className="text-xs text-slate-500">메모: </span>
+                      <span className="text-xs text-slate-400">{log.note}</span>
                     </div>
                   )}
 
                   {/* Delete button */}
-                  <div className="pt-3 border-t border-gray-200 mt-3">
+                  <div className="pt-3 border-t border-cyan-500/20 mt-3">
                     <button
                       onClick={() => handleDeleteLog(log.id)}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors text-xs font-medium"
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors text-xs font-medium border border-rose-500/20"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       삭제
@@ -718,55 +746,58 @@ const InvestmentLog = () => {
 
           {/* Desktop Table View */}
           <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full cyber-table">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">날짜</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">유형</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">자산</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">수량</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">가격</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">총액</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">메모</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">관리</th>
+                <tr className="border-b border-cyan-500/30">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-cyan-300">날짜</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-cyan-300">유형</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-cyan-300">자산</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300">수량</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300">가격</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300">총액</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-cyan-300">메모</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-cyan-300">관리</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredLogs.map((log) => (
-                  <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-4 text-sm text-gray-700">
+                  <tr key={log.id} className="border-b border-slate-700 hover:bg-slate-800/50 transition-colors">
+                    <td className="py-4 px-4 text-sm text-slate-300">
                       <div className="flex items-center gap-2">
-                        <CalendarIcon className="w-4 h-4 text-gray-400" />
+                        <CalendarIcon className="w-4 h-4 text-slate-500" />
                         {log.date}
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${log.type === 'buy'
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'bg-success/10 text-success'
+                      <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${log.type === 'buy'
+                        ? 'bg-rose-500/20 text-rose-300'
+                        : 'bg-emerald-500/20 text-emerald-300'
                         }`}>
                         {log.type === 'buy' ? '매수' : '매도'}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-sm font-medium text-gray-900">
-                      {log.asset}
+                    <td className="py-4 px-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-cyan-300">{log.asset}</span>
+                        <span className="text-xs text-slate-500">{getAssetName(log.asset)}</span>
+                      </div>
                     </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-700">
+                    <td className="py-4 px-4 text-right text-sm text-slate-300">
                       {log.quantity}
                     </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-700">
+                    <td className="py-4 px-4 text-right text-sm text-slate-300">
                       ${log.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-4 px-4 text-right text-sm font-medium text-gray-900">
+                    <td className="py-4 px-4 text-right text-sm font-medium text-slate-200">
                       ${log.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-4 px-4 text-sm text-gray-600">
+                    <td className="py-4 px-4 text-sm text-slate-400">
                       {log.note}
                     </td>
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-4 text-center">
                       <button
                         onClick={() => handleDeleteLog(log.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                         title="삭제"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -779,8 +810,8 @@ const InvestmentLog = () => {
 
             {filteredLogs.length === 0 && (
               <div className="text-center py-12">
-                <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">거래 내역이 없습니다</p>
+                <CalendarIcon className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                <p className="text-slate-500">거래 내역이 없습니다</p>
               </div>
             )}
           </div>
@@ -791,37 +822,67 @@ const InvestmentLog = () => {
       {viewMode === 'calendar' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar */}
-          <div className="lg:col-span-2 card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">거래 캘린더</h3>
+          {/* Calendar */}
+          <div className="lg:col-span-2 cyber-card cyber-card-glow">
+            <h3 className="text-lg font-semibold text-cyan-300 mb-4">거래 캘린더</h3>
             <style>{`
               .react-calendar {
                 width: 100%;
                 border: none;
                 font-family: inherit;
+                background-color: transparent;
+                color: #e2e8f0;
               }
               .react-calendar__tile {
                 padding: 1rem 0.5rem;
                 height: 90px;
+                color: #cbd5e1;
+              }
+              .react-calendar__tile:enabled:hover,
+              .react-calendar__tile:enabled:focus {
+                background-color: rgba(6, 182, 212, 0.1);
+                border-radius: 0.5rem;
               }
               .react-calendar__tile--active {
-                background: #0ea5e9 !important;
-                color: white !important;
+                background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%) !important;
+                border: 1px solid rgba(6, 182, 212, 0.4);
+                border-radius: 0.5rem;
+                color: #22d3ee !important;
+                box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
               }
               .react-calendar__tile--now {
-                background: #f0f9ff;
+                background: rgba(148, 163, 184, 0.1);
+                border-radius: 0.5rem;
+                border: 1px solid rgba(148, 163, 184, 0.2);
               }
               .calendar-profit {
-                background: #f0fdf4;
+                background: rgba(16, 185, 129, 0.05);
+                border-radius: 0.5rem;
               }
               .calendar-loss {
-                background: #fef2f2;
+                background: rgba(244, 63, 94, 0.05);
+                border-radius: 0.5rem;
               }
               .calendar-neutral {
-                background: #f9fafb;
+                background: rgba(100, 116, 139, 0.05);
+                border-radius: 0.5rem;
               }
               .react-calendar__navigation button {
                 font-size: 1rem;
                 font-weight: 600;
+                color: #22d3ee;
+              }
+              .react-calendar__navigation button:disabled {
+                background-color: transparent;
+              }
+              .react-calendar__navigation button:enabled:hover,
+              .react-calendar__navigation button:enabled:focus {
+                background-color: rgba(6, 182, 212, 0.1);
+                border-radius: 0.5rem;
+              }
+              .react-calendar__month-view__weekdays__weekday {
+                color: #94a3b8;
+                text-decoration: none;
               }
             `}</style>
             <Calendar
@@ -834,31 +895,43 @@ const InvestmentLog = () => {
           </div>
 
           {/* Selected Date Details */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="cyber-card cyber-card-glow h-fit">
+            <h3 className="text-lg font-semibold text-cyan-300 mb-4 border-b border-cyan-500/20 pb-3">
               {selectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
             </h3>
             <div className="space-y-3">
               {selectedDateLogs.length > 0 ? (
                 selectedDateLogs.map((log) => (
-                  <div key={log.id} className="p-3 bg-gray-50 rounded-lg">
+                  <div key={log.id} className="p-3 bg-slate-800/50 border border-slate-700 rounded-lg hover:border-cyan-500/30 transition-colors">
                     <div className="flex items-center justify-between mb-2">
-                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${log.type === 'buy'
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'bg-success/10 text-success'
+                      <span className={`inline-block px-2 py-1 text-xs font-bold rounded ${log.type === 'buy'
+                        ? 'bg-rose-500/20 text-rose-300'
+                        : 'bg-emerald-500/20 text-emerald-300'
                         }`}>
                         {log.type === 'buy' ? '매수' : '매도'}
                       </span>
-                      <span className="text-sm font-semibold text-gray-900">{log.asset}</span>
+                      <div className="text-right">
+                        <span className="block text-sm font-bold text-cyan-300">{log.asset}</span>
+                        <span className="block text-xs text-slate-500">{getAssetName(log.asset)}</span>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <p>수량: {log.quantity}</p>
-                      <p>가격: ${log.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                      <p className="font-medium text-gray-900">
-                        총액: ${log.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </p>
+                    <div className="text-sm text-slate-400 space-y-1">
+                      <div className="flex justify-between">
+                        <span>수량</span>
+                        <span className="text-slate-200">{log.quantity}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>가격</span>
+                        <span className="text-slate-200">${log.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-slate-700 mt-1">
+                        <span className="font-medium text-cyan-300/80">총액</span>
+                        <span className="font-bold text-cyan-300">
+                          ${log.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
                       {log.note && (
-                        <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200">
+                        <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-700">
                           {log.note}
                         </p>
                       )}
@@ -866,8 +939,8 @@ const InvestmentLog = () => {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <CalendarIcon className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <div className="text-center py-8 text-slate-500">
+                  <CalendarIcon className="w-8 h-8 mx-auto mb-2 text-slate-600" />
                   <p className="text-sm">이 날짜에 거래 내역이 없습니다</p>
                 </div>
               )}
@@ -879,17 +952,17 @@ const InvestmentLog = () => {
       {/* Add Transaction Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">거래 추가</h3>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+          <div className="bg-slate-900 rounded-lg max-w-md w-full p-6 border border-cyan-500/30 shadow-2xl shadow-cyan-500/10">
+            <div className="flex items-center justify-between mb-6 border-b border-cyan-500/30 pb-4">
+              <h3 className="text-xl font-bold text-cyan-300">거래 추가</h3>
+              <button onClick={handleCloseModal} className="text-slate-400 hover:text-cyan-300 transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-cyan-300/80 mb-2">
                   날짜
                 </label>
                 <input
@@ -898,12 +971,12 @@ const InvestmentLog = () => {
                   value={formData.date}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-cyan-300/80 mb-2">
                   거래 유형
                 </label>
                 <select
@@ -911,7 +984,7 @@ const InvestmentLog = () => {
                   value={formData.type}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 >
                   <option value="buy">매수</option>
                   <option value="sell">매도</option>
@@ -919,7 +992,7 @@ const InvestmentLog = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-cyan-300/80 mb-2">
                   자산 선택
                 </label>
                 {portfolioAssets.length > 0 ? (
@@ -929,7 +1002,7 @@ const InvestmentLog = () => {
                       value={formData.asset}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                     >
                       <option value="">포트폴리오에서 선택</option>
                       {portfolioAssets.map(asset => (
@@ -941,20 +1014,20 @@ const InvestmentLog = () => {
                     </select>
 
                     {selectedPortfolioAsset && (
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-gray-700">
-                          계좌: <span className="font-semibold text-gray-800">{selectedPortfolioAsset.account || '기본계좌'}</span>
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-800 px-2 py-1 border border-slate-700">
+                          계좌: <span className="font-semibold text-cyan-300">{selectedPortfolioAsset.account || '기본계좌'}</span>
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-gray-700">
-                          통화: <span className="font-semibold text-gray-800">{selectedPortfolioAsset.currency || 'USD'}</span>
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-800 px-2 py-1 border border-slate-700">
+                          통화: <span className="font-semibold text-cyan-300">{selectedPortfolioAsset.currency || 'USD'}</span>
                         </span>
                       </div>
                     )}
 
                     {formData.asset === '__custom__' && (
-                      <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <div className="space-y-3 rounded-lg border border-cyan-500/20 bg-slate-800/50 p-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">심볼</label>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">심볼</label>
                           <input
                             type="text"
                             name="customAsset"
@@ -962,28 +1035,28 @@ const InvestmentLog = () => {
                             value={formData.customAsset}
                             onChange={handleInputChange}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">자산명</label>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">자산명</label>
                           <input
                             type="text"
                             name="customAssetName"
                             placeholder="예: Apple Inc."
                             value={formData.customAssetName}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                           />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">유형</label>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">유형</label>
                             <select
                               name="customAssetType"
                               value={formData.customAssetType}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                             >
                               <option value="주식">주식</option>
                               <option value="ETF">ETF</option>
@@ -994,12 +1067,12 @@ const InvestmentLog = () => {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">통화</label>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">통화</label>
                             <select
                               name="customAssetCurrency"
                               value={formData.customAssetCurrency}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                             >
                               <option value="USD">USD</option>
                               <option value="KRW">KRW</option>
@@ -1010,12 +1083,12 @@ const InvestmentLog = () => {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">계좌</label>
                             <select
                               name="selectedAccount"
                               value={formData.selectedAccount}
                               onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                             >
                               {accountOptions.map(account => (
                                 <option key={account} value={account}>
@@ -1032,7 +1105,7 @@ const InvestmentLog = () => {
                                 value={formData.customAccountName}
                                 onChange={handleInputChange}
                                 required
-                                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                className="mt-2 w-full px-3 py-2 bg-slate-700/50 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                               />
                             )}
                           </div>
@@ -1049,27 +1122,27 @@ const InvestmentLog = () => {
                       onChange={handleInputChange}
                       required
                       placeholder="종목 심볼 입력 (예: AAPL)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">자산명</label>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">자산명</label>
                         <input
                           type="text"
                           name="customAssetName"
                           placeholder="예: Apple Inc."
                           value={formData.customAssetName}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">계좌</label>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">계좌</label>
                         <select
                           name="selectedAccount"
                           value={formData.selectedAccount}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                         >
                           {accountOptions.map(account => (
                             <option key={account} value={account}>
@@ -1086,19 +1159,19 @@ const InvestmentLog = () => {
                             value={formData.customAccountName}
                             onChange={handleInputChange}
                             required
-                            className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="mt-2 w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                           />
                         )}
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">유형</label>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">유형</label>
                         <select
                           name="customAssetType"
                           value={formData.customAssetType}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                         >
                           <option value="주식">주식</option>
                           <option value="ETF">ETF</option>
@@ -1109,12 +1182,12 @@ const InvestmentLog = () => {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">통화</label>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">통화</label>
                         <select
                           name="customAssetCurrency"
                           value={formData.customAssetCurrency}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                         >
                           <option value="USD">USD</option>
                           <option value="KRW">KRW</option>
@@ -1125,22 +1198,22 @@ const InvestmentLog = () => {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">분류</label>
-                        <div className="px-3 py-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500">
-                          통화에 따라 포트폴리오 카테고리가 자동 지정됩니다
+                        <label className="block text-xs font-medium text-slate-400 mb-1">분류</label>
+                        <div className="px-3 py-2 border border-dashed border-slate-700 rounded-lg text-xs text-slate-500">
+                          통화에 따라 카테고리가 자동 지정됩니다
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   💡 포트폴리오에 등록된 자산을 선택하거나 직접 입력하세요
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-cyan-300/80 mb-2">
                     수량
                   </label>
                   <input
@@ -1152,12 +1225,12 @@ const InvestmentLog = () => {
                     step="0.000001"
                     min="0"
                     placeholder="1.0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-cyan-300/80 mb-2">
                     가격 ($)
                   </label>
                   <input
@@ -1169,13 +1242,13 @@ const InvestmentLog = () => {
                     step="0.01"
                     min="0"
                     placeholder="100.00"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-cyan-300/80 mb-2">
                   메모 (선택)
                 </label>
                 <textarea
@@ -1184,21 +1257,21 @@ const InvestmentLog = () => {
                   onChange={handleInputChange}
                   rows="3"
                   placeholder="거래에 대한 메모를 입력하세요..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
                 />
               </div>
 
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-3 mt-6 pt-2 border-t border-cyan-500/20">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 btn-primary"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:from-cyan-500 hover:to-blue-500 hover:shadow-cyan-500/50 transition-all transform hover:-translate-y-0.5"
                 >
                   추가
                 </button>
