@@ -24,7 +24,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ComposedChart
+  ComposedChart,
+  Cell
 } from 'recharts'
 import dataSync from '../utils/dataSync'
 import marketDataService from '../services/marketDataService'
