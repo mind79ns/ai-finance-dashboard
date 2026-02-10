@@ -800,6 +800,7 @@ ${insights.map(i => '- ' + i).join('\n')}
   const generateStockAnalysis = async () => {
     const targetSymbol = selectedStock ? selectedStock.symbol : customStockCode
     const targetName = selectedStock ? selectedStock.name : customStockName
+    const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
 
     if (!targetSymbol) {
       setStockAnalysis('분석할 종목을 선택하거나 종목 코드를 입력해주세요.')
@@ -812,15 +813,15 @@ ${insights.map(i => '- ' + i).join('\n')}
         ? `현재가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.currentPrice?.toLocaleString()} (수익률: ${selectedStock.profitPercent?.toFixed(2)}%)`
         : '가격 정보 없음 (직접 입력된 종목)'
 
-      const prompt = `[2025년 최신 기준 분석 요청]
+      const prompt = `[${today} 기준 최신 분석 요청]
 대상 종목: ${targetName} (${targetSymbol})
 ${priceInfo}
 
-당신은 월스트리트의 전문 주식 애널리스트입니다. 위 종목에 대해 다음 구조로 심층 투자 분석 리포트를 작성해주세요:
+당신은 월스트리트의 전문 주식 애널리스트입니다. 오늘(${today}) 기준으로 위 종목에 대해 다음 구조로 심층 투자 분석 리포트를 작성해주세요:
 
-## 1. 🏢 기업 개요 및 2025년 핵심 현황
+## 1. 🏢 기업 개요 및 최신 현황 (${today} 기준)
 - 기업의 비즈니스 모델 요약
-- 2025년 현재 가장 중요한 이슈 및 최근 실적 트렌드
+- 현재 시점 가장 중요한 이슈 및 최근 실적 트렌드
 
 ## 2. 📈 투자 포인트 (Bull Case) & 리스크 (Bear Case)
 - 주가 상승을 견인할 긍정적 요인 2~3가지
@@ -831,7 +832,8 @@ ${priceInfo}
 - 단기 및 중장기 전망
 
 **작성 원칙:**
-- 최신 정보를 바탕으로 구체적인 근거를 제시하세요.
+- 반드시 오늘(${today}) 기준의 최신 정보를 바탕으로 분석하세요.
+- 오래된 정보는 배제하고 실시간성 이슈를 반영하세요.
 - 불확실한 루머보다는 팩트와 데이터에 기반하세요.
 - 결론에 명확한 투자 의견(매수/홀드/관망 등)을 포함하세요.`
 
@@ -1481,35 +1483,37 @@ ${assetsList}
           {(selectedStock || (customStockCode && customStockName)) && (
             <>
               {selectedStock && (
-                <div className="cyber-card bg-gradient-to-br from-teal-900/20 to-blue-900/20 border-teal-500/30">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-white neon-text-cyan">{selectedStock.symbol}</h3>
-                      <p className="text-sm text-gray-400 mt-1">{selectedStock.name}</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
-                        <div>
-                          <p className="text-xs text-gray-500">현재가</p>
-                          <p className="font-semibold text-white">
-                            {selectedStock.currency === 'KRW'
-                              ? `₩${selectedStock.currentPrice.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`
-                              : `$${selectedStock.currentPrice.toFixed(2)}`
-                            }
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">수익률</p>
-                          <p className={`font-semibold ${selectedStock.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {selectedStock.profitPercent >= 0 ? '+' : ''}{selectedStock.profitPercent.toFixed(2)}%
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">보유 수량</p>
-                          <p className="font-semibold text-white">{selectedStock.quantity}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">자산 유형</p>
-                          <p className="font-semibold text-white">{selectedStock.type}</p>
-                        </div>
+                <div className="cyber-card bg-gradient-to-br from-slate-800 to-slate-900 border-teal-500/50 shadow-[0_0_20px_rgba(20,184,166,0.15)] p-6">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-center md:text-left">
+                      <h3 className="text-3xl font-black text-white neon-text-cyan tracking-tight">{selectedStock.symbol}</h3>
+                      <p className="text-lg text-gray-300 mt-1 font-medium">{selectedStock.name}</p>
+                      <span className="inline-block mt-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-600 text-xs text-gray-400">
+                        {selectedStock.type}
+                      </span>
+                    </div>
+
+                    <div className="w-full h-px bg-slate-700 md:w-px md:h-16 md:bg-gradient-to-b from-transparent via-slate-600 to-transparent"></div>
+
+                    <div className="grid grid-cols-3 gap-8 w-full md:w-auto text-center">
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">현재가</p>
+                        <p className="text-2xl font-bold text-white">
+                          {selectedStock.currency === 'KRW'
+                            ? `₩${selectedStock.currentPrice.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`
+                            : `$${selectedStock.currentPrice.toFixed(2)}`
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">수익률</p>
+                        <p className={`text-2xl font-bold ${selectedStock.profitPercent >= 0 ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'text-rose-400 drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]'}`}>
+                          {selectedStock.profitPercent >= 0 ? '+' : ''}{selectedStock.profitPercent.toFixed(2)}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">보유 수량</p>
+                        <p className="text-2xl font-bold text-white">{selectedStock.quantity}</p>
                       </div>
                     </div>
                   </div>
@@ -1517,14 +1521,14 @@ ${assetsList}
               )}
 
               {!selectedStock && customStockCode && customStockName && (
-                <div className="cyber-card bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border-purple-500/30">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-800 rounded-lg border border-purple-500/30">
-                      <TrendingUp className="w-6 h-6 text-purple-400" />
+                <div className="cyber-card bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border-purple-500/30 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-slate-800 rounded-xl border border-purple-500/30 shadow-lg">
+                      <TrendingUp className="w-8 h-8 text-purple-400" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white neon-text-purple">{customStockCode}</h3>
-                      <p className="text-sm text-gray-400 mt-1">{customStockName}</p>
+                      <h3 className="text-2xl font-bold text-white neon-text-purple">{customStockCode}</h3>
+                      <p className="text-lg text-gray-300 mt-1">{customStockName}</p>
                     </div>
                   </div>
                 </div>
@@ -1549,8 +1553,8 @@ ${assetsList}
                     </>
                   )}
                 </button>
-                <p className="text-xs text-gray-500">
-                  * 2025년 최신 데이터 기반으로 기업 개요, 투자 포인트, 리스크를 분석합니다.
+                <p className="text-sm text-gray-400 mt-2">
+                  * 오늘({new Date().toLocaleDateString('ko-KR')}) 기준 최신 시장 데이터 및 실시간 이슈를 기반으로 정밀 분석합니다.
                 </p>
               </div>
 
