@@ -12,7 +12,8 @@ import {
   PiggyBank,
   Check,
   X,
-  Trash2
+  Trash2,
+  LineChart
 } from 'lucide-react'
 import {
   Line,
