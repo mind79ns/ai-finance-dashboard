@@ -929,38 +929,77 @@ const AssetStatus = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Cyberpunk Style */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm font-medium">연간 총 수입</p>
-              <p className="text-3xl font-bold mt-2">{formatCurrency(yearlyTotals.incomeTotal)}</p>
-              <p className="text-green-100 text-xs mt-1">KRW</p>
+        {/* Total Income */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)] group hover:shadow-[0_0_25px_rgba(16,185,129,0.2)] transition-all duration-300">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <TrendingUp className="w-24 h-24 text-emerald-500" />
+          </div>
+          <div className="p-6 relative z-10">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <p className="text-sm font-medium text-emerald-400 mb-1">연간 총 수입</p>
+                <h3 className="text-3xl font-bold text-white tracking-tight">
+                  {formatCurrency(yearlyTotals.incomeTotal)}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 font-mono">KRW</p>
+              </div>
+              <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                <DollarSign className="w-6 h-6 text-emerald-400" />
+              </div>
             </div>
-            <TrendingUp className="w-12 h-12 text-green-200 opacity-80" />
+            <div className="w-full bg-slate-700/50 h-1.5 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 shadow-[0_0_10px_#10b981]" style={{ width: '100%' }}></div>
+            </div>
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-red-500 to-red-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-red-100 text-sm font-medium">연간 총 지출</p>
-              <p className="text-3xl font-bold mt-2">{formatCurrency(yearlyTotals.expenseTotal)}</p>
-              <p className="text-red-100 text-xs mt-1">KRW</p>
+        {/* Total Expense */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 border border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.1)] group hover:shadow-[0_0_25px_rgba(244,63,94,0.2)] transition-all duration-300">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <TrendingDown className="w-24 h-24 text-rose-500" />
+          </div>
+          <div className="p-6 relative z-10">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <p className="text-sm font-medium text-rose-400 mb-1">연간 총 지출</p>
+                <h3 className="text-3xl font-bold text-white tracking-tight">
+                  {formatCurrency(yearlyTotals.expenseTotal)}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 font-mono">KRW</p>
+              </div>
+              <div className="p-2 bg-rose-500/10 rounded-lg border border-rose-500/20">
+                <CreditCard className="w-6 h-6 text-rose-400" />
+              </div>
             </div>
-            <TrendingDown className="w-12 h-12 text-red-200 opacity-80" />
+            <div className="w-full bg-slate-700/50 h-1.5 rounded-full overflow-hidden">
+              <div className="h-full bg-rose-500 shadow-[0_0_10px_#f43f5e]" style={{ width: `${Math.min((yearlyTotals.expenseTotal / (yearlyTotals.incomeTotal || 1)) * 100, 100)}%` }}></div>
+            </div>
           </div>
         </div>
 
-        <div className={`card bg-gradient-to-br ${yearlyTotals.netTotal >= 0 ? 'from-blue-500 to-blue-600' : 'from-orange-500 to-orange-600'} text-white`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`${yearlyTotals.netTotal >= 0 ? 'text-blue-100' : 'text-orange-100'} text-sm font-medium`}>연간 순변동</p>
-              <p className="text-3xl font-bold mt-2">{formatCurrency(yearlyTotals.netTotal)}</p>
-              <p className={`${yearlyTotals.netTotal >= 0 ? 'text-blue-100' : 'text-orange-100'} text-xs mt-1`}>KRW</p>
+        {/* Net Change */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)] group hover:shadow-[0_0_25px_rgba(59,130,246,0.2)] transition-all duration-300">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Wallet className="w-24 h-24 text-blue-500" />
+          </div>
+          <div className="p-6 relative z-10">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <p className="text-sm font-medium text-blue-400 mb-1">연간 순변동</p>
+                <h3 className={`text-3xl font-bold tracking-tight ${yearlyTotals.netTotal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>
+                  {yearlyTotals.netTotal >= 0 ? '+' : ''}{formatCurrency(yearlyTotals.netTotal)}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 font-mono">KRW</p>
+              </div>
+              <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                <DollarSign className="w-6 h-6 text-blue-400" />
+              </div>
             </div>
-            <DollarSign className={`w-12 h-12 ${yearlyTotals.netTotal >= 0 ? 'text-blue-200' : 'text-orange-200'} opacity-80`} />
+            <div className="w-full bg-slate-700/50 h-1.5 rounded-full overflow-hidden">
+              <div className={`h-full shadow-[0_0_10px_currentColor] ${yearlyTotals.netTotal >= 0 ? 'bg-blue-500 text-blue-500' : 'bg-rose-500 text-rose-500'}`} style={{ width: '100%' }}></div>
+            </div>
           </div>
         </div>
       </div>
@@ -982,145 +1021,170 @@ const AssetStatus = () => {
         </div>
 
         {/* Monthly Visual Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Income Breakdown Card */}
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold flex items-center gap-1">
-                <TrendingUp className="w-4 h-4" />
-                수입 현황
-              </h3>
-              <span className="text-lg font-bold">
-                {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.income || 0))}
-              </span>
+          <div className="cyber-card relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <TrendingUp className="w-32 h-32 text-emerald-500" />
             </div>
-            <div className="space-y-2">
-              {incomeCategories
-                .filter(cat => !cat.isAccumulated)
-                .slice(0, 5)
-                .map(category => {
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <div className="p-1.5 bg-emerald-500/20 rounded-lg">
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  수입 현황
+                </h3>
+                <span className="text-xl font-bold text-emerald-400">
+                  {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.income || 0))}
+                </span>
+              </div>
+              <div className="space-y-3">
+                {incomeCategories
+                  .filter(cat => !cat.isAccumulated)
+                  .slice(0, 5)
+                  .map(category => {
+                    const value = calculateMonthlyData[selectedMonthView]?.[category.id] || 0
+                    const maxIncome = Math.max(...incomeCategories.filter(c => !c.isAccumulated).map(c => calculateMonthlyData[selectedMonthView]?.[c.id] || 0))
+                    const percentage = maxIncome > 0 ? (value / maxIncome) * 100 : 0
+
+                    return (
+                      <div key={category.id} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-400 truncate">{category.name}</span>
+                          <span className="font-semibold text-gray-200 ml-1">{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+          </div>
+
+          {/* Expense Breakdown Card */}
+          <div className="cyber-card relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <TrendingDown className="w-32 h-32 text-rose-500" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <div className="p-1.5 bg-rose-500/20 rounded-lg">
+                    <TrendingDown className="w-4 h-4 text-rose-400" />
+                  </div>
+                  지출 현황
+                </h3>
+                <span className="text-xl font-bold text-rose-400">
+                  {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.expense || 0))}
+                </span>
+              </div>
+              <div className="space-y-3">
+                {expenseCategories.map(category => {
                   const value = calculateMonthlyData[selectedMonthView]?.[category.id] || 0
-                  const maxIncome = Math.max(...incomeCategories.filter(c => !c.isAccumulated).map(c => calculateMonthlyData[selectedMonthView]?.[c.id] || 0))
-                  const percentage = maxIncome > 0 ? (value / maxIncome) * 100 : 0
+                  const maxExpense = Math.max(...expenseCategories.map(c => calculateMonthlyData[selectedMonthView]?.[c.id] || 0))
+                  const percentage = maxExpense > 0 ? (value / maxExpense) * 100 : 0
 
                   return (
-                    <div key={category.id} className="space-y-0.5">
+                    <div key={category.id} className="space-y-1">
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-300 truncate">{category.name}</span>
-                        <span className="font-semibold ml-1">{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}</span>
+                        <span className="text-gray-400 truncate">{category.name}</span>
+                        <span className="font-semibold text-gray-200 ml-1">{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}</span>
                       </div>
-                      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full transition-all duration-500"
+                          className="h-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)] rounded-full transition-all duration-500"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
                     </div>
                   )
                 })}
-            </div>
-          </div>
-
-          {/* Expense Breakdown Card */}
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold flex items-center gap-1">
-                <TrendingDown className="w-4 h-4" />
-                지출 현황
-              </h3>
-              <span className="text-lg font-bold">
-                {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.expense || 0))}
-              </span>
-            </div>
-            <div className="space-y-2">
-              {expenseCategories.map(category => {
-                const value = calculateMonthlyData[selectedMonthView]?.[category.id] || 0
-                const maxExpense = Math.max(...expenseCategories.map(c => calculateMonthlyData[selectedMonthView]?.[c.id] || 0))
-                const percentage = maxExpense > 0 ? (value / maxExpense) * 100 : 0
-
-                return (
-                  <div key={category.id} className="space-y-0.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-300 truncate">{category.name}</span>
-                      <span className="font-semibold ml-1">{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
+              </div>
             </div>
           </div>
 
           {/* Combined Summary Card */}
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-900 text-white p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold">종합 현황</h3>
-              <span className="text-lg font-bold">
-                {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.netChange || 0))}
-              </span>
+          <div className="cyber-card relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Wallet className="w-32 h-32 text-blue-500" />
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {/* Income Bar */}
-              <div className="space-y-1">
-                <div className="text-center">
-                  <span className="text-xs text-blue-300">수입</span>
-                </div>
-                <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
-                  <div
-                    className="absolute bottom-0 w-full bg-gradient-to-t from-blue-500 to-blue-400 transition-all duration-500 flex items-end justify-center pb-1"
-                    style={{
-                      height: `${Math.min((calculateMonthlyData[selectedMonthView]?.income || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
-                    }}
-                  >
-                    <span className="text-[10px] font-bold text-white">
-                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.income || 0))}
-                    </span>
+            <div className="relative z-10 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                    <Wallet className="w-4 h-4 text-blue-400" />
                   </div>
-                </div>
+                  종합 현황
+                </h3>
+                <span className={`text-xl font-bold ${calculateMonthlyData[selectedMonthView]?.netChange >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>
+                  {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.netChange || 0))}
+                </span>
               </div>
 
-              {/* Expense Bar */}
-              <div className="space-y-1">
-                <div className="text-center">
-                  <span className="text-xs text-red-300">지출</span>
-                </div>
-                <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
-                  <div
-                    className="absolute bottom-0 w-full bg-gradient-to-t from-red-500 to-red-400 transition-all duration-500 flex items-end justify-center pb-1"
-                    style={{
-                      height: `${Math.min((calculateMonthlyData[selectedMonthView]?.expense || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
-                    }}
-                  >
-                    <span className="text-[10px] font-bold text-white">
-                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.expense || 0))}
-                    </span>
+              <div className="grid grid-cols-3 gap-4 flex-1 items-end pb-2">
+                {/* Income Bar */}
+                <div className="space-y-2 flex flex-col items-center h-full justify-end">
+                  <div className="relative w-full h-32 bg-slate-700/50 rounded-xl overflow-hidden ring-1 ring-slate-600/50">
+                    <div
+                      className="absolute bottom-0 w-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all duration-500 flex items-end justify-center pb-2"
+                      style={{
+                        height: `${Math.min((calculateMonthlyData[selectedMonthView]?.income || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
+                      }}
+                    >
+                      <span className="text-[10px] font-bold text-white drop-shadow-md">
+                        {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0, notation: "compact" }).format(Math.round(calculateMonthlyData[selectedMonthView]?.income || 0))}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-xs font-medium text-emerald-400">수입</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Net Change Bar (월총합) */}
-              <div className="space-y-1">
-                <div className="text-center">
-                  <span className="text-xs text-green-300">월총합</span>
+                {/* Expense Bar */}
+                <div className="space-y-2 flex flex-col items-center h-full justify-end">
+                  <div className="relative w-full h-32 bg-slate-700/50 rounded-xl overflow-hidden ring-1 ring-slate-600/50">
+                    <div
+                      className="absolute bottom-0 w-full bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all duration-500 flex items-end justify-center pb-2"
+                      style={{
+                        height: `${Math.min((calculateMonthlyData[selectedMonthView]?.expense || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
+                      }}
+                    >
+                      <span className="text-[10px] font-bold text-white drop-shadow-md">
+                        {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0, notation: "compact" }).format(Math.round(calculateMonthlyData[selectedMonthView]?.expense || 0))}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-xs font-medium text-rose-400">지출</span>
+                  </div>
                 </div>
-                <div className="relative h-32 bg-slate-700 rounded-lg overflow-hidden">
-                  <div
-                    className={`absolute bottom-0 w-full transition-all duration-500 flex items-end justify-center pb-1 ${(calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0
-                      ? 'bg-gradient-to-t from-green-500 to-green-400'
-                      : 'bg-gradient-to-t from-orange-500 to-orange-400'
-                      }`}
-                    style={{
-                      height: `${Math.min(Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
-                    }}
-                  >
-                    <span className="text-[10px] font-bold text-white">
-                      {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.netChange || 0))}
-                    </span>
+
+                {/* Net Change Bar */}
+                <div className="space-y-2 flex flex-col items-center h-full justify-end">
+                  <div className="relative w-full h-32 bg-slate-700/50 rounded-xl overflow-hidden ring-1 ring-slate-600/50">
+                    <div
+                      className={`absolute bottom-0 w-full shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all duration-500 flex items-end justify-center pb-2 ${(calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0
+                        ? 'bg-blue-500'
+                        : 'bg-orange-500'
+                        }`}
+                      style={{
+                        height: `${Math.min(Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
+                      }}
+                    >
+                      <span className="text-[10px] font-bold text-white drop-shadow-md">
+                        {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0, notation: "compact" }).format(Math.round(calculateMonthlyData[selectedMonthView]?.netChange || 0))}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <span className={`text-xs font-medium ${(calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>월총합</span>
                   </div>
                 </div>
               </div>
@@ -1129,26 +1193,29 @@ const AssetStatus = () => {
         </div>
       </div>
 
-      {/* Monthly Income/Expense Table */}
-      <div className="card overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">월별 수입/지출 현황표</h2>
+      {/* Monthly Income/Expense Table - Cyberpunk Style */}
+      <div className="cyber-card overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-700/50 bg-slate-800/20">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-cyan-400" />
+            월별 수입/지출 현황표
+          </h2>
           <div className="flex gap-2">
             <button
               onClick={handleAddIncomeCategory}
-              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
+              className="cyber-btn text-xs sm:text-sm py-1.5 px-3"
               title="수입 항목 추가"
             >
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
               <span className="hidden sm:inline">수입 추가</span>
               <span className="sm:hidden">수입</span>
             </button>
             <button
               onClick={handleAddExpenseCategory}
-              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
+              className="cyber-btn text-xs sm:text-sm py-1.5 px-3"
               title="지출 항목 추가"
             >
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
               <span className="hidden sm:inline">지출 추가</span>
               <span className="sm:hidden">지출</span>
             </button>
@@ -1156,52 +1223,47 @@ const AssetStatus = () => {
         </div>
 
         {/* Mobile Notice */}
-        <div className="block sm:hidden p-6 bg-blue-50 border-l-4 border-blue-500">
-          <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-blue-900 mb-1">모바일 최적화 안내</p>
-              <p className="text-xs text-blue-700 leading-relaxed">
-                월별 수입/지출 현황표는 데이터양이 많아 PC에서 보시는 것을 권장합니다.
-                모바일에서는 위의 <strong>"월별 상세 현황"</strong> 섹션에서 월을 선택하여
-                해당 월의 수입/지출 내역을 확인하실 수 있습니다.
-              </p>
-              <button
-                onClick={() => {
-                  const monthViewSection = document.querySelector('[class*="space-y-4"]')
-                  if (monthViewSection) {
-                    monthViewSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }
-                }}
-                className="mt-3 text-xs font-medium text-blue-600 hover:text-blue-800 underline"
-              >
-                월별 상세 현황으로 이동 →
-              </button>
-            </div>
-          </div>
+        <div className="block sm:hidden p-4 bg-slate-800/80 border-l-2 border-cyan-500 text-xs text-gray-400">
+          <p className="mb-2">
+            <strong className="text-cyan-400">PC 최적화 화면입니다.</strong><br />
+            모바일에서는 가로 스크롤하여 확인하거나, 상단의 월별 상세 현황을 이용해주세요.
+          </p>
+          <button
+            onClick={() => {
+              const monthViewSection = document.querySelector('[class*="space-y-4"]')
+              if (monthViewSection) {
+                monthViewSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+            }}
+            className="text-cyan-400 hover:text-cyan-300 underline"
+          >
+            월별 상세 현황으로 이동 →
+          </button>
         </div>
 
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="w-full overflow-x-auto cyber-scrollbar">
+          <table className="w-full text-xs sm:text-sm cyber-table">
             <thead>
-              <tr className="bg-blue-100 border-b border-blue-200">
-                <th className="text-left py-3 px-4 font-bold text-blue-900 sticky left-0 bg-blue-100 z-10">항목</th>
+              <tr className="bg-slate-800/80">
+                <th className="text-left py-3 px-3 font-bold text-gray-300 sticky left-0 bg-slate-900 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.3)] min-w-[120px]">
+                  항목
+                </th>
                 {MONTH_LABELS.map((month, idx) => (
-                  <th key={idx} className="text-center py-3 px-4 font-bold text-blue-900 min-w-[120px]">
+                  <th key={idx} className="text-center py-3 px-2 font-bold text-gray-300 min-w-[80px]">
                     {month}
                   </th>
                 ))}
-                <th className="text-center py-3 px-4 font-bold text-blue-900 bg-blue-200 min-w-[140px]">TOTAL</th>
+                <th className="text-center py-3 px-3 font-bold text-white bg-slate-800/50 min-w-[100px]">TOTAL</th>
               </tr>
             </thead>
 
             <tbody>
               {/* Income Categories */}
               {incomeCategories.map((category) => (
-                <tr key={category.id} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 bg-white z-10">
+                <tr key={category.id} className="hover:bg-slate-800/50 transition-colors group">
+                  <td className="py-2 px-3 font-medium text-gray-300 sticky left-0 bg-slate-950 group-hover:bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
                     {editingCategoryId === category.id ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <input
                           type="text"
                           value={editingCategoryName}
@@ -1210,55 +1272,28 @@ const AssetStatus = () => {
                             if (e.key === 'Enter') handleSaveCategoryName(true)
                             if (e.key === 'Escape') handleCancelEditCategory()
                           }}
-                          className="flex-1 px-2 py-1 border border-primary-500 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                          className="flex-1 px-1.5 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white focus:outline-none focus:border-emerald-500"
                           autoFocus
                         />
-                        <button
-                          onClick={() => handleSaveCategoryName(true)}
-                          className="p-1 text-green-600 hover:bg-green-50 rounded"
-                          title="저장"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handleCancelEditCategory}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
-                          title="취소"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <button onClick={() => handleSaveCategoryName(true)} className="text-emerald-500 hover:text-emerald-400"><Check className="w-3 h-3" /></button>
+                        <button onClick={handleCancelEditCategory} className="text-rose-500 hover:text-rose-400"><X className="w-3 h-3" /></button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 group">
-                        <span className={category.isAccumulated ? 'text-indigo-700 font-semibold' : ''}>
+                      <div className="flex items-center gap-2 justify-between">
+                        <span className={`truncate ${category.isAccumulated ? 'text-indigo-400' : 'text-gray-300'}`}>
                           {category.name}
-                          {category.isAccumulated && (
-                            <span className="text-xs ml-2 text-indigo-500">(자동계산)</span>
-                          )}
+                          {category.isAccumulated && <span className="text-[10px] ml-1 text-indigo-500/70 block sm:inline sm:ml-1">(누적)</span>}
                         </span>
                         {!category.isAccumulated && (
-                          <>
-                            <button
-                              onClick={() => handleStartEditCategory(category.id, category.name)}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
-                              title="이름 수정"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCategory(category.id, true)}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-opacity"
-                              title="삭제"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </>
+                          <div className="hidden group-hover:flex items-center">
+                            <button onClick={() => handleStartEditCategory(category.id, category.name)} className="text-slate-500 hover:text-cyan-400 p-0.5"><Edit className="w-3 h-3" /></button>
+                            <button onClick={() => handleDeleteCategory(category.id, true)} className="text-slate-500 hover:text-rose-400 p-0.5"><Trash2 className="w-3 h-3" /></button>
+                          </div>
                         )}
                       </div>
                     )}
                   </td>
                   {calculateMonthlyData.map((monthData, idx) => {
-                    // January can be edited for accumulated (기초자산), others auto-calculated
                     const isJanuary = idx === 0
                     const isAccumulatedEditable = category.isAccumulated && isJanuary
                     const isEditable = !category.isAccumulated || isAccumulatedEditable
@@ -1266,50 +1301,43 @@ const AssetStatus = () => {
                     return (
                       <td
                         key={idx}
-                        className={`text-right py-3 px-4 ${category.isAccumulated
+                        className={`text-right py-2 px-2 border-l border-slate-800/50 ${category.isAccumulated
                           ? isJanuary
-                            ? 'bg-yellow-50 font-semibold text-yellow-800 cursor-pointer hover:bg-yellow-100'
-                            : 'bg-indigo-50 font-semibold text-indigo-700'
-                          : 'text-gray-700 cursor-pointer hover:bg-blue-50'
+                            ? 'text-yellow-400 font-medium cursor-pointer hover:bg-yellow-500/10'
+                            : 'text-indigo-400/80'
+                          : 'text-gray-400 cursor-pointer hover:bg-slate-800/80 hover:text-white'
                           }`}
                         onClick={() => isEditable && handleOpenEditModal(idx)}
-                        title={
-                          category.isAccumulated
-                            ? isJanuary
-                              ? '기초자산 누적금액 (수동 입력 가능)'
-                              : '자동 계산됨 (전월 누적금액 + 전월 월지출총합)'
-                            : ''
-                        }
                       >
                         {formatCurrency(category.isAccumulated ? monthData.accumulated : monthData[category.id])}
                       </td>
                     )
                   })}
-                  <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
+                  <td className="text-right py-2 px-3 font-bold text-emerald-400 bg-slate-800/30 border-l border-slate-700">
                     {formatCurrency(yearlyTotals.income[category.id])}
                   </td>
                 </tr>
               ))}
 
               {/* Income Total Row */}
-              <tr className="bg-blue-50 border-b-2 border-blue-300 font-bold">
-                <td className="py-3 px-4 text-blue-900 sticky left-0 bg-blue-50 z-10">수입 TOTAL</td>
+              <tr className="bg-slate-800/60 border-t border-slate-700 font-bold">
+                <td className="py-3 px-3 text-emerald-400 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">수입 합계</td>
                 {calculateMonthlyData.map((monthData, idx) => (
-                  <td key={idx} className="text-right py-3 px-4 text-blue-900">
+                  <td key={idx} className="text-right py-3 px-2 text-emerald-400/90">
                     {formatCurrency(monthData.income)}
                   </td>
                 ))}
-                <td className="text-right py-3 px-4 text-blue-900 bg-blue-100">
+                <td className="text-right py-3 px-3 text-emerald-400 bg-slate-800/80 border-l border-slate-700">
                   {formatCurrency(yearlyTotals.incomeTotal)}
                 </td>
               </tr>
 
               {/* Expense Categories */}
               {expenseCategories.map((category) => (
-                <tr key={category.id} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium text-gray-900 sticky left-0 bg-white z-10">
+                <tr key={category.id} className="hover:bg-slate-800/50 transition-colors group">
+                  <td className="py-2 px-3 font-medium text-gray-300 sticky left-0 bg-slate-950 group-hover:bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
                     {editingCategoryId === category.id ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <input
                           type="text"
                           value={editingCategoryName}
@@ -1318,84 +1346,64 @@ const AssetStatus = () => {
                             if (e.key === 'Enter') handleSaveCategoryName(false)
                             if (e.key === 'Escape') handleCancelEditCategory()
                           }}
-                          className="flex-1 px-2 py-1 border border-primary-500 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                          className="flex-1 px-1.5 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white focus:outline-none focus:border-rose-500"
                           autoFocus
                         />
-                        <button
-                          onClick={() => handleSaveCategoryName(false)}
-                          className="p-1 text-green-600 hover:bg-green-50 rounded"
-                          title="저장"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handleCancelEditCategory}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
-                          title="취소"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <button onClick={() => handleSaveCategoryName(false)} className="text-emerald-500 hover:text-emerald-400"><Check className="w-3 h-3" /></button>
+                        <button onClick={handleCancelEditCategory} className="text-rose-500 hover:text-rose-400"><X className="w-3 h-3" /></button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 group">
-                        <span>{category.name}</span>
-                        <button
-                          onClick={() => handleStartEditCategory(category.id, category.name)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
-                          title="이름 수정"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(category.id, false)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-opacity"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                      <div className="flex items-center gap-2 justify-between">
+                        <span className="truncate text-gray-300">{category.name}</span>
+                        <div className="hidden group-hover:flex items-center">
+                          <button onClick={() => handleStartEditCategory(category.id, category.name)} className="text-slate-500 hover:text-cyan-400 p-0.5"><Edit className="w-3 h-3" /></button>
+                          <button onClick={() => handleDeleteCategory(category.id, false)} className="text-slate-500 hover:text-rose-400 p-0.5"><Trash2 className="w-3 h-3" /></button>
+                        </div>
                       </div>
                     )}
                   </td>
                   {calculateMonthlyData.map((monthData, idx) => (
                     <td
                       key={idx}
-                      className="text-right py-3 px-4 text-gray-700 cursor-pointer hover:bg-red-50"
+                      className="text-right py-2 px-2 text-gray-400 cursor-pointer hover:bg-slate-800/80 hover:text-white border-l border-slate-800/50"
                       onClick={() => handleOpenEditModal(idx)}
                     >
                       {formatCurrency(monthData[category.id])}
                     </td>
                   ))}
-                  <td className="text-right py-3 px-4 font-bold text-gray-900 bg-red-50">
+                  <td className="text-right py-2 px-3 font-bold text-rose-400 bg-slate-800/30 border-l border-slate-700">
                     {formatCurrency(yearlyTotals.expense[category.id])}
                   </td>
                 </tr>
               ))}
 
               {/* Expense Total Row */}
-              <tr className="bg-red-50 border-b-2 border-red-300 font-bold">
-                <td className="py-3 px-4 text-red-900 sticky left-0 bg-red-50 z-10">지출 TOTAL</td>
+              <tr className="bg-slate-800/60 border-t border-slate-700 font-bold">
+                <td className="py-3 px-3 text-rose-400 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">지출 합계</td>
                 {calculateMonthlyData.map((monthData, idx) => (
-                  <td key={idx} className="text-right py-3 px-4 text-red-900">
+                  <td key={idx} className="text-right py-3 px-2 text-rose-400/90">
                     {formatCurrency(monthData.expense)}
                   </td>
                 ))}
-                <td className="text-right py-3 px-4 text-red-900 bg-red-100">
+                <td className="text-right py-3 px-3 text-rose-400 bg-slate-800/80 border-l border-slate-700">
                   {formatCurrency(yearlyTotals.expenseTotal)}
                 </td>
               </tr>
 
               {/* Net Change Row */}
-              <tr className="bg-gray-100 border-b-2 border-gray-400 font-bold text-lg">
-                <td className="py-3 px-4 text-gray-900 sticky left-0 bg-gray-100 z-10">월 지출 총합</td>
+              <tr className="bg-slate-900 border-t-2 border-slate-600 font-bold">
+                <td className="py-4 px-3 text-white sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                  <span className="text-blue-400">월 순변동</span>
+                </td>
                 {calculateMonthlyData.map((monthData, idx) => (
                   <td
                     key={idx}
-                    className={`text-right py-3 px-4 ${monthData.netChange >= 0 ? 'text-green-700' : 'text-red-700'}`}
+                    className={`text-right py-4 px-2 ${monthData.netChange >= 0 ? 'text-blue-400' : 'text-orange-400'}`}
                   >
                     {formatCurrency(monthData.netChange)}
                   </td>
                 ))}
-                <td className={`text-right py-3 px-4 bg-gray-200 ${yearlyTotals.netTotal >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                <td className={`text-right py-4 px-3 bg-slate-800 border-l border-slate-700 ${yearlyTotals.netTotal >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
                   {formatCurrency(yearlyTotals.netTotal)}
                 </td>
               </tr>
@@ -1404,174 +1412,206 @@ const AssetStatus = () => {
         </div>
       </div>
 
-      {/* Trend Charts */}
-      <div className="grid grid-cols-1 gap-6">
+      {/* Trend Charts - Cyberpunk Style */}
+      <div className="grid grid-cols-1 gap-8">
         {/* Income/Expense Trend Chart */}
-        <div className="card">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">월별 수입/지출 추이 및 누적금액</h3>
-          <p className="text-sm text-gray-600 mb-6">매월 수입과 지출 흐름 및 누적 자산을 한눈에 확인하세요</p>
-          <ResponsiveContainer width="100%" height={400}>
-            <ComposedChart data={chartData}>
-              <defs>
-                <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
-                </linearGradient>
-                <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-              <XAxis
-                dataKey="month"
-                stroke="#6b7280"
-                tick={{ fill: '#6b7280', fontSize: 12 }}
-                axisLine={{ stroke: '#d1d5db' }}
-              />
-              <YAxis
-                yAxisId="left"
-                stroke="#6b7280"
-                tick={{ fill: '#6b7280', fontSize: 11 }}
-                axisLine={{ stroke: '#d1d5db' }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#6366f1"
-                tick={{ fill: '#6366f1', fontSize: 11 }}
-                axisLine={{ stroke: '#818cf8' }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
-                domain={[2000000, 'dataMax']}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}
-                formatter={(value) => formatCurrency(value) + ' KRW'}
-                labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="circle"
-              />
-              <Bar
-                yAxisId="left"
-                dataKey="income"
-                fill="url(#incomeGradient)"
-                stroke="#10b981"
-                strokeWidth={2}
-                name="월 수입"
-                radius={[8, 8, 0, 0]}
-              />
-              <Bar
-                yAxisId="left"
-                dataKey="expense"
-                fill="url(#expenseGradient)"
-                stroke="#ef4444"
-                strokeWidth={2}
-                name="월 지출"
-                radius={[8, 8, 0, 0]}
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="accumulated"
-                stroke="#6366f1"
-                strokeWidth={3}
-                dot={{ fill: '#6366f1', r: 5, strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 7, strokeWidth: 2 }}
-                name="누적금액"
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+        <div className="cyber-card">
+          <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-emerald-400" />
+            월별 수입/지출 추이 및 누적금액
+          </h3>
+          <p className="text-sm text-gray-400 mb-6 font-mono">
+            // 매월 수입과 지출 흐름 및 누적 자산을 한눈에 확인하세요
+          </p>
+          <div className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData}>
+                <defs>
+                  <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  stroke="#64748b"
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  axisLine={{ stroke: '#334155' }}
+                  dy={10}
+                />
+                <YAxis
+                  yAxisId="left"
+                  stroke="#64748b"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  axisLine={{ stroke: '#334155' }}
+                  tickFormatter={(value) => `${(value / 10000).toFixed(0)}만`}
+                  dx={-10}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#6366f1"
+                  tick={{ fill: '#818cf8', fontSize: 11 }}
+                  axisLine={{ stroke: '#4f46e5' }}
+                  tickFormatter={(value) => `${(value / 10000).toFixed(0)}만`}
+                  domain={[dataMin => (dataMin * 0.95), dataMax => (dataMax * 1.05)]}
+                  dx={10}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    border: '1px solid #334155',
+                    borderRadius: '12px',
+                    boxShadow: '0 0 15px rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                  itemStyle={{ color: '#e2e8f0' }}
+                  formatter={(value) => formatCurrency(value)}
+                  labelStyle={{ fontWeight: 'bold', color: '#f8fafc', marginBottom: '8px' }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="circle"
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="income"
+                  fill="url(#incomeGradient)"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  name="월 수입"
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="expense"
+                  fill="url(#expenseGradient)"
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                  name="월 지출"
+                  radius={[4, 4, 0, 0]}
+                  barSize={20}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="accumulated"
+                  stroke="#6366f1"
+                  strokeWidth={3}
+                  dot={{ fill: '#0f172a', r: 4, strokeWidth: 2, stroke: '#6366f1' }}
+                  activeDot={{ r: 6, strokeWidth: 2, fill: '#818cf8' }}
+                  name="누적금액"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Accumulated Asset Trend Chart */}
-        <div className="card bg-gradient-to-br from-indigo-50 to-purple-50">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">누적 자산 추이</h3>
-          <p className="text-sm text-gray-600 mb-6">월별 순변동과 누적 자산 가치를 별도 축으로 표시</p>
-          <ResponsiveContainer width="100%" height={350}>
-            <ComposedChart data={chartData}>
-              <defs>
-                <linearGradient id="accumulatedGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" vertical={false} />
-              <XAxis
-                dataKey="month"
-                stroke="#6b7280"
-                tick={{ fill: '#6b7280', fontSize: 12 }}
-                axisLine={{ stroke: '#c7d2fe' }}
-              />
-              <YAxis
-                yAxisId="left"
-                stroke="#6b7280"
-                tick={{ fill: '#6b7280', fontSize: 11 }}
-                axisLine={{ stroke: '#c7d2fe' }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
-                label={{ value: '월 순변동', angle: -90, position: 'insideLeft', style: { fill: '#6b7280' } }}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#6366f1"
-                tick={{ fill: '#6366f1', fontSize: 11 }}
-                axisLine={{ stroke: '#818cf8' }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
-                domain={[2000000, 'dataMax']}
-                label={{ value: '누적 자산', angle: 90, position: 'insideRight', style: { fill: '#6366f1' } }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#fff',
-                  border: '2px solid #818cf8',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.2)'
-                }}
-                formatter={(value) => formatCurrency(value) + ' KRW'}
-                labelStyle={{ fontWeight: 'bold', color: '#4f46e5', marginBottom: '8px' }}
-              />
-              <Legend
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="circle"
-              />
-              <Bar
-                yAxisId="left"
-                dataKey="netChange"
-                fill={(entry) => entry.netChange >= 0 ? '#10b981' : '#ef4444'}
-                name="월 순변동 (수입-지출)"
-                radius={[8, 8, 0, 0]}
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="accumulated"
-                stroke="#6366f1"
-                strokeWidth={4}
-                dot={{ fill: '#6366f1', r: 6, strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 8, strokeWidth: 2 }}
-                name="누적 자산"
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+        <div className="cyber-card">
+          <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+            <LineChart className="w-5 h-5 text-indigo-400" />
+            누적 자산 추이
+          </h3>
+          <p className="text-sm text-gray-400 mb-6 font-mono">
+           // 월별 순변동과 누적 자산 가치를 별도 축으로 표시
+          </p>
+          <div className="h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData}>
+                <defs>
+                  <linearGradient id="accumulatedGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  stroke="#64748b"
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  axisLine={{ stroke: '#334155' }}
+                  dy={10}
+                />
+                <YAxis
+                  yAxisId="left"
+                  stroke="#64748b"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  axisLine={{ stroke: '#334155' }}
+                  tickFormatter={(value) => `${(value / 10000).toFixed(0)}만`}
+                  label={{ value: '월 순변동', angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
+                  dx={-10}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#6366f1"
+                  tick={{ fill: '#818cf8', fontSize: 11 }}
+                  axisLine={{ stroke: '#4f46e5' }}
+                  tickFormatter={(value) => `${(value / 10000).toFixed(0)}만`}
+                  domain={[dataMin => (dataMin * 0.95), dataMax => (dataMax * 1.05)]}
+                  label={{ value: '누적 자산', angle: 90, position: 'insideRight', style: { fill: '#6366f1' } }}
+                  dx={10}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    border: '1px solid #6366f1',
+                    borderRadius: '12px',
+                    boxShadow: '0 0 15px rgba(99, 102, 241, 0.3)',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                  itemStyle={{ color: '#e2e8f0' }}
+                  formatter={(value) => formatCurrency(value)}
+                  labelStyle={{ fontWeight: 'bold', color: '#818cf8', marginBottom: '8px' }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="circle"
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="netChange"
+                  fill="url(#accumulatedGradient)" // Using transparent gradient for netChange to focus on line, or maybe bar is good? Original used color logic.
+                // Let's keep the logic but use cyberpunk colors
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.netChange >= 0 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(244, 63, 94, 0.6)'} stroke={entry.netChange >= 0 ? '#10b981' : '#f43f5e'} />
+                  ))}
+                </Bar>
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="accumulated"
+                  stroke="#8b5cf6"
+                  strokeWidth={3}
+                  dot={{ fill: '#0f172a', r: 4, strokeWidth: 2, stroke: '#8b5cf6' }}
+                  activeDot={{ r: 6, strokeWidth: 2, fill: '#a78bfa' }}
+                  name="누적 자산"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
-      {/* Account Breakdown Table */}
-      <div className="card overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">계좌별 자산 현황</h2>
+      {/* Account Breakdown Table - Cyberpunk Style */}
+      <div className="cyber-card overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-700 bg-slate-900/50">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-indigo-400" />
+            계좌별 자산 현황
+          </h2>
           <div className="flex gap-2">
             <button
               onClick={handleAddAccount}
-              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
+              className="cyber-btn bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border-indigo-500/50 flex items-center gap-2 text-xs sm:text-sm px-3 py-1.5"
             >
               <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">계좌 추가</span>
@@ -1579,7 +1619,7 @@ const AssetStatus = () => {
             </button>
             <button
               onClick={() => setShowEditModal(true)}
-              className="btn-secondary flex items-center gap-2 text-xs sm:text-sm"
+              className="cyber-btn bg-teal-600/20 hover:bg-teal-600/40 text-teal-300 border-teal-500/50 flex items-center gap-2 text-xs sm:text-sm px-3 py-1.5"
             >
               <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">금액 수정</span>
@@ -1595,15 +1635,15 @@ const AssetStatus = () => {
             const percentage = totalAccountValue > 0 ? (account.total / totalAccountValue * 100) : 0
 
             return (
-              <div key={account.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow">
+              <div key={account.id} className="cyber-card p-3 !bg-slate-800/80 hover:border-indigo-500/50 transition-colors">
                 {/* Account Header */}
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Icon className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                    <span className="text-sm font-bold text-gray-900 truncate">{account.name}</span>
+                    <Icon className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                    <span className="text-sm font-bold text-white truncate">{account.name}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-1 rounded">
+                    <span className="text-xs font-semibold text-cyan-300 bg-cyan-900/30 border border-cyan-800 px-2 py-1 rounded">
                       {percentage.toFixed(0)}%
                     </span>
                   </div>
@@ -1616,25 +1656,25 @@ const AssetStatus = () => {
                     if (value === 0) return null
                     return (
                       <div key={cat.id} className="flex justify-between items-center">
-                        <span className="text-gray-600">{cat.name}</span>
-                        <span className="font-medium text-gray-900">{formatCurrency(value)}</span>
+                        <span className="text-gray-400">{cat.name}</span>
+                        <span className="font-medium text-gray-200">{formatCurrency(value)}</span>
                       </div>
                     )
                   })}
                 </div>
 
                 {/* Total */}
-                <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200">
-                  <span className="text-xs font-semibold text-gray-700">합계</span>
-                  <span className="text-sm font-bold text-gray-900">{formatCurrency(account.total)}</span>
+                <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-700">
+                  <span className="text-xs font-semibold text-gray-400">합계</span>
+                  <span className="text-sm font-bold text-indigo-300 neon-text-indigo">{formatCurrency(account.total)}</span>
                 </div>
               </div>
             )
           })}
 
           {/* Total Summary Card */}
-          <div className="border-2 border-blue-300 rounded-lg p-3 bg-blue-50">
-            <p className="text-sm font-bold text-blue-900 mb-2 text-center">전체 자산 합계</p>
+          <div className="cyber-card p-3 !bg-indigo-900/10 border-indigo-500/30">
+            <p className="text-sm font-bold text-indigo-300 mb-2 text-center">전체 자산 합계</p>
             <div className="space-y-2 text-xs">
               {ASSET_CATEGORIES.map(cat => {
                 const value = categoryTotals[cat.id] || 0
@@ -1642,36 +1682,36 @@ const AssetStatus = () => {
                 const catPercentage = totalAccountValue > 0 ? ((value) / totalAccountValue * 100) : 0
                 return (
                   <div key={cat.id} className="flex justify-between items-center">
-                    <span className="text-blue-700 font-medium">{cat.name}</span>
+                    <span className="text-gray-300 font-medium">{cat.name}</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-blue-900">{formatCurrency(value)}</span>
-                      <span className="text-blue-600 text-[10px] font-semibold bg-blue-100 px-1.5 py-0.5 rounded">
+                      <span className="font-bold text-gray-200">{formatCurrency(value)}</span>
+                      <span className="text-indigo-300 text-[10px] font-semibold bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30">
                         {catPercentage.toFixed(0)}%
                       </span>
                     </div>
                   </div>
                 )
               })}
-              <div className="flex justify-between items-center pt-2 mt-2 border-t border-blue-300">
-                <span className="text-blue-800 font-bold">TOTAL</span>
-                <span className="text-base font-bold text-blue-900">{formatCurrency(totalAccountValue)}</span>
+              <div className="flex justify-between items-center pt-2 mt-2 border-t border-indigo-500/30">
+                <span className="text-indigo-400 font-bold">TOTAL</span>
+                <span className="text-base font-bold text-white neon-text-white">{formatCurrency(totalAccountValue)}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden sm:block overflow-x-auto cyber-scrollbar">
+          <table className="w-full text-sm cyber-table">
             <thead>
-              <tr className="bg-blue-100 border-b border-blue-200">
-                <th className="text-left py-3 px-4 font-bold text-blue-900">항목</th>
+              <tr className="bg-slate-900/80 border-b border-slate-700">
+                <th className="text-left py-3 px-4 font-bold text-gray-300">항목</th>
                 {ASSET_CATEGORIES.map(cat => (
-                  <th key={cat.id} className="text-right py-3 px-4 font-bold text-blue-900 min-w-[100px]">
+                  <th key={cat.id} className="text-right py-3 px-4 font-bold text-gray-300 min-w-[100px]">
                     {cat.name}
                   </th>
                 ))}
-                <th className="text-right py-3 px-4 font-bold text-blue-900 bg-blue-200">TOTAL</th>
-                <th className="text-center py-3 px-4 font-bold text-blue-900 bg-blue-200">점유율</th>
+                <th className="text-right py-3 px-4 font-bold text-indigo-300 bg-indigo-900/10">TOTAL</th>
+                <th className="text-center py-3 px-4 font-bold text-indigo-300 bg-indigo-900/10">점유율</th>
               </tr>
             </thead>
 
@@ -1681,11 +1721,11 @@ const AssetStatus = () => {
                 const percentage = totalAccountValue > 0 ? (account.total / totalAccountValue * 100) : 0
 
                 return (
-                  <tr key={account.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium text-gray-900">
+                  <tr key={account.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+                    <td className="py-3 px-4 font-medium text-gray-200">
                       {editingCategoryId === account.id ? (
                         <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-gray-600" />
+                          <Icon className="w-4 h-4 text-indigo-400" />
                           <input
                             type="text"
                             value={editingCategoryName}
@@ -1694,19 +1734,19 @@ const AssetStatus = () => {
                               if (e.key === 'Enter') handleSaveAccountName()
                               if (e.key === 'Escape') handleCancelEditCategory()
                             }}
-                            className="flex-1 px-2 py-1 border border-primary-500 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                            className="flex-1 px-2 py-1 bg-slate-800 border border-indigo-500 rounded text-white focus:outline-none focus:ring-1 focus:ring-indigo-400 text-sm"
                             autoFocus
                           />
                           <button
                             onClick={handleSaveAccountName}
-                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            className="p-1 text-emerald-400 hover:bg-emerald-900/30 rounded"
                             title="저장"
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={handleCancelEditCategory}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            className="p-1 text-rose-400 hover:bg-rose-900/30 rounded"
                             title="취소"
                           >
                             <X className="w-4 h-4" />
@@ -1714,18 +1754,18 @@ const AssetStatus = () => {
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 group">
-                          <Icon className="w-4 h-4 text-gray-600" />
+                          <Icon className="w-4 h-4 text-indigo-400" />
                           <span>{account.name}</span>
                           <button
                             onClick={() => handleStartEditCategory(account.id, account.name)}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-opacity"
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-indigo-400 hover:bg-indigo-900/30 rounded transition-all transform hover:scale-110"
                             title="이름 수정"
                           >
                             <Edit className="w-3 h-3" />
                           </button>
                           <button
                             onClick={() => handleDeleteAccount(account.id)}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-opacity"
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-rose-400 hover:bg-rose-900/30 rounded transition-all transform hover:scale-110"
                             title="삭제"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -1734,14 +1774,14 @@ const AssetStatus = () => {
                       )}
                     </td>
                     {ASSET_CATEGORIES.map(cat => (
-                      <td key={cat.id} className="text-right py-3 px-4 text-gray-700">
+                      <td key={cat.id} className="text-right py-3 px-4 text-gray-400">
                         {formatCurrency(account.categories[cat.id] || 0)}
                       </td>
                     ))}
-                    <td className="text-right py-3 px-4 font-bold text-gray-900 bg-blue-50">
+                    <td className="text-right py-3 px-4 font-bold text-indigo-300 bg-indigo-900/5">
                       {formatCurrency(account.total)}
                     </td>
-                    <td className="text-center py-3 px-4 font-medium text-gray-900 bg-blue-50">
+                    <td className="text-center py-3 px-4 font-medium text-gray-400 bg-indigo-900/5">
                       {percentage.toFixed(0)}%
                     </td>
                   </tr>
@@ -1749,31 +1789,31 @@ const AssetStatus = () => {
               })}
 
               {/* Total Row */}
-              <tr className="bg-blue-100 border-t-2 border-blue-300 font-bold">
-                <td className="py-3 px-4 text-blue-900">TOTAL</td>
+              <tr className="bg-indigo-900/20 border-t-2 border-indigo-500/30 font-bold">
+                <td className="py-3 px-4 text-indigo-300">TOTAL</td>
                 {ASSET_CATEGORIES.map(cat => (
-                  <td key={cat.id} className="text-right py-3 px-4 text-blue-900">
+                  <td key={cat.id} className="text-right py-3 px-4 text-indigo-300">
                     {formatCurrency(categoryTotals[cat.id] || 0)}
                   </td>
                 ))}
-                <td className="text-right py-3 px-4 text-blue-900 bg-blue-200">
+                <td className="text-right py-3 px-4 text-white neon-text-white bg-indigo-900/30">
                   {formatCurrency(totalAccountValue)}
                 </td>
-                <td className="text-center py-3 px-4 text-blue-900 bg-blue-200">100%</td>
+                <td className="text-center py-3 px-4 text-indigo-300 bg-indigo-900/30">100%</td>
               </tr>
 
               {/* Percentage Row */}
-              <tr className="bg-blue-50 font-bold">
-                <td className="py-3 px-4 text-blue-900">점유율</td>
+              <tr className="bg-slate-800/50 font-medium">
+                <td className="py-3 px-4 text-gray-400">점유율</td>
                 {ASSET_CATEGORIES.map(cat => {
                   const catPercentage = totalAccountValue > 0 ? ((categoryTotals[cat.id] || 0) / totalAccountValue * 100) : 0
                   return (
-                    <td key={cat.id} className="text-center py-3 px-4 text-blue-900">
+                    <td key={cat.id} className="text-center py-3 px-4 text-gray-500">
                       {catPercentage.toFixed(0)}%
                     </td>
                   )
                 })}
-                <td className="text-center py-3 px-4 text-blue-900 bg-blue-100" colSpan="2">100%</td>
+                <td className="text-center py-3 px-4 text-gray-400 bg-indigo-900/10" colSpan="2">100%</td>
               </tr>
             </tbody>
           </table>
@@ -1821,7 +1861,7 @@ const AssetStatus = () => {
   )
 }
 
-// Add Year Modal Component
+// Add Year Modal Component - Cyberpunk Style
 const AddYearModal = ({ availableYears, onAdd, onClose }) => {
   const currentYear = new Date().getFullYear()
   // 현재 연도 기준 -2년 ~ +3년 범위 제공 (예: 2023~2028)
@@ -1834,33 +1874,34 @@ const AddYearModal = ({ availableYears, onAdd, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
-        <div className="border-b border-gray-200 px-6 py-4 rounded-t-2xl">
-          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-primary-600" />
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="cyber-card relative max-w-md w-full !bg-slate-900 !border-2 !border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)]">
+        <div className="border-b border-slate-700 px-6 py-4 bg-slate-800/50">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-indigo-400" />
             신규 연도 추가
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-400 mt-1">
             자산 현황을 관리할 연도를 선택하세요
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               연도 선택
             </label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-lg font-medium"
+              className="w-full px-4 py-3 bg-slate-800 border border-indigo-500/50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-lg font-medium text-white"
             >
               {yearOptions.map(year => (
                 <option
                   key={year}
                   value={year}
                   disabled={availableYears.includes(year)}
+                  className="bg-slate-800 text-white"
                 >
                   {year}년 {availableYears.includes(year) ? '(이미 존재)' : ''}
                 </option>
@@ -1869,24 +1910,24 @@ const AddYearModal = ({ availableYears, onAdd, onClose }) => {
           </div>
 
           {availableYears.includes(selectedYear) ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
+            <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4">
+              <p className="text-sm text-yellow-400">
                 ⚠️ {selectedYear}년은 이미 존재합니다. 해당 연도로 이동합니다.
               </p>
             </div>
           ) : (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
+            <div className="bg-indigo-900/20 border border-indigo-500/50 rounded-lg p-4">
+              <p className="text-sm text-indigo-300">
                 ✨ {selectedYear}년의 새로운 자산 현황 데이터가 생성됩니다.
               </p>
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button type="submit" className="btn-primary flex-1 py-3">
+          <div className="flex gap-3 pt-4 border-t border-slate-700">
+            <button type="submit" className="cyber-btn bg-indigo-600 hover:bg-indigo-500 text-white flex-1 py-3 shadow-[0_0_15px_rgba(79,70,229,0.4)]">
               {availableYears.includes(selectedYear) ? '이동하기' : '추가하기'}
             </button>
-            <button type="button" onClick={onClose} className="btn-secondary flex-1 py-3">
+            <button type="button" onClick={onClose} className="cyber-btn bg-slate-700 hover:bg-slate-600 text-gray-300 flex-1 py-3 border-slate-600">
               취소
             </button>
           </div>
@@ -1896,7 +1937,7 @@ const AddYearModal = ({ availableYears, onAdd, onClose }) => {
   )
 }
 
-// Edit Month Modal Component
+// Edit Month Modal Component - Cyberpunk Style
 const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, expenseCategories, onSave, onClose }) => {
   const [formData, setFormData] = useState({})
 
@@ -1927,33 +1968,36 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
-          <h3 className="text-xl font-bold text-gray-900">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="cyber-card relative max-w-2xl w-full max-h-[90vh] overflow-y-auto !bg-slate-900 !border-2 !border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)] cyber-scrollbar">
+        <div className="sticky top-0 bg-slate-900 z-10 border-b border-indigo-500/30 px-6 py-4">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <Edit className="w-5 h-5 text-indigo-400" />
             {year}년 {monthName} 데이터 수정
           </h3>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-8">
           {/* Income Section */}
           <div>
-            <h4 className="font-bold text-green-700 mb-3 flex items-center gap-2">
+            <h4 className="font-bold text-emerald-400 mb-4 flex items-center gap-2 text-lg border-b border-emerald-500/30 pb-2">
               <TrendingUp className="w-5 h-5" />
               수입 항목
             </h4>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {incomeCategories.map(cat => (
-                <div key={cat.id} className="flex items-center gap-3">
-                  <label className="w-40 text-sm font-medium text-gray-700">{cat.name}</label>
-                  <input
-                    type="number"
-                    value={formData[cat.id] || ''}
-                    onChange={(e) => handleChange(cat.id, e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="0"
-                  />
-                  <span className="text-sm text-gray-500 w-12">KRW</span>
+                <div key={cat.id} className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 hover:border-emerald-500/50 transition-colors">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">{cat.name}</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={formData[cat.id] || ''}
+                      onChange={(e) => handleChange(cat.id, e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white placeholder-gray-600"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-3 top-2 text-xs text-gray-500">KRW</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1961,36 +2005,38 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
 
           {/* Expense Section */}
           <div>
-            <h4 className="font-bold text-red-700 mb-3 flex items-center gap-2">
+            <h4 className="font-bold text-rose-400 mb-4 flex items-center gap-2 text-lg border-b border-rose-500/30 pb-2">
               <TrendingDown className="w-5 h-5" />
               지출 항목
             </h4>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {expenseCategories.map(cat => {
                 // 입출금 이력 연동 항목 확인
                 const isLinked = (cat.id === 'loan' || cat.id === 'vnd')
                 const linkedLabel = cat.id === 'loan' ? 'KRW' : (cat.id === 'vnd' ? 'VND' : '')
 
                 return (
-                  <div key={cat.id} className="flex items-center gap-3">
-                    <label className="w-40 text-sm font-medium text-gray-700">
+                  <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-rose-500/50 transition-colors`}>
+                    <label className="block text-sm font-medium text-gray-400 mb-2 flex justify-between">
                       {cat.name}
                       {isLinked && (
-                        <span className="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded" title={`입출금 이력 ${linkedLabel}과 자동 연동`}>
-                          🔗 자동
+                        <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title={`입출금 이력 ${linkedLabel}과 자동 연동`}>
+                          🔗 자동 연동
                         </span>
                       )}
                     </label>
-                    <input
-                      type="number"
-                      value={formData[cat.id] || ''}
-                      onChange={(e) => handleChange(cat.id, e.target.value)}
-                      className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isLinked ? 'border-blue-300 bg-blue-50' : 'border-gray-300'}`}
-                      placeholder="0"
-                      readOnly={isLinked}
-                      title={isLinked ? `입출금 이력 페이지의 ${linkedLabel} 거래 내역과 자동 연동됩니다` : ''}
-                    />
-                    <span className="text-sm text-gray-500 w-12">KRW</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={formData[cat.id] || ''}
+                        onChange={(e) => handleChange(cat.id, e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-600 ${isLinked ? 'bg-indigo-900/20 border border-indigo-500/30 focus:ring-indigo-500 cursor-not-allowed text-indigo-200' : 'bg-slate-900 border border-slate-600 focus:ring-rose-500'}`}
+                        placeholder="0"
+                        readOnly={isLinked}
+                        title={isLinked ? `입출금 이력 페이지의 ${linkedLabel} 거래 내역과 자동 연동됩니다` : ''}
+                      />
+                      <span className="absolute right-3 top-2 text-xs text-gray-500">KRW</span>
+                    </div>
                   </div>
                 )
               })}
@@ -1998,11 +2044,11 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button type="submit" className="btn-primary flex-1">
+          <div className="flex gap-3 pt-4 border-t border-slate-700 bg-slate-900 sticky bottom-0 z-10 pb-2">
+            <button type="submit" className="cyber-btn bg-emerald-600 hover:bg-emerald-500 text-white flex-1 py-3 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
               저장
             </button>
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+            <button type="button" onClick={onClose} className="cyber-btn bg-slate-700 hover:bg-slate-600 text-gray-300 flex-1 py-3 border-slate-600">
               취소
             </button>
           </div>
@@ -2012,7 +2058,7 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
   )
 }
 
-// Edit Account Modal Component
+// Edit Account Modal Component - Cyberpunk Style
 const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, portfolioMetrics, portfolioLinks, onLink, onUnlink }) => {
   const [formData, setFormData] = useState({})
   const [activeMetricPicker, setActiveMetricPicker] = useState(null)
@@ -2183,18 +2229,18 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="cyber-card relative max-w-2xl w-full max-h-[85vh] flex flex-col !bg-slate-900 !border-2 !border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)]">
           {/* 고정 헤더 */}
-          <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-2xl">
+          <div className="flex-shrink-0 bg-gradient-to-r from-indigo-900 to-purple-900 border-b border-indigo-500/50 px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">
+                <h3 className="text-xl font-bold text-white neon-text-indigo">
                   {year}년 계좌별 자산 수정
                 </h3>
-                <p className="text-sm text-blue-100 mt-1">각 계좌별로 자산 카테고리 금액을 입력하세요</p>
+                <p className="text-sm text-indigo-200 mt-1">각 계좌별로 자산 카테고리 금액을 입력하세요</p>
               </div>
-              <button type="button" onClick={onClose} className="text-white/80 hover:text-white">
+              <button type="button" onClick={onClose} className="text-white/80 hover:text-white transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -2202,15 +2248,15 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
 
           {/* 스크롤 가능한 콘텐츠 영역 */}
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 cyber-scrollbar">
               {accountTypes.map((acc) => {
                 const Icon = getIconComponent(acc.icon)
                 return (
-                  <div key={acc.id} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div key={acc.id} className="bg-slate-800/80 rounded-xl p-4 border border-slate-700 hover:border-indigo-500/50 transition-colors">
                     {/* 계좌명 헤더 */}
-                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-                      <Icon className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold text-gray-900">{acc.name}</span>
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-700/50">
+                      <Icon className="w-5 h-5 text-indigo-400" />
+                      <span className="font-semibold text-white">{acc.name}</span>
                     </div>
 
                     {/* 카테고리 그리드 - 2열 */}
@@ -2218,8 +2264,8 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                       {ASSET_CATEGORIES.map(cat => {
                         const linkedInfo = portfolioLinks?.[acc.id]?.[cat.id]
                         return (
-                          <div key={cat.id} className="bg-white rounded-lg p-3 border border-gray-100">
-                            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                          <div key={cat.id} className="bg-slate-900 rounded-lg p-3 border border-slate-700">
+                            <label className="block text-xs font-medium text-gray-400 mb-1.5">
                               {cat.name}
                             </label>
                             <div className="flex items-center gap-1">
@@ -2227,14 +2273,14 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                                 type="number"
                                 value={formData[acc.id]?.[cat.id] || ''}
                                 onChange={(e) => handleChange(acc.id, cat.id, e.target.value)}
-                                className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right text-sm font-medium"
+                                className="flex-1 min-w-0 px-2 py-1.5 bg-slate-800 border border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-right text-sm font-medium text-white"
                                 placeholder="0"
                               />
                               {portfolioAccountOptions.length > 0 && (
                                 <button
                                   type="button"
                                   onClick={() => handleOpenMetricPicker(acc.id, cat.id)}
-                                  className="flex-shrink-0 p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  className="flex-shrink-0 p-1.5 text-indigo-400 hover:bg-indigo-900/30 rounded-lg transition-colors border border-indigo-500/30"
                                   title="포트폴리오 값 선택"
                                 >
                                   <TrendingUp className="w-4 h-4" />
@@ -2242,14 +2288,14 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                               )}
                             </div>
                             {linkedInfo && (
-                              <div className="mt-1.5 flex items-center justify-between text-[10px] text-blue-700 bg-blue-50 rounded px-2 py-1">
+                              <div className="mt-1.5 flex items-center justify-between text-[10px] text-cyan-300 bg-cyan-900/30 border border-cyan-800 rounded px-2 py-1">
                                 <span className="truncate">
                                   🔗 {linkedInfo.portfolioAccount}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleUnlink(acc.id, cat.id)}
-                                  className="text-blue-600 hover:text-blue-800 ml-1"
+                                  className="text-rose-400 hover:text-rose-300 ml-1"
                                 >
                                   해제
                                 </button>
@@ -2265,11 +2311,11 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
             </div>
 
             {/* 고정 푸터 버튼 */}
-            <div className="flex-shrink-0 flex gap-3 p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
-              <button type="button" onClick={onClose} className="btn-secondary flex-1 py-2.5">
+            <div className="flex-shrink-0 flex gap-3 p-4 border-t border-slate-700 bg-slate-900">
+              <button type="button" onClick={onClose} className="cyber-btn bg-slate-700 hover:bg-slate-600 text-gray-300 flex-1 py-2.5 border-slate-600">
                 취소
               </button>
-              <button type="submit" className="btn-primary flex-1 py-2.5">
+              <button type="submit" className="cyber-btn bg-indigo-600 hover:bg-indigo-500 text-white flex-1 py-2.5 shadow-[0_0_15px_rgba(79,70,229,0.4)]">
                 저장
               </button>
             </div>
@@ -2278,28 +2324,28 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
       </div>
 
       {activeMetricPicker && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-lg font-semibold text-gray-900">포트폴리오 금액 적용</h4>
-              <button onClick={handleCloseMetricPicker} className="text-gray-500 hover:text-gray-700">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="cyber-card relative bg-slate-900 border border-indigo-500/50 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] w-full max-w-md mx-4 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-700 pb-3">
+              <h4 className="text-lg font-semibold text-white neon-text-blue">포트폴리오 금액 적용</h4>
+              <button onClick={handleCloseMetricPicker} className="text-gray-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {portfolioAccountOptions.length === 0 ? (
-              <p className="text-sm text-gray-600">포트폴리오 데이터가 없습니다. 먼저 포트폴리오에 계좌별 자산을 추가해주세요.</p>
+              <p className="text-sm text-gray-400">포트폴리오 데이터가 없습니다. 먼저 포트폴리오에 계좌별 자산을 추가해주세요.</p>
             ) : (
               <>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">계좌 선택</label>
+                  <label className="text-sm font-medium text-gray-300">계좌 선택</label>
                   <select
                     value={selectedPortfolioAccount}
                     onChange={(e) => setSelectedPortfolioAccount(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   >
                     {portfolioAccountOptions.map(option => (
-                      <option key={option.accountName} value={option.accountName}>
+                      <option key={option.accountName} value={option.accountName} className="bg-slate-800 text-white">
                         {option.accountName}
                       </option>
                     ))}
@@ -2307,32 +2353,32 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">항목 선택</label>
+                  <label className="text-sm font-medium text-gray-300">항목 선택</label>
                   <select
                     value={selectedPortfolioMetric}
                     onChange={(e) => setSelectedPortfolioMetric(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   >
                     {metricOptions.map(option => (
-                      <option key={option.key} value={option.key}>
+                      <option key={option.key} value={option.key} className="bg-slate-800 text-white">
                         {option.label} ({formatMetricValue(getMetricValue(selectedPortfolioAccount, option.key))}원)
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 pt-4 border-t border-gray-700 mt-2">
                   <button
                     type="button"
                     onClick={handleApplySelectedMetric}
-                    className="btn-primary flex-1"
+                    className="cyber-btn bg-blue-600 hover:bg-blue-500 text-white flex-1 py-2 shadow-[0_0_10px_rgba(37,99,235,0.4)]"
                   >
                     적용
                   </button>
                   <button
                     type="button"
                     onClick={handleCloseMetricPicker}
-                    className="btn-secondary flex-1"
+                    className="cyber-btn bg-slate-700 hover:bg-slate-600 text-gray-300 flex-1 py-2 border-slate-600"
                   >
                     취소
                   </button>
