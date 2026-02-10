@@ -71,7 +71,8 @@ class AIService {
    */
   async generateMarketSummary(marketData) {
     try {
-      const prompt = `다음 시장 데이터를 간단히 요약해주세요 (3-5문장):
+      const today = new Date().toLocaleDateString('ko-KR')
+      const prompt = `[${today} 기준] 다음 시장 데이터를 간단히 요약해주세요 (3-5문장):
 
 ${JSON.stringify(marketData, null, 2)}
 
@@ -89,11 +90,12 @@ ${JSON.stringify(marketData, null, 2)}
   }
 
   /**
-   * Generate detailed market report (ADVANCED task - uses GPT-5)
+   * Generate detailed market report (ADVANCED task - uses GPT-4o)
    */
   async generateMarketReport(marketData) {
     try {
-      const prompt = `다음 시장 데이터를 전문적으로 분석하여 상세 투자 리포트를 작성해주세요:
+      const today = new Date().toLocaleDateString('ko-KR')
+      const prompt = `[${today} 기준] 다음 시장 데이터를 전문적으로 분석하여 상세 투자 리포트를 작성해주세요:
 
 ${JSON.stringify(marketData, null, 2)}
 
@@ -118,11 +120,12 @@ ${JSON.stringify(marketData, null, 2)}
   }
 
   /**
-   * Analyze portfolio (ADVANCED task - uses GPT-5)
+   * Analyze portfolio (ADVANCED task - uses GPT-4o)
    */
   async analyzePortfolio(portfolioData) {
     try {
-      const prompt = `다음 포트폴리오를 전문적으로 분석하고 상세한 개선 제안을 해주세요:
+      const today = new Date().toLocaleDateString('ko-KR')
+      const prompt = `[${today} 기준] 다음 포트폴리오를 전문적으로 분석하고 상세한 개선 제안을 해주세요:
 
 ${JSON.stringify(portfolioData, null, 2)}
 
@@ -152,7 +155,8 @@ ${JSON.stringify(portfolioData, null, 2)}
    */
   async quickPortfolioCheck(portfolioData) {
     try {
-      const prompt = `다음 포트폴리오의 간단한 건강도 체크를 해주세요 (5문장 이내):
+      const today = new Date().toLocaleDateString('ko-KR')
+      const prompt = `[${today} 기준] 다음 포트폴리오의 간단한 건강도 체크를 해주세요 (5문장 이내):
 
 ${JSON.stringify(portfolioData, null, 2)}
 
@@ -170,11 +174,12 @@ ${JSON.stringify(portfolioData, null, 2)}
   }
 
   /**
-   * Generate investment insights (ADVANCED task - uses GPT-5)
+   * Generate investment insights (ADVANCED task - uses GPT-4o)
    */
   async generateInvestmentInsights(userQuestion, context = {}) {
     try {
-      const prompt = `사용자 질문: ${userQuestion}
+      const today = new Date().toLocaleDateString('ko-KR')
+      const prompt = `[${today} 기준] 사용자 질문: ${userQuestion}
 
 컨텍스트 정보:
 ${JSON.stringify(context, null, 2)}
@@ -193,7 +198,7 @@ ${JSON.stringify(context, null, 2)}
   }
 
   /**
-   * OpenAI API Call (GPT-5)
+   * OpenAI API Call (GPT-4o)
    */
   async callOpenAI(prompt, systemPrompt = '당신은 전문 재무 상담사입니다.') {
     if (!API_CONFIG.OPENAI_API_KEY) {

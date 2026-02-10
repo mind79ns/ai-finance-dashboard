@@ -817,25 +817,30 @@ ${insights.map(i => '- ' + i).join('\n')}
 대상 종목: ${targetName} (${targetSymbol})
 ${priceInfo}
 
-당신은 월스트리트의 전문 주식 애널리스트입니다. 오늘(${today}) 기준으로 위 종목에 대해 다음 구조로 심층 투자 분석 리포트를 작성해주세요:
+당신은 월스트리트의 최상위 헤지펀드 매니저이자 수석 애널리스트입니다.
+오늘(${today}) 기준으로 위 종목에 대해 투자자가 즉시 행동할 수 있는 핵심 정보를 짧고 강렬하게 요약해주세요.
 
-## 1. 🏢 기업 개요 및 최신 현황 (${today} 기준)
-- 기업의 비즈니스 모델 요약
-- 현재 시점 가장 중요한 이슈 및 최근 실적 트렌드
+반드시 다음 형식(Format)을 엄격히 준수하여 Markdown으로 출력하세요:
 
-## 2. 📈 투자 포인트 (Bull Case) & 리스크 (Bear Case)
-- 주가 상승을 견인할 긍정적 요인 2~3가지
-- 투자자가 주의해야 할 리스크 2~3가지
+## 1. 🎯 투자 의견 (Investment Rating)
+* **결론**: (매수 / 강력 매수 / 중립 / 매도 / 강력 매도 중 택 1)
+* **목표 주가**: (예상 범위 제시, 없으면 'N/A')
+* **핵심 근거**: (한 줄 요약)
 
-## 3. 💼 월스트리트 컨센서스 & 전망
-- 시장의 전반적인 평가 (매수/중립/매도 분위기)
-- 단기 및 중장기 전망
+## 2. 🔥 3줄 핵심 요약 (Key Takeaways)
+* (가장 중요한 상승 모멘텀)
+* (실적 또는 시장의 주요 우려 사항)
+* (수급 또는 차트상의 특이점)
+
+## 3. 📈 실적 전망 및 방향성 (Forecasting)
+* **단기 방향성**: (상승 / 하락 / 횡보 예상)
+* **실적 체크**: (최근 실적 요약 및 다음 분기 전망)
+* **대응 전략**: (지금 사야 할지, 팔아야 할지, 기다려야 할지 구체적 행동 지침)
 
 **작성 원칙:**
-- 반드시 오늘(${today}) 기준의 최신 정보를 바탕으로 분석하세요.
-- 오래된 정보는 배제하고 실시간성 이슈를 반영하세요.
-- 불확실한 루머보다는 팩트와 데이터에 기반하세요.
-- 결론에 명확한 투자 의견(매수/홀드/관망 등)을 포함하세요.`
+- 서술형 문장을 지양하고, **개조식(Bullet points)** 위주로 작성하여 가독성을 극대화하세요.
+- 불필요한 미사여구는 빼고 "돈이 되는 정보"만 담으세요.
+- ${today} 기준 최신 데이터를 반영하세요.`
 
       const analysis = await aiService.routeAIRequest(
         prompt,
@@ -1127,25 +1132,28 @@ ${assetsList}
                     }`}
                 >
                   <div>
-                    <p className="font-semibold text-sm text-white group-hover:text-green-300 transition-colors">🧠 GPT-5.2</p>
+                    <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🧠 GPT-4o</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      최신 플래그십 (Dec 2025)
+                      최신 플래그십 (Omni)
                     </p>
-                    <p className="text-xs text-green-400 mt-1">⭐ 최고 성능</p>
+                    <p className="text-xs text-yellow-500 mt-1">⭐ 최고 성능</p>
                   </div>
                 </button>
 
                 <button
                   onClick={() => setSelectedAI('gemini')}
-                  className={`p-3 rounded-lg border transition-all text-left group ${selectedAI === 'gemini'
-                    ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_10px_rgba(59,130,246,0.2)]'
-                    : 'border-gray-700 bg-slate-800 hover:border-blue-500/50 hover:bg-slate-700'
-                    }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${selectedAI === 'gemini'
+                    ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                    : 'border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:border-blue-500/50'
+                    } group`}
                 >
+                  <div className={`p-2 rounded-lg ${selectedAI === 'gemini' ? 'bg-blue-500/20' : 'bg-slate-700 group-hover:bg-blue-500/20'}`}>
+                    <TrendingUp className={`w-5 h-5 ${selectedAI === 'gemini' ? 'text-blue-400' : 'text-gray-400 group-hover:text-blue-400'}`} />
+                  </div>
                   <div>
-                    <p className="font-semibold text-sm text-white group-hover:text-blue-300 transition-colors">⚡ Gemini 3 Pro</p>
+                    <p className="font-semibold text-sm text-white group-hover:text-blue-300 transition-colors">⚡ Gemini 1.5 Pro</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Deep Think 지원 (Nov 2025)
+                      High Context (Long Token)
                     </p>
                     <p className="text-xs text-blue-400 mt-1">🚀 추론 강화</p>
                   </div>
@@ -1155,8 +1163,8 @@ ${assetsList}
               <div className="text-xs text-gray-400 bg-slate-800/50 p-2 rounded border border-gray-700">
                 <strong className="text-cyan-400">현재 선택:</strong> {
                   selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
-                    selectedAI === 'gpt' ? '🧠 GPT-5.2 (최신 플래그십)' :
-                      '⚡ Gemini 3 Pro Preview (Deep Think)'
+                    selectedAI === 'gpt' ? '🧠 GPT-4o (최신 플래그십)' :
+                      '⚡ Gemini 1.5 Pro (High Context)'
                 }
               </div>
             </div>
@@ -1194,7 +1202,7 @@ ${assetsList}
         <div className="space-y-6">
           <div className="bg-slate-800/50 border border-cyan-500/20 rounded-lg p-4 mb-4">
             <p className="text-sm text-cyan-200">
-              <strong className="text-cyan-400">🧠 GPT-5 사용:</strong> 상세한 시장 분석 및 투자 전략을 제공합니다 (고급 분석)
+              <strong className="text-cyan-400">🧠 GPT-4o 사용:</strong> 상세한 시장 분석 및 투자 전략을 제공합니다 (고급 분석)
             </p>
           </div>
           {marketInsights && (
@@ -1289,7 +1297,7 @@ ${assetsList}
         <div className="space-y-6">
           <div className="bg-slate-800/50 border border-purple-500/20 rounded-lg p-4 mb-4">
             <p className="text-sm text-purple-200">
-              <strong className="text-purple-400">🧠 GPT-5 사용:</strong> 심층 포트폴리오 분석 및 최적화 전략을 제공합니다 (전문가급 분석)
+              <strong className="text-purple-400">🧠 GPT-4o 사용:</strong> 심층 포트폴리오 분석 및 최적화 전략을 제공합니다 (전문가급 분석)
             </p>
           </div>
           {portfolioInsights && (
@@ -1397,7 +1405,7 @@ ${assetsList}
         <div className="space-y-6">
           <div className="bg-slate-800/50 border border-teal-500/20 rounded-lg p-4 mb-4">
             <p className="text-sm text-teal-200">
-              <strong className="text-teal-400">🔍 종목 심층 분석:</strong> Perplexity에서 최신 실시간 정보 검색 (2025년 기준)
+              <strong className="text-teal-400">🔍 종목 심층 분석:</strong> AI가 최신 시장 데이터를 분석하여 투자 의견을 제시합니다
             </p>
           </div>
 
@@ -1590,749 +1598,759 @@ ${assetsList}
             </>
           )}
 
-          {!selectedStock && !(customStockCode && customStockName) && (
-            <div className="cyber-card text-center py-12 border-dashed border-teal-500/30">
-              <TrendingUp className="w-12 h-12 text-teal-500/50 mx-auto mb-4" />
-              <p className="text-gray-400 font-medium">분석할 종목을 선택하거나 직접 입력해주세요</p>
-              <p className="text-sm text-gray-500 mt-2">
-                위 보유 종목 목록에서 선택하거나, 종목 코드와 이름을 직접 입력하세요
-              </p>
-            </div>
-          )}
-        </div>
+          {
+            !selectedStock && !(customStockCode && customStockName) && (
+              <div className="cyber-card text-center py-12 border-dashed border-teal-500/30">
+                <TrendingUp className="w-12 h-12 text-teal-500/50 mx-auto mb-4" />
+                <p className="text-gray-400 font-medium">분석할 종목을 선택하거나 직접 입력해주세요</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  위 보유 종목 목록에서 선택하거나, 종목 코드와 이름을 직접 입력하세요
+                </p>
+              </div>
+            )
+          }
+        </div >
       )}
 
       {/* Risk Analysis Tab */}
-      {activeTab === 'risk' && (
-        <div className="space-y-6">
-          <div className="bg-slate-800/50 border border-orange-500/20 rounded-lg p-4 mb-4">
-            <p className="text-sm text-orange-200">
-              <strong className="text-orange-400">📊 자동 계산:</strong> 포트폴리오의 변동성, 샤프지수, 집중도를 분석합니다
-            </p>
-          </div>
-          <button
-            onClick={generateRiskAnalysis}
-            disabled={loading || !portfolioData}
-            className="cyber-btn flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                분석 중...
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="w-5 h-5" />
-                리스크 진단 시작
-              </>
-            )}
-          </button>
+      {
+        activeTab === 'risk' && (
+          <div className="space-y-6">
+            <div className="bg-slate-800/50 border border-orange-500/20 rounded-lg p-4 mb-4">
+              <p className="text-sm text-orange-200">
+                <strong className="text-orange-400">📊 자동 계산:</strong> 포트폴리오의 변동성, 샤프지수, 집중도를 분석합니다
+              </p>
+            </div>
+            <button
+              onClick={generateRiskAnalysis}
+              disabled={loading || !portfolioData}
+              className="cyber-btn flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  분석 중...
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-5 h-5" />
+                  리스크 진단 시작
+                </>
+              )}
+            </button>
 
-          {riskAnalysis && !riskAnalysis.error && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="cyber-card">
-                  <h4 className="text-sm font-medium text-gray-400 mb-3">수익률 지표</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500">가중 평균 수익률</p>
-                      <p className="text-2xl font-bold text-white">
-                        {Number.isFinite(riskAnalysis.avgReturn)
-                          ? `${riskAnalysis.avgReturn >= 0 ? '+' : ''}${formatNumber(riskAnalysis.avgReturn, 2)}%`
-                          : 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">샤프 비율 (Sharpe Ratio)</p>
-                      <p className="text-2xl font-bold text-cyan-400">
-                        {formatNumber(riskAnalysis.sharpeRatio, 2)}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {Number(riskAnalysis.sharpeRatio) > 1
-                          ? '우수'
-                          : Number(riskAnalysis.sharpeRatio) > 0.5
-                            ? '양호'
-                            : '개선 필요'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="cyber-card">
-                  <h4 className="text-sm font-medium text-gray-400 mb-3">리스크 지표</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500">변동성 (Volatility)</p>
-                      <p
-                        className={`text-2xl font-bold ${riskAnalysis.riskLevel === 'High'
-                          ? 'text-rose-500'
-                          : riskAnalysis.riskLevel === 'Medium'
-                            ? 'text-orange-400'
-                            : 'text-emerald-400'
-                          }`}
-                      >
-                        {Number.isFinite(riskAnalysis.volatility)
-                          ? `${formatNumber(riskAnalysis.volatility, 2)}%`
-                          : 'N/A'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">위험도: {riskAnalysis.riskLevel}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">분산 점수</p>
-                      <p
-                        className={`text-lg font-bold ${riskAnalysis.diversificationScore === 'Excellent'
-                          ? 'text-emerald-400'
-                          : riskAnalysis.diversificationScore === 'Good'
-                            ? 'text-emerald-400'
-                            : riskAnalysis.diversificationScore === 'Fair'
-                              ? 'text-orange-400'
-                              : 'text-rose-500'
-                          }`}
-                      >
-                        {riskAnalysis.diversificationScore}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        집중도 지수: {formatNumber(riskAnalysis.concentrationIndex, 3)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="cyber-card">
-                  <h4 className="text-sm font-medium text-gray-400 mb-3">잠재 손실 추정</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500">1σ 기준 예상 하락폭</p>
-                      <p className="text-xl font-semibold text-white">
-                        {formatCurrency(riskAnalysis.expectedDrawdown, 'KRW')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">95% VaR (단순 추정)</p>
-                      <p className="text-xl font-semibold text-white">
-                        {formatCurrency(riskAnalysis.valueAtRisk, 'KRW')}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        통계적 추정치이며 실제 시장 변동과 차이가 있을 수 있습니다.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="cyber-card">
-                  <h4 className="text-sm font-medium text-gray-400 mb-3">집중도 & 노출</h4>
-                  <div className="space-y-2 text-sm text-gray-300">
-                    {riskAnalysis.largestPosition ? (
-                      <p>
-                        최대 보유 자산: <strong className="text-white">{riskAnalysis.largestPosition.symbol}</strong>{' '}
-                        ({formatNumber(riskAnalysis.largestPosition.weight * 100, 1)}% 비중,
-                        수익률 {formatNumber(riskAnalysis.largestPosition.profitPercent, 1)}%)
-                      </p>
-                    ) : (
-                      <p>최대 보유 자산 정보 없음</p>
-                    )}
-                    {riskAnalysis.weakestAsset ? (
-                      <p>
-                        부진 자산: <strong className="text-white">{riskAnalysis.weakestAsset.symbol}</strong>{' '}
-                        ({formatNumber(riskAnalysis.weakestAsset.profitPercent, 1)}%)
-                      </p>
-                    ) : (
-                      <p>부진 자산 정보 없음</p>
-                    )}
-                    {riskAnalysis.currencyExposure && riskAnalysis.currencyExposure.length ? (
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-500 mb-1">상위 통화 노출</p>
-                        <ul className="space-y-1">
-                          {riskAnalysis.currencyExposure.slice(0, 3).map(item => (
-                            <li key={item.currency} className="text-xs text-gray-400">
-                              {item.currency}: {formatNumber(item.percent, 1)}%
-                            </li>
-                          ))}
-                        </ul>
+            {riskAnalysis && !riskAnalysis.error && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="cyber-card">
+                    <h4 className="text-sm font-medium text-gray-400 mb-3">수익률 지표</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-gray-500">가중 평균 수익률</p>
+                        <p className="text-2xl font-bold text-white">
+                          {Number.isFinite(riskAnalysis.avgReturn)
+                            ? `${riskAnalysis.avgReturn >= 0 ? '+' : ''}${formatNumber(riskAnalysis.avgReturn, 2)}%`
+                            : 'N/A'}
+                        </p>
                       </div>
-                    ) : (
-                      <p className="text-xs text-gray-500">통화 노출 데이터 없음</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {riskAnalysis.insights && riskAnalysis.insights.length > 0 && (
-                <div className="cyber-card border-l-4 border-orange-500 bg-orange-900/20">
-                  <h4 className="text-sm font-semibold text-orange-400 mb-2">리스크 주요 포인트</h4>
-                  <ul className="space-y-1 text-xs text-orange-300">
-                    {riskAnalysis.insights.map((item, idx) => (
-                      <li key={idx}>• {item}</li>
-                    ))}
-                  </ul>
-                  <p className="text-[11px] text-orange-400/70 mt-3">
-                    자동 계산 지표는 참고용이며, 실제 의사결정 시 추가 데이터 확인과 전문가 상담이 필요합니다.
-                  </p>
-                </div>
-              )}
-
-              {/* AI 해석 */}
-              {riskAnalysis.aiInterpretation && (
-                <div className="cyber-card bg-gradient-to-r from-indigo-900/30 to-purple-900/30 border-l-4 border-indigo-500">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-semibold text-indigo-300 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" />
-                      🧠 AI 리스크 해석
-                    </h4>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => copyToClipboard(riskAnalysis.aiInterpretation)}
-                        className="text-xs text-indigo-400 hover:text-indigo-200"
-                      >
-                        복사
-                      </button>
-                      <button
-                        onClick={() => downloadReport('risk_analysis_ai', riskAnalysis.aiInterpretation)}
-                        className="text-xs text-indigo-400 hover:text-indigo-200"
-                      >
-                        다운로드
-                      </button>
+                      <div>
+                        <p className="text-xs text-gray-500">샤프 비율 (Sharpe Ratio)</p>
+                        <p className="text-2xl font-bold text-cyan-400">
+                          {formatNumber(riskAnalysis.sharpeRatio, 2)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {Number(riskAnalysis.sharpeRatio) > 1
+                            ? '우수'
+                            : Number(riskAnalysis.sharpeRatio) > 0.5
+                              ? '양호'
+                              : '개선 필요'}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="markdown-body">
-                    <ReactMarkdown
-                      className="prose prose-invert max-w-none leading-relaxed prose-strong:text-indigo-300"
-                      remarkPlugins={[remarkGfm]}
-                    >
-                      {riskAnalysis.aiInterpretation}
-                    </ReactMarkdown>
+
+                  <div className="cyber-card">
+                    <h4 className="text-sm font-medium text-gray-400 mb-3">리스크 지표</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-gray-500">변동성 (Volatility)</p>
+                        <p
+                          className={`text-2xl font-bold ${riskAnalysis.riskLevel === 'High'
+                            ? 'text-rose-500'
+                            : riskAnalysis.riskLevel === 'Medium'
+                              ? 'text-orange-400'
+                              : 'text-emerald-400'
+                            }`}
+                        >
+                          {Number.isFinite(riskAnalysis.volatility)
+                            ? `${formatNumber(riskAnalysis.volatility, 2)}%`
+                            : 'N/A'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">위험도: {riskAnalysis.riskLevel}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">분산 점수</p>
+                        <p
+                          className={`text-lg font-bold ${riskAnalysis.diversificationScore === 'Excellent'
+                            ? 'text-emerald-400'
+                            : riskAnalysis.diversificationScore === 'Good'
+                              ? 'text-emerald-400'
+                              : riskAnalysis.diversificationScore === 'Fair'
+                                ? 'text-orange-400'
+                                : 'text-rose-500'
+                            }`}
+                        >
+                          {riskAnalysis.diversificationScore}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          집중도 지수: {formatNumber(riskAnalysis.concentrationIndex, 3)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
 
-          {riskAnalysis && riskAnalysis.error && (
-            <div className="cyber-card text-center py-12">
-              <AlertTriangle className="w-12 h-12 text-orange-400 mx-auto mb-4" />
-              <p className="text-gray-400">{riskAnalysis.error}</p>
-            </div>
-          )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="cyber-card">
+                    <h4 className="text-sm font-medium text-gray-400 mb-3">잠재 손실 추정</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-gray-500">1σ 기준 예상 하락폭</p>
+                        <p className="text-xl font-semibold text-white">
+                          {formatCurrency(riskAnalysis.expectedDrawdown, 'KRW')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">95% VaR (단순 추정)</p>
+                        <p className="text-xl font-semibold text-white">
+                          {formatCurrency(riskAnalysis.valueAtRisk, 'KRW')}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          통계적 추정치이며 실제 시장 변동과 차이가 있을 수 있습니다.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-          {!riskAnalysis && !loading && (
-            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
-              <AlertTriangle className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">리스크 진단을 시작하려면 버튼을 클릭하세요</p>
-            </div>
-          )}
-        </div>
-      )}
+                  <div className="cyber-card">
+                    <h4 className="text-sm font-medium text-gray-400 mb-3">집중도 & 노출</h4>
+                    <div className="space-y-2 text-sm text-gray-300">
+                      {riskAnalysis.largestPosition ? (
+                        <p>
+                          최대 보유 자산: <strong className="text-white">{riskAnalysis.largestPosition.symbol}</strong>{' '}
+                          ({formatNumber(riskAnalysis.largestPosition.weight * 100, 1)}% 비중,
+                          수익률 {formatNumber(riskAnalysis.largestPosition.profitPercent, 1)}%)
+                        </p>
+                      ) : (
+                        <p>최대 보유 자산 정보 없음</p>
+                      )}
+                      {riskAnalysis.weakestAsset ? (
+                        <p>
+                          부진 자산: <strong className="text-white">{riskAnalysis.weakestAsset.symbol}</strong>{' '}
+                          ({formatNumber(riskAnalysis.weakestAsset.profitPercent, 1)}%)
+                        </p>
+                      ) : (
+                        <p>부진 자산 정보 없음</p>
+                      )}
+                      {riskAnalysis.currencyExposure && riskAnalysis.currencyExposure.length ? (
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-500 mb-1">상위 통화 노출</p>
+                          <ul className="space-y-1">
+                            {riskAnalysis.currencyExposure.slice(0, 3).map(item => (
+                              <li key={item.currency} className="text-xs text-gray-400">
+                                {item.currency}: {formatNumber(item.percent, 1)}%
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500">통화 노출 데이터 없음</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {riskAnalysis.insights && riskAnalysis.insights.length > 0 && (
+                  <div className="cyber-card border-l-4 border-orange-500 bg-orange-900/20">
+                    <h4 className="text-sm font-semibold text-orange-400 mb-2">리스크 주요 포인트</h4>
+                    <ul className="space-y-1 text-xs text-orange-300">
+                      {riskAnalysis.insights.map((item, idx) => (
+                        <li key={idx}>• {item}</li>
+                      ))}
+                    </ul>
+                    <p className="text-[11px] text-orange-400/70 mt-3">
+                      자동 계산 지표는 참고용이며, 실제 의사결정 시 추가 데이터 확인과 전문가 상담이 필요합니다.
+                    </p>
+                  </div>
+                )}
+
+                {/* AI 해석 */}
+                {riskAnalysis.aiInterpretation && (
+                  <div className="cyber-card bg-gradient-to-r from-indigo-900/30 to-purple-900/30 border-l-4 border-indigo-500">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-indigo-300 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        🧠 AI 리스크 해석
+                      </h4>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => copyToClipboard(riskAnalysis.aiInterpretation)}
+                          className="text-xs text-indigo-400 hover:text-indigo-200"
+                        >
+                          복사
+                        </button>
+                        <button
+                          onClick={() => downloadReport('risk_analysis_ai', riskAnalysis.aiInterpretation)}
+                          className="text-xs text-indigo-400 hover:text-indigo-200"
+                        >
+                          다운로드
+                        </button>
+                      </div>
+                    </div>
+                    <div className="markdown-body">
+                      <ReactMarkdown
+                        className="prose prose-invert max-w-none leading-relaxed prose-strong:text-indigo-300"
+                        remarkPlugins={[remarkGfm]}
+                      >
+                        {riskAnalysis.aiInterpretation}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {riskAnalysis && riskAnalysis.error && (
+              <div className="cyber-card text-center py-12">
+                <AlertTriangle className="w-12 h-12 text-orange-400 mx-auto mb-4" />
+                <p className="text-gray-400">{riskAnalysis.error}</p>
+              </div>
+            )}
+
+            {!riskAnalysis && !loading && (
+              <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+                <AlertTriangle className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">리스크 진단을 시작하려면 버튼을 클릭하세요</p>
+              </div>
+            )}
+          </div>
+        )
+      }
 
       {/* Rebalancing Tab */}
-      {activeTab === 'rebalancing' && (
-        <div className="space-y-6">
-          <div className="bg-slate-800/50 border border-indigo-500/20 rounded-lg p-4 mb-4">
-            <p className="text-sm text-indigo-200">
-              <strong className="text-indigo-400">🧠 GPT-5.2 + 자동 계산:</strong> 목표 비율을 설정하면 AI가 리밸런싱 전략을 제안하고, 매매 금액을 자동으로 계산합니다
-            </p>
-          </div>
+      {
+        activeTab === 'rebalancing' && (
+          <div className="space-y-6">
+            <div className="bg-slate-800/50 border border-indigo-500/20 rounded-lg p-4 mb-4">
+              <p className="text-sm text-indigo-200">
+                <strong className="text-indigo-400">🧠 GPT-5.2 + 자동 계산:</strong> 목표 비율을 설정하면 AI가 리밸런싱 전략을 제안하고, 매매 금액을 자동으로 계산합니다
+              </p>
+            </div>
 
-          {/* 목표 비율 설정 UI */}
-          {portfolioData?.assets?.length > 0 && (
-            <div className="cyber-card">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold text-white">🎯 목표 자산 배분 설정</h4>
-                <div className="flex gap-2">
-                  <button
-                    onClick={initTargetAllocation}
-                    className="text-xs px-3 py-1 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition-colors"
-                  >
-                    현재 비율로 초기화
-                  </button>
-                  <button
-                    onClick={() => setShowRebalanceCalc(!showRebalanceCalc)}
-                    className="text-xs px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/30 transition-colors"
-                  >
-                    {showRebalanceCalc ? '계산 숨기기' : '매매 금액 계산'}
-                  </button>
+            {/* 목표 비율 설정 UI */}
+            {portfolioData?.assets?.length > 0 && (
+              <div className="cyber-card">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-white">🎯 목표 자산 배분 설정</h4>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={initTargetAllocation}
+                      className="text-xs px-3 py-1 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition-colors"
+                    >
+                      현재 비율로 초기화
+                    </button>
+                    <button
+                      onClick={() => setShowRebalanceCalc(!showRebalanceCalc)}
+                      className="text-xs px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/30 transition-colors"
+                    >
+                      {showRebalanceCalc ? '계산 숨기기' : '매매 금액 계산'}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-3">
-                {portfolioData.assets.map(asset => {
-                  const totalValue = portfolioData.assets.reduce((sum, a) => sum + (a.valueKRW || 0), 0)
-                  const currentPercent = ((asset.valueKRW || 0) / totalValue) * 100
-                  const targetPercent = targetAllocation[asset.symbol] ?? currentPercent
+                <div className="space-y-3">
+                  {portfolioData.assets.map(asset => {
+                    const totalValue = portfolioData.assets.reduce((sum, a) => sum + (a.valueKRW || 0), 0)
+                    const currentPercent = ((asset.valueKRW || 0) / totalValue) * 100
+                    const targetPercent = targetAllocation[asset.symbol] ?? currentPercent
 
-                  return (
-                    <div key={asset.symbol} className="flex items-center gap-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-indigo-500/30 transition-colors">
-                      <div className="w-24 flex-shrink-0">
-                        <p className="text-sm font-medium text-indigo-300">{asset.symbol}</p>
-                        <p className="text-xs text-gray-500">{formatCurrency(asset.valueKRW || 0, 'KRW')}</p>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-gray-400 w-16">현재 {currentPercent.toFixed(1)}%</span>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="0.5"
-                            value={targetPercent}
-                            onChange={(e) => setTargetAllocation(prev => ({
-                              ...prev,
-                              [asset.symbol]: parseFloat(e.target.value)
-                            }))}
-                            className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400"
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.5"
-                            value={targetPercent}
-                            onChange={(e) => setTargetAllocation(prev => ({
-                              ...prev,
-                              [asset.symbol]: parseFloat(e.target.value) || 0
-                            }))}
-                            className="w-16 px-2 py-1 text-sm bg-slate-900 border border-slate-600 rounded text-center text-white focus:outline-none focus:border-indigo-500"
-                          />
-                          <span className="text-xs text-gray-500">%</span>
+                    return (
+                      <div key={asset.symbol} className="flex items-center gap-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-indigo-500/30 transition-colors">
+                        <div className="w-24 flex-shrink-0">
+                          <p className="text-sm font-medium text-indigo-300">{asset.symbol}</p>
+                          <p className="text-xs text-gray-500">{formatCurrency(asset.valueKRW || 0, 'KRW')}</p>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-gray-400 w-16">현재 {currentPercent.toFixed(1)}%</span>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={targetPercent}
+                              onChange={(e) => setTargetAllocation(prev => ({
+                                ...prev,
+                                [asset.symbol]: parseFloat(e.target.value)
+                              }))}
+                              className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400"
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={targetPercent}
+                              onChange={(e) => setTargetAllocation(prev => ({
+                                ...prev,
+                                [asset.symbol]: parseFloat(e.target.value) || 0
+                              }))}
+                              className="w-16 px-2 py-1 text-sm bg-slate-900 border border-slate-600 rounded text-center text-white focus:outline-none focus:border-indigo-500"
+                            />
+                            <span className="text-xs text-gray-500">%</span>
+                          </div>
+                        </div>
+                        <div className="w-20 text-right">
+                          {targetPercent !== currentPercent && (
+                            <span className={`text-xs font-medium ${targetPercent > currentPercent ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {targetPercent > currentPercent ? '▲' : '▼'} {Math.abs(targetPercent - currentPercent).toFixed(1)}%
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="w-20 text-right">
-                        {targetPercent !== currentPercent && (
-                          <span className={`text-xs font-medium ${targetPercent > currentPercent ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {targetPercent > currentPercent ? '▲' : '▼'} {Math.abs(targetPercent - currentPercent).toFixed(1)}%
-                          </span>
-                        )}
+                    )
+                  })}
+                </div>
+
+                {/* 목표 비율 합계 */}
+                <div className="mt-4 p-3 bg-slate-800 rounded-lg border border-slate-700">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">목표 비율 합계:</span>
+                    <span className={`font-semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
+                      ? 'text-emerald-400' : 'text-orange-400'
+                      }`}>
+                      {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
+                      {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 1 &&
+                        ' (100%로 맞춰주세요)'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 매매 금액 계산 결과 */}
+            {showRebalanceCalc && calculateRebalanceTrades.length > 0 && (
+              <div className="cyber-card bg-gradient-to-r from-emerald-900/20 to-blue-900/20 border-l-4 border-emerald-500">
+                <h4 className="text-sm font-semibold text-white mb-3">💰 리밸런싱 매매 금액</h4>
+                <div className="space-y-2">
+                  {calculateRebalanceTrades.map(trade => (
+                    <div key={trade.symbol} className="flex items-center justify-between p-2 bg-slate-800/80 rounded-lg border border-slate-700">
+                      <div>
+                        <span className="font-medium text-gray-200">{trade.symbol}</span>
+                        <span className="text-xs text-gray-400 ml-2">
+                          {trade.currentPercent.toFixed(1)}% → {trade.targetPercent.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`font-semibold ${trade.action === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {trade.action === 'BUY' ? '📈 매수' : '📉 매도'}
+                        </span>
+                        <p className={`text-sm font-bold ${trade.action === 'BUY' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {formatCurrency(Math.abs(trade.tradeAmount), 'KRW')}
+                        </p>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-
-              {/* 목표 비율 합계 */}
-              <div className="mt-4 p-3 bg-slate-800 rounded-lg border border-slate-700">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">목표 비율 합계:</span>
-                  <span className={`font-semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
-                    ? 'text-emerald-400' : 'text-orange-400'
-                    }`}>
-                    {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
-                    {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 1 &&
-                      ' (100%로 맞춰주세요)'}
+                  ))}
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-700 flex justify-between text-sm">
+                  <span className="text-gray-400">총 매수 금액:</span>
+                  <span className="font-semibold text-emerald-400">
+                    {formatCurrency(
+                      calculateRebalanceTrades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.tradeAmount, 0),
+                      'KRW'
+                    )}
                   </span>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 매매 금액 계산 결과 */}
-          {showRebalanceCalc && calculateRebalanceTrades.length > 0 && (
-            <div className="cyber-card bg-gradient-to-r from-emerald-900/20 to-blue-900/20 border-l-4 border-emerald-500">
-              <h4 className="text-sm font-semibold text-white mb-3">💰 리밸런싱 매매 금액</h4>
-              <div className="space-y-2">
-                {calculateRebalanceTrades.map(trade => (
-                  <div key={trade.symbol} className="flex items-center justify-between p-2 bg-slate-800/80 rounded-lg border border-slate-700">
-                    <div>
-                      <span className="font-medium text-gray-200">{trade.symbol}</span>
-                      <span className="text-xs text-gray-400 ml-2">
-                        {trade.currentPercent.toFixed(1)}% → {trade.targetPercent.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className={`font-semibold ${trade.action === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {trade.action === 'BUY' ? '📈 매수' : '📉 매도'}
-                      </span>
-                      <p className={`text-sm font-bold ${trade.action === 'BUY' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {formatCurrency(Math.abs(trade.tradeAmount), 'KRW')}
-                      </p>
-                    </div>
+            {/* 자산 배분 차트 */}
+            {allocationChartData.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 현재 자산 배분 파이 차트 */}
+                <div className="cyber-card">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-3">📊 현재 자산 배분</h4>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={allocationChartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${percent}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {allocationChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} stroke="rgba(0,0,0,0.5)" />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value) => formatCurrency(value, 'KRW')}
+                          contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#334155', color: '#e2e8f0' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
-              </div>
-              <div className="mt-3 pt-3 border-t border-slate-700 flex justify-between text-sm">
-                <span className="text-gray-400">총 매수 금액:</span>
-                <span className="font-semibold text-emerald-400">
-                  {formatCurrency(
-                    calculateRebalanceTrades.filter(t => t.action === 'BUY').reduce((s, t) => s + t.tradeAmount, 0),
-                    'KRW'
-                  )}
-                </span>
-              </div>
-            </div>
-          )}
+                </div>
 
-          {/* 자산 배분 차트 */}
-          {allocationChartData.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* 현재 자산 배분 파이 차트 */}
+                {/* 현재 vs 목표 비교 바 차트 */}
+                <div className="cyber-card">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-3">📈 현재 vs 목표 비율</h4>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={rebalanceChartData} layout="vertical">
+                        <XAxis type="number" domain={[0, 100]} unit="%" stroke="#94a3b8" fontSize={12} />
+                        <YAxis type="category" dataKey="name" width={60} stroke="#94a3b8" fontSize={12} />
+                        <Tooltip
+                          formatter={(value) => `${value}%`}
+                          contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#334155', color: '#e2e8f0' }}
+                        />
+                        <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                        <Bar dataKey="current" name="현재" fill="#94a3b8" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="target" name="목표" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {portfolioInsights && (
+              <div className="cyber-card border border-indigo-500/30 bg-indigo-900/20">
+                <h4 className="text-sm font-semibold text-indigo-300 mb-2">리밸런싱 참고 지표</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-indigo-200">
+                  <div>
+                    <p className="font-medium mb-1 text-indigo-400">과도 비중</p>
+                    <ul className="space-y-1">
+                      {portfolioInsights.overweightTypes.length
+                        ? portfolioInsights.overweightTypes.map((item, idx) => (
+                          <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
+                        ))
+                        : <li>• 과도 비중 섹터 없음</li>
+                      }
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-1 text-indigo-400">부족 비중</p>
+                    <ul className="space-y-1">
+                      {portfolioInsights.underweightTypes.length
+                        ? portfolioInsights.underweightTypes.map((item, idx) => (
+                          <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
+                        ))
+                        : <li>• 부족 비중 섹터 없음</li>
+                      }
+                    </ul>
+                  </div>
+                </div>
+                {portfolioInsights.currencyExposure.length > 0 && (
+                  <div className="mt-3 text-xs text-indigo-200">
+                    <p className="font-medium mb-1 text-indigo-400">통화 노출 상위</p>
+                    <ul className="space-y-1">
+                      {portfolioInsights.currencyExposure.slice(0, 3).map((item, idx) => (
+                        <li key={idx}>- {item.currency}: {formatNumber(item.percent, 1)}%</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              onClick={generateRebalancingSuggestion}
+              disabled={loading || !portfolioData}
+              className="cyber-btn flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  생성 중...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="w-5 h-5" />
+                  리밸런싱 제안 생성
+                </>
+              )}
+            </button>
+
+            {rebalancingSuggestion && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(rebalancingSuggestion)}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
+                >
+                  복사
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadReport('rebalancing_plan', rebalancingSuggestion)}
+                  className="px-3 py-1.5 text-xs font-medium text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10 transition-colors"
+                >
+                  다운로드
+                </button>
+              </div>
+            )}
+
+            {rebalancingSuggestion && (
               <div className="cyber-card">
-                <h4 className="text-sm font-semibold text-gray-300 mb-3">📊 현재 자산 배분</h4>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={allocationChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${percent}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-5 h-5 text-emerald-400" />
+                  <h3 className="text-lg font-semibold text-white">리밸런싱 전략 제안</h3>
+                </div>
+                <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
+                  <ReactMarkdown
+                    className="prose prose-invert max-w-none leading-relaxed prose-headings:text-emerald-300 prose-strong:text-emerald-200"
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {rebalancingSuggestion}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
+
+            {!rebalancingSuggestion && !loading && (
+              <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+                <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">리밸런싱 제안을 생성하려면 버튼을 클릭하세요</p>
+              </div>
+            )}
+          </div>
+        )
+      }
+
+      {/* AI Timing Analysis Tab */}
+      {
+        activeTab === 'timing' && (
+          <div className="space-y-6">
+            <div className="bg-slate-800/50 border border-purple-500/20 rounded-lg p-4 mb-4">
+              <p className="text-sm text-purple-200">
+                <strong className="text-purple-400">🔮 AI 매매 타이밍:</strong> 원하는 종목을 선택하여 기술적 분석 기반 매수/매도 신호를 AI가 분석합니다.
+              </p>
+            </div>
+
+            {/* 종목 선택 UI */}
+            <div className="cyber-card mb-4">
+              <h4 className="text-sm font-semibold text-gray-300 mb-3">📋 분석할 종목 선택</h4>
+
+              {/* 보유 종목에서 선택 */}
+              {portfolioData?.assets?.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 mb-2">보유 종목에서 선택:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                    {portfolioData.assets.map(asset => (
+                      <label
+                        key={asset.symbol}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
+                          ? 'bg-purple-500/20 border-purple-500/50 border'
+                          : 'bg-slate-800 hover:bg-slate-700 border border-transparent'
+                          }`}
                       >
-                        {allocationChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} stroke="rgba(0,0,0,0.5)" />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => formatCurrency(value, 'KRW')}
-                        contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#334155', color: '#e2e8f0' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* 현재 vs 목표 비교 바 차트 */}
-              <div className="cyber-card">
-                <h4 className="text-sm font-semibold text-gray-300 mb-3">📈 현재 vs 목표 비율</h4>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={rebalanceChartData} layout="vertical">
-                      <XAxis type="number" domain={[0, 100]} unit="%" stroke="#94a3b8" fontSize={12} />
-                      <YAxis type="category" dataKey="name" width={60} stroke="#94a3b8" fontSize={12} />
-                      <Tooltip
-                        formatter={(value) => `${value}%`}
-                        contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#334155', color: '#e2e8f0' }}
-                      />
-                      <Legend wrapperStyle={{ color: '#94a3b8' }} />
-                      <Bar dataKey="current" name="현재" fill="#94a3b8" radius={[0, 4, 4, 0]} />
-                      <Bar dataKey="target" name="목표" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {portfolioInsights && (
-            <div className="cyber-card border border-indigo-500/30 bg-indigo-900/20">
-              <h4 className="text-sm font-semibold text-indigo-300 mb-2">리밸런싱 참고 지표</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-indigo-200">
-                <div>
-                  <p className="font-medium mb-1 text-indigo-400">과도 비중</p>
-                  <ul className="space-y-1">
-                    {portfolioInsights.overweightTypes.length
-                      ? portfolioInsights.overweightTypes.map((item, idx) => (
-                        <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
-                      ))
-                      : <li>• 과도 비중 섹터 없음</li>
-                    }
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-medium mb-1 text-indigo-400">부족 비중</p>
-                  <ul className="space-y-1">
-                    {portfolioInsights.underweightTypes.length
-                      ? portfolioInsights.underweightTypes.map((item, idx) => (
-                        <li key={idx}>• {item.type}: {formatNumber(item.percent, 1)}%</li>
-                      ))
-                      : <li>• 부족 비중 섹터 없음</li>
-                    }
-                  </ul>
-                </div>
-              </div>
-              {portfolioInsights.currencyExposure.length > 0 && (
-                <div className="mt-3 text-xs text-indigo-200">
-                  <p className="font-medium mb-1 text-indigo-400">통화 노출 상위</p>
-                  <ul className="space-y-1">
-                    {portfolioInsights.currencyExposure.slice(0, 3).map((item, idx) => (
-                      <li key={idx}>- {item.currency}: {formatNumber(item.percent, 1)}%</li>
+                        <input
+                          type="checkbox"
+                          checked={selectedStocksForAI.some(s => s.symbol === asset.symbol)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedStocksForAI(prev => [...prev, {
+                                symbol: asset.symbol,
+                                name: asset.name || asset.type,
+                                currentPrice: asset.currentPrice,
+                                profitPercent: asset.profitPercent
+                              }])
+                            } else {
+                              setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== asset.symbol))
+                            }
+                          }}
+                          className="w-4 h-4 text-purple-500 bg-slate-700 border-slate-600 rounded focus:ring-purple-500 focus:ring-offset-slate-800"
+                        />
+                        <span className="text-xs font-medium text-gray-300">{asset.symbol}</span>
+                      </label>
                     ))}
-                  </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* 직접 입력 */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customAISymbol}
+                  onChange={(e) => setCustomAISymbol(e.target.value.toUpperCase())}
+                  placeholder="종목 심볼 입력 (예: AAPL)"
+                  className="flex-1 px-3 py-2 text-sm bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-600"
+                />
+                <button
+                  onClick={() => {
+                    if (customAISymbol.trim() && !selectedStocksForAI.some(s => s.symbol === customAISymbol.trim())) {
+                      setSelectedStocksForAI(prev => [...prev, {
+                        symbol: customAISymbol.trim(),
+                        name: customAISymbol.trim()
+                      }])
+                      setCustomAISymbol('')
+                    }
+                  }}
+                  className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  추가
+                </button>
+              </div>
+
+              {/* 선택된 종목 표시 */}
+              {selectedStocksForAI.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                  <p className="text-xs text-gray-500 mb-2">선택된 종목 ({selectedStocksForAI.length}개):</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedStocksForAI.map(stock => (
+                      <span key={stock.symbol} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-900/40 text-purple-300 border border-purple-500/30 text-xs rounded-full">
+                        {stock.symbol}
+                        <button
+                          onClick={() => setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== stock.symbol))}
+                          className="text-purple-400 hover:text-white ml-1"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <button
+                      onClick={() => setSelectedStocksForAI([])}
+                      className="text-xs text-gray-500 hover:text-gray-300 ml-1"
+                    >
+                      전체 해제
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-          )}
-          <button
-            onClick={generateRebalancingSuggestion}
-            disabled={loading || !portfolioData}
-            className="cyber-btn flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                생성 중...
-              </>
-            ) : (
-              <>
-                <TrendingUp className="w-5 h-5" />
-                리밸런싱 제안 생성
-              </>
-            )}
-          </button>
 
-          {rebalancingSuggestion && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => copyToClipboard(rebalancingSuggestion)}
-                className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
-              >
-                복사
-              </button>
-              <button
-                type="button"
-                onClick={() => downloadReport('rebalancing_plan', rebalancingSuggestion)}
-                className="px-3 py-1.5 text-xs font-medium text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10 transition-colors"
-              >
-                다운로드
-              </button>
-            </div>
-          )}
+            <button
+              onClick={generateTimingAnalysis}
+              disabled={loading}
+              className="cyber-btn flex items-center gap-2"
+            >
+              {loading ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {loading ? '분석 중...' : selectedStocksForAI.length > 0 ? `${selectedStocksForAI.length}개 종목 분석 생성` : '전체 포트폴리오 분석 생성'}
+            </button>
 
-          {rebalancingSuggestion && (
-            <div className="cyber-card">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-lg font-semibold text-white">리밸런싱 전략 제안</h3>
-              </div>
-              <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
-                <ReactMarkdown
-                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-emerald-300 prose-strong:text-emerald-200"
-                  remarkPlugins={[remarkGfm]}
-                >
-                  {rebalancingSuggestion}
-                </ReactMarkdown>
-              </div>
-            </div>
-          )}
-
-          {!rebalancingSuggestion && !loading && (
-            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
-              <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">리밸런싱 제안을 생성하려면 버튼을 클릭하세요</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* AI Timing Analysis Tab */}
-      {activeTab === 'timing' && (
-        <div className="space-y-6">
-          <div className="bg-slate-800/50 border border-purple-500/20 rounded-lg p-4 mb-4">
-            <p className="text-sm text-purple-200">
-              <strong className="text-purple-400">🔮 AI 매매 타이밍:</strong> 원하는 종목을 선택하여 기술적 분석 기반 매수/매도 신호를 AI가 분석합니다.
-            </p>
-          </div>
-
-          {/* 종목 선택 UI */}
-          <div className="cyber-card mb-4">
-            <h4 className="text-sm font-semibold text-gray-300 mb-3">📋 분석할 종목 선택</h4>
-
-            {/* 보유 종목에서 선택 */}
-            {portfolioData?.assets?.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-gray-500 mb-2">보유 종목에서 선택:</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  {portfolioData.assets.map(asset => (
-                    <label
-                      key={asset.symbol}
-                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
-                        ? 'bg-purple-500/20 border-purple-500/50 border'
-                        : 'bg-slate-800 hover:bg-slate-700 border border-transparent'
-                        }`}
+            {timingAnalysis && (
+              <div className="cyber-card bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-l-4 border-purple-500">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-purple-300">🔮 AI 매매 타이밍 분석</h4>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => copyToClipboard(timingAnalysis)}
+                      className="text-xs text-purple-400 hover:text-purple-200"
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedStocksForAI.some(s => s.symbol === asset.symbol)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedStocksForAI(prev => [...prev, {
-                              symbol: asset.symbol,
-                              name: asset.name || asset.type,
-                              currentPrice: asset.currentPrice,
-                              profitPercent: asset.profitPercent
-                            }])
-                          } else {
-                            setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== asset.symbol))
-                          }
-                        }}
-                        className="w-4 h-4 text-purple-500 bg-slate-700 border-slate-600 rounded focus:ring-purple-500 focus:ring-offset-slate-800"
-                      />
-                      <span className="text-xs font-medium text-gray-300">{asset.symbol}</span>
-                    </label>
-                  ))}
+                      복사
+                    </button>
+                    <button
+                      onClick={() => downloadReport('timing_analysis', timingAnalysis)}
+                      className="text-xs text-purple-400 hover:text-purple-200"
+                    >
+                      다운로드
+                    </button>
+                  </div>
+                </div>
+                <div className="markdown-body">
+                  <ReactMarkdown
+                    className="prose prose-invert max-w-none leading-relaxed prose-headings:text-purple-300 prose-strong:text-purple-200"
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {timingAnalysis}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}
 
-            {/* 직접 입력 */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={customAISymbol}
-                onChange={(e) => setCustomAISymbol(e.target.value.toUpperCase())}
-                placeholder="종목 심볼 입력 (예: AAPL)"
-                className="flex-1 px-3 py-2 text-sm bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-600"
-              />
-              <button
-                onClick={() => {
-                  if (customAISymbol.trim() && !selectedStocksForAI.some(s => s.symbol === customAISymbol.trim())) {
-                    setSelectedStocksForAI(prev => [...prev, {
-                      symbol: customAISymbol.trim(),
-                      name: customAISymbol.trim()
-                    }])
-                    setCustomAISymbol('')
-                  }
-                }}
-                className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                추가
-              </button>
-            </div>
-
-            {/* 선택된 종목 표시 */}
-            {selectedStocksForAI.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-700">
-                <p className="text-xs text-gray-500 mb-2">선택된 종목 ({selectedStocksForAI.length}개):</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedStocksForAI.map(stock => (
-                    <span key={stock.symbol} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-900/40 text-purple-300 border border-purple-500/30 text-xs rounded-full">
-                      {stock.symbol}
-                      <button
-                        onClick={() => setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== stock.symbol))}
-                        className="text-purple-400 hover:text-white ml-1"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                  <button
-                    onClick={() => setSelectedStocksForAI([])}
-                    className="text-xs text-gray-500 hover:text-gray-300 ml-1"
-                  >
-                    전체 해제
-                  </button>
-                </div>
+            {!timingAnalysis && !loading && (
+              <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+                <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">AI 매매 타이밍 분석을 생성하려면 버튼을 클릭하세요</p>
+                <p className="text-xs text-gray-500 mt-2">보유 종목의 기술적 분석 및 매수/매도 신호를 AI가 제공합니다</p>
               </div>
             )}
           </div>
-
-          <button
-            onClick={generateTimingAnalysis}
-            disabled={loading}
-            className="cyber-btn flex items-center gap-2"
-          >
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-            {loading ? '분석 중...' : selectedStocksForAI.length > 0 ? `${selectedStocksForAI.length}개 종목 분석 생성` : '전체 포트폴리오 분석 생성'}
-          </button>
-
-          {timingAnalysis && (
-            <div className="cyber-card bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-l-4 border-purple-500">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-purple-300">🔮 AI 매매 타이밍 분석</h4>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => copyToClipboard(timingAnalysis)}
-                    className="text-xs text-purple-400 hover:text-purple-200"
-                  >
-                    복사
-                  </button>
-                  <button
-                    onClick={() => downloadReport('timing_analysis', timingAnalysis)}
-                    className="text-xs text-purple-400 hover:text-purple-200"
-                  >
-                    다운로드
-                  </button>
-                </div>
-              </div>
-              <div className="markdown-body">
-                <ReactMarkdown
-                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-purple-300 prose-strong:text-purple-200"
-                  remarkPlugins={[remarkGfm]}
-                >
-                  {timingAnalysis}
-                </ReactMarkdown>
-              </div>
-            </div>
-          )}
-
-          {!timingAnalysis && !loading && (
-            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
-              <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">AI 매매 타이밍 분석을 생성하려면 버튼을 클릭하세요</p>
-              <p className="text-xs text-gray-500 mt-2">보유 종목의 기술적 분석 및 매수/매도 신호를 AI가 제공합니다</p>
-            </div>
-          )}
-        </div>
-      )}
+        )
+      }
 
       {/* AI News Summary Tab */}
-      {activeTab === 'news' && (
-        <div className="space-y-6">
-          <div className="bg-slate-800/50 border border-amber-500/20 rounded-lg p-4 mb-4">
-            <p className="text-sm text-amber-200">
-              <strong className="text-amber-400">📰 AI 뉴스 요약:</strong> 보유 종목 관련 최신 동향과 뉴스를 AI가 분석 및 요약합니다.
-            </p>
-          </div>
+      {
+        activeTab === 'news' && (
+          <div className="space-y-6">
+            <div className="bg-slate-800/50 border border-amber-500/20 rounded-lg p-4 mb-4">
+              <p className="text-sm text-amber-200">
+                <strong className="text-amber-400">📰 AI 뉴스 요약:</strong> 보유 종목 관련 최신 동향과 뉴스를 AI가 분석 및 요약합니다.
+              </p>
+            </div>
 
-          <button
-            onClick={generateNewsSummary}
-            disabled={loading}
-            className="cyber-btn flex items-center gap-2"
-          >
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-            {loading ? '요약 중...' : '뉴스 요약 생성'}
-          </button>
+            <button
+              onClick={generateNewsSummary}
+              disabled={loading}
+              className="cyber-btn flex items-center gap-2"
+            >
+              {loading ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {loading ? '요약 중...' : '뉴스 요약 생성'}
+            </button>
 
-          {newsSummary && (
-            <div className="cyber-card bg-gradient-to-r from-amber-900/20 to-orange-900/20 border-l-4 border-amber-500">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-amber-300">📰 AI 뉴스 요약</h4>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => copyToClipboard(newsSummary)}
-                    className="text-xs text-amber-400 hover:text-amber-200"
+            {newsSummary && (
+              <div className="cyber-card bg-gradient-to-r from-amber-900/20 to-orange-900/20 border-l-4 border-amber-500">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-amber-300">📰 AI 뉴스 요약</h4>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => copyToClipboard(newsSummary)}
+                      className="text-xs text-amber-400 hover:text-amber-200"
+                    >
+                      복사
+                    </button>
+                    <button
+                      onClick={() => downloadReport('news_summary', newsSummary)}
+                      className="text-xs text-amber-400 hover:text-amber-200"
+                    >
+                      다운로드
+                    </button>
+                  </div>
+                </div>
+                <div className="markdown-body">
+                  <ReactMarkdown
+                    className="prose prose-invert max-w-none leading-relaxed prose-headings:text-amber-300 prose-strong:text-amber-200"
+                    remarkPlugins={[remarkGfm]}
                   >
-                    복사
-                  </button>
-                  <button
-                    onClick={() => downloadReport('news_summary', newsSummary)}
-                    className="text-xs text-amber-400 hover:text-amber-200"
-                  >
-                    다운로드
-                  </button>
+                    {newsSummary}
+                  </ReactMarkdown>
                 </div>
               </div>
-              <div className="markdown-body">
-                <ReactMarkdown
-                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-amber-300 prose-strong:text-amber-200"
-                  remarkPlugins={[remarkGfm]}
-                >
-                  {newsSummary}
-                </ReactMarkdown>
-              </div>
-            </div>
-          )}
+            )}
 
-          {!newsSummary && !loading && (
-            <div className="cyber-card text-center py-12 border-dashed border-gray-700">
-              <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">AI 뉴스 요약을 생성하려면 버튼을 클릭하세요</p>
-              <p className="text-xs text-gray-500 mt-2">보유 종목 관련 최신 동향 및 뉴스를 AI가 분석합니다</p>
-            </div>
-          )}
-        </div>
-      )}
+            {!newsSummary && !loading && (
+              <div className="cyber-card text-center py-12 border-dashed border-gray-700">
+                <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">AI 뉴스 요약을 생성하려면 버튼을 클릭하세요</p>
+                <p className="text-xs text-gray-500 mt-2">보유 종목 관련 최신 동향 및 뉴스를 AI가 분석합니다</p>
+              </div>
+            )}
+          </div>
+        )
+      }
 
       {/* Report History */}
       <div className="cyber-card mt-8">
@@ -2357,176 +2375,180 @@ ${assetsList}
         {renderHistory()}
       </div>
 
-      {historyViewer.open && historyViewer.entry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-3xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 bg-slate-800/50">
-              <div>
-                <h3 className="text-lg font-semibold text-white">{historyViewer.entry.summary}</h3>
-                <p className="text-xs text-gray-400 mt-1">
-                  {new Date(historyViewer.entry.createdAt).toLocaleString('ko-KR')} · {historyViewer.entry.type}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="text-gray-400 hover:text-white"
-                onClick={() => setHistoryViewer({ open: false, entry: null })}
-              >
-                ✖
-              </button>
-            </div>
-            <div className="px-6 py-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-              <div className="markdown-body text-sm text-gray-300">
-                <ReactMarkdown
-                  className="prose prose-invert max-w-none leading-relaxed"
-                  remarkPlugins={[remarkGfm]}
+      {
+        historyViewer.open && historyViewer.entry && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-3xl bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 bg-slate-800/50">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{historyViewer.entry.summary}</h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(historyViewer.entry.createdAt).toLocaleString('ko-KR')} · {historyViewer.entry.type}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setHistoryViewer({ open: false, entry: null })}
                 >
-                  {historyViewer.entry.content}
-                </ReactMarkdown>
+                  ✖
+                </button>
               </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-700 bg-slate-800/30">
-              <button
-                type="button"
-                className="px-4 py-2 text-sm font-medium text-gray-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-                onClick={() => copyToClipboard(historyViewer.entry.content)}
-              >
-                복사
-              </button>
-              <button
-                type="button"
-                className="cyber-btn px-4 py-2 text-sm"
-                onClick={() => {
-                  try {
-                    const baseName = (historyViewer.entry.summary || 'ai_report').replace(/\s+/g, '_')
-                    const filename = `${baseName}_${new Date(historyViewer.entry.createdAt).toISOString().slice(0, 10)}.md`
-                    const blob = new Blob([historyViewer.entry.content], { type: 'text/markdown;charset=utf-8;' })
-                    const url = URL.createObjectURL(blob)
-                    const link = document.createElement('a')
-                    link.href = url
-                    link.download = filename
-                    document.body.appendChild(link)
-                    link.click()
-                    document.body.removeChild(link)
-                    URL.revokeObjectURL(url)
-                  } catch (err) {
-                    console.error('Download failed:', err)
-                    window.alert('다운로드 생성에 실패했습니다.')
-                  }
-                }}
-              >
-                다운로드
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white"
-                onClick={() => setHistoryViewer({ open: false, entry: null })}
-              >
-                닫기
-              </button>
+              <div className="px-6 py-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="markdown-body text-sm text-gray-300">
+                  <ReactMarkdown
+                    className="prose prose-invert max-w-none leading-relaxed"
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {historyViewer.entry.content}
+                  </ReactMarkdown>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-700 bg-slate-800/30">
+                <button
+                  type="button"
+                  className="px-4 py-2 text-sm font-medium text-gray-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                  onClick={() => copyToClipboard(historyViewer.entry.content)}
+                >
+                  복사
+                </button>
+                <button
+                  type="button"
+                  className="cyber-btn px-4 py-2 text-sm"
+                  onClick={() => {
+                    try {
+                      const baseName = (historyViewer.entry.summary || 'ai_report').replace(/\s+/g, '_')
+                      const filename = `${baseName}_${new Date(historyViewer.entry.createdAt).toISOString().slice(0, 10)}.md`
+                      const blob = new Blob([historyViewer.entry.content], { type: 'text/markdown;charset=utf-8;' })
+                      const url = URL.createObjectURL(blob)
+                      const link = document.createElement('a')
+                      link.href = url
+                      link.download = filename
+                      document.body.appendChild(link)
+                      link.click()
+                      document.body.removeChild(link)
+                      URL.revokeObjectURL(url)
+                    } catch (err) {
+                      console.error('Download failed:', err)
+                      window.alert('다운로드 생성에 실패했습니다.')
+                    }
+                  }}
+                >
+                  다운로드
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white"
+                  onClick={() => setHistoryViewer({ open: false, entry: null })}
+                >
+                  닫기
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* AI Chat Tab */}
-      {activeTab === 'chat' && (
-        <div className="space-y-6">
-          <div className="bg-slate-800/50 border border-emerald-500/20 rounded-lg p-4">
-            <p className="text-sm text-emerald-200">
-              <strong className="text-emerald-400">🧠 GPT-5 사용:</strong> 투자 전문가 수준의 맞춤형 상담을 제공합니다
-            </p>
-          </div>
-          {cashflowInsights && (
-            <div className="cyber-card border border-emerald-500/30 bg-emerald-900/20">
-              <h4 className="text-sm font-semibold text-emerald-300 mb-2">자산 현황 요약</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-emerald-200">
-                <div>
-                  <p className="font-medium mb-1 text-emerald-400">누적 자산 & 연간 흐름</p>
-                  <ul className="space-y-1">
-                    <li>• 총자산: {formatCurrency(cashflowInsights.totalAssets, 'KRW')}</li>
-                    <li>• 연간 순변화: {formatCurrency(cashflowInsights.annualNetChange, 'KRW')}</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-medium mb-1 text-emerald-400">월평균 수입/지출</p>
-                  <ul className="space-y-1">
-                    <li>• 수입: {formatCurrency(cashflowInsights.averageMonthlyIncome, 'KRW')}</li>
-                    <li>• 지출: {formatCurrency(cashflowInsights.averageMonthlyExpense, 'KRW')}</li>
-                  </ul>
-                </div>
-              </div>
-              {cashflowInsights.latestMonth && (
-                <div className="mt-3 text-xs text-emerald-200">
-                  <p className="font-medium mb-1 text-emerald-400">최근 월({cashflowInsights.latestMonth.label})</p>
-                  <ul className="space-y-1">
-                    <li>- 수입: {formatCurrency(cashflowInsights.latestMonth.income, 'KRW')}</li>
-                    <li>- 지출: {formatCurrency(cashflowInsights.latestMonth.expense, 'KRW')}</li>
-                    <li>- 순변화: {formatCurrency(cashflowInsights.latestMonth.netChange, 'KRW')}</li>
-                  </ul>
-                </div>
-              )}
+      {
+        activeTab === 'chat' && (
+          <div className="space-y-6">
+            <div className="bg-slate-800/50 border border-emerald-500/20 rounded-lg p-4">
+              <p className="text-sm text-emerald-200">
+                <strong className="text-emerald-400">🧠 GPT-5 사용:</strong> 투자 전문가 수준의 맞춤형 상담을 제공합니다
+              </p>
             </div>
-          )}
-          <div className="cyber-card h-[700px] flex flex-col p-0 overflow-hidden">
-            <div className="flex-1 overflow-y-auto space-y-4 p-4 custom-scrollbar">
-              {chatMessages.length === 0 ? (
-                <div className="text-center py-20">
-                  <Sparkles className="w-16 h-16 text-gray-600 mx-auto mb-6" />
-                  <p className="text-gray-300 text-lg font-medium">AI에게 투자 관련 질문을 해보세요</p>
-                  <p className="text-sm text-gray-500 mt-2">예: &quot;지금 S&amp;P 500에 투자하는 것이 좋을까요?&quot;</p>
+            {cashflowInsights && (
+              <div className="cyber-card border border-emerald-500/30 bg-emerald-900/20">
+                <h4 className="text-sm font-semibold text-emerald-300 mb-2">자산 현황 요약</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-emerald-200">
+                  <div>
+                    <p className="font-medium mb-1 text-emerald-400">누적 자산 & 연간 흐름</p>
+                    <ul className="space-y-1">
+                      <li>• 총자산: {formatCurrency(cashflowInsights.totalAssets, 'KRW')}</li>
+                      <li>• 연간 순변화: {formatCurrency(cashflowInsights.annualNetChange, 'KRW')}</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-1 text-emerald-400">월평균 수입/지출</p>
+                    <ul className="space-y-1">
+                      <li>• 수입: {formatCurrency(cashflowInsights.averageMonthlyIncome, 'KRW')}</li>
+                      <li>• 지출: {formatCurrency(cashflowInsights.averageMonthlyExpense, 'KRW')}</li>
+                    </ul>
+                  </div>
                 </div>
-              ) : (
-                chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+                {cashflowInsights.latestMonth && (
+                  <div className="mt-3 text-xs text-emerald-200">
+                    <p className="font-medium mb-1 text-emerald-400">최근 월({cashflowInsights.latestMonth.label})</p>
+                    <ul className="space-y-1">
+                      <li>- 수입: {formatCurrency(cashflowInsights.latestMonth.income, 'KRW')}</li>
+                      <li>- 지출: {formatCurrency(cashflowInsights.latestMonth.expense, 'KRW')}</li>
+                      <li>- 순변화: {formatCurrency(cashflowInsights.latestMonth.netChange, 'KRW')}</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="cyber-card h-[700px] flex flex-col p-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto space-y-4 p-4 custom-scrollbar">
+                {chatMessages.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Sparkles className="w-16 h-16 text-gray-600 mx-auto mb-6" />
+                    <p className="text-gray-300 text-lg font-medium">AI에게 투자 관련 질문을 해보세요</p>
+                    <p className="text-sm text-gray-500 mt-2">예: &quot;지금 S&amp;P 500에 투자하는 것이 좋을까요?&quot;</p>
+                  </div>
+                ) : (
+                  chatMessages.map((msg, idx) => (
                     <div
-                      className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${msg.role === 'user'
-                        ? 'bg-indigo-600 text-white rounded-br-none'
-                        : 'bg-slate-700 text-gray-100 rounded-bl-none'
-                        }`}
+                      key={idx}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
-                        {msg.content}
-                      </pre>
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${msg.role === 'user'
+                          ? 'bg-indigo-600 text-white rounded-br-none'
+                          : 'bg-slate-700 text-gray-100 rounded-bl-none'
+                          }`}
+                      >
+                        <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
+                          {msg.content}
+                        </pre>
+                      </div>
+                    </div>
+                  ))
+                )}
+                {loading && (
+                  <div className="flex justify-start">
+                    <div className="bg-slate-700 rounded-2xl rounded-bl-none px-5 py-4 shadow-md">
+                      <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
                     </div>
                   </div>
-                ))
-              )}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-700 rounded-2xl rounded-bl-none px-5 py-4 shadow-md">
-                    <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <div className="p-4 bg-slate-800 border-t border-slate-700">
-              <form onSubmit={handleChatSubmit} className="flex gap-3">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="질문을 입력하세요..."
-                  className="flex-1 px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-gray-500"
-                  disabled={loading}
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !chatInput.trim()}
-                  className="cyber-btn px-6 py-3 rounded-xl"
-                >
-                  전송
-                </button>
-              </form>
+              <div className="p-4 bg-slate-800 border-t border-slate-700">
+                <form onSubmit={handleChatSubmit} className="flex gap-3">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="질문을 입력하세요..."
+                    className="flex-1 px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-gray-500"
+                    disabled={loading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !chatInput.trim()}
+                    className="cyber-btn px-6 py-3 rounded-xl"
+                  >
+                    전송
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   )
 }
 
