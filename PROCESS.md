@@ -13,6 +13,17 @@
   - **버튼 스타일 통일**: `전체 보기`, `복사`, `다운로드` 버튼을 `border-slate-600 hover:bg-slate-700` 사이버펑크 스타일로 전환.
   - **라이트 모드 잔재 완전 제거**: `bg-white`, `text-gray-900`, `border-gray-200`, `hover:bg-gray-50` 등 전면 제거 및 검증 완료.
 
+### [2026-02-10] AI 모델 성능 최적화 및 기능 고도화 (Phase 2)
+
+- **주요 변경 사항**:
+  - **AI 엔진 업그레이드**: `aiService.js` 및 `constants.js` 내 AI 엔진을 `GPT-4o` (OpenAI 최신) 및 `Gemini 1.5 Pro` (Google 최신)로 전격 교체.
+    - 기존 가상 미래 모델(`GPT-5.2`) 설정 제거 및 실전 최적화 모델 적용.
+    - 듀얼 전략(Dual Strategy) 유지: 고급 분석(GPT-4o) / 대량 데이터 요약(Gemini 1.5).
+  - **종목 분석(Stock Analysis) 탭 전면 리팩토링**:
+    - **Perplexity 외부 링크 제거**: 앱 이탈을 유발하는 외부 링크 방식 폐기.
+    - **Native AI 심층 분석 구현**: `GPT-4o`를 활용하여 앱 내에서 즉시 기업 개요, 투자 포인트, 리스크, 월가 전망을 생성하는 `generateStockAnalysis` 기능 구현.
+    - **UI/UX 개선**: Markdown 렌더링을 통한 깔끔한 분석 결과 표시 및 복사 기능 추가.
+
 ### [2026-02-10] 목표(Goals), 설정(Settings), 시장(Market) 다크 모드 완성
 
 - **주요 변경 사항**:

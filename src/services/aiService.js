@@ -3,16 +3,16 @@ import { API_CONFIG } from '../config/constants'
 
 /**
  * AI Service with Dual Strategy:
- * - Gemini 2.5 Flash: 기본 데이터 수집/요약용 (무료/저비용)
- * - GPT-5: 핵심 투자전략·분석엔진용 (고급 분석)
+ * - Gemini 1.5 Flash: 기본 데이터 수집/요약용 (무료/저비용/고속)
+ * - GPT-4o / Gemini 1.5 Pro: 핵심 투자전략·분석엔진용 (고급 추론/긴 문맥)
  */
 class AIService {
   constructor() {
     this.provider = API_CONFIG.AI_PROVIDER
     // Task complexity levels
     this.TASK_LEVEL = {
-      BASIC: 'basic',      // Gemini Flash
-      ADVANCED: 'advanced' // GPT-5
+      BASIC: 'basic',      // Gemini 1.5 Flash
+      ADVANCED: 'advanced' // GPT-4o / Gemini 1.5 Pro
     }
   }
 
@@ -27,7 +27,7 @@ class AIService {
         if (!API_CONFIG.OPENAI_API_KEY) {
           throw new Error('GPT API key not configured')
         }
-        console.log('🧠 Using GPT-5.2 (Latest Flagship)')
+        console.log('🧠 Using GPT-4o (Latest Omni)')
         return await this.callOpenAI(prompt, systemPrompt)
       }
 
@@ -36,24 +36,24 @@ class AIService {
         if (!API_CONFIG.GEMINI_API_KEY) {
           throw new Error('Gemini API key not configured')
         }
-        console.log('⚡ Using Gemini 3 Pro Preview (Deep Think)')
+        console.log('⚡ Using Gemini 1.5 Pro (High Context)')
         return await this.callGemini(prompt, systemPrompt)
       }
 
-      // Auto selection (original logic)
-      // Advanced tasks → GPT-5.2 (if available)
+      // Auto selection
+      // Advanced tasks -> GPT-4o
       if (taskLevel === this.TASK_LEVEL.ADVANCED && API_CONFIG.OPENAI_API_KEY) {
-        console.log('🧠 Using GPT-5.2 for advanced analysis')
+        console.log('🧠 Using GPT-4o for advanced analysis')
         return await this.callOpenAI(prompt, systemPrompt)
       }
 
-      // Basic tasks → Gemini Flash (cost-effective)
+      // Basic tasks -> Gemini
       if (API_CONFIG.GEMINI_API_KEY) {
-        console.log('⚡ Using Gemini Flash for basic task')
+        console.log('⚡ Using Gemini 1.5 Flash for basic task')
         return await this.callGemini(prompt, systemPrompt)
       }
 
-      // Fallback to OpenAI if Gemini not available
+      // Fallback
       if (API_CONFIG.OPENAI_API_KEY) {
         console.log('🔄 Fallback to OpenAI')
         return await this.callOpenAI(prompt, systemPrompt)
@@ -307,8 +307,8 @@ ${JSON.stringify(context, null, 2)}
 
 ---
 **💡 AI 분석 활성화 방법:**
-- Gemini 2.5 Flash (무료): 기본 요약 및 데이터 수집용
-- GPT-5 (유료): 고급 투자 분석 및 전략 수립용
+- Gemini 1.5 Flash (무료/고속): 기본 요약 및 데이터 수집용
+- GPT-4o / Gemini 1.5 Pro (유료/고성능): 고급 투자 분석 및 전략 수립용
 
 .env 파일에 API 키를 설정하세요.
     `
@@ -333,8 +333,8 @@ ${JSON.stringify(context, null, 2)}
 
 ---
 **💡 이중 AI 전략:**
-- Gemini 2.5 Flash: 빠른 포트폴리오 체크
-- GPT-5: 심층 포트폴리오 분석 및 최적화
+- Gemini 1.5 Flash: 빠른 포트폴리오 체크
+- GPT-4o: 심층 포트폴리오 분석 및 최적화
 
 .env 파일에 API 키를 설정하세요.
     `

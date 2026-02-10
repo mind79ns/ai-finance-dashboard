@@ -38,6 +38,7 @@ const AIReport = () => {
   const [selectedStock, setSelectedStock] = useState(null) // 종목 분석용
   const [customStockCode, setCustomStockCode] = useState('') // 직접 입력 종목코드
   const [customStockName, setCustomStockName] = useState('') // 직접 입력 종목명
+  const [stockAnalysis, setStockAnalysis] = useState('')     // 종목 분석 결과명
 
   // AI Features Expansion
   const [timingAnalysis, setTimingAnalysis] = useState('')  // AI 매매 타이밍
@@ -795,6 +796,67 @@ ${insights.map(i => '- ' + i).join('\n')}
     }
   }
 
+  // 종목 심층 분석 (Phase 2 Refactor)
+  const generateStockAnalysis = async () => {
+    const targetSymbol = selectedStock ? selectedStock.symbol : customStockCode
+    const targetName = selectedStock ? selectedStock.name : customStockName
+
+    if (!targetSymbol) {
+      setStockAnalysis('분석할 종목을 선택하거나 종목 코드를 입력해주세요.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const priceInfo = selectedStock
+        ? `현재가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.currentPrice?.toLocaleString()} (수익률: ${selectedStock.profitPercent?.toFixed(2)}%)`
+        : '가격 정보 없음 (직접 입력된 종목)'
+
+      const prompt = `[2025년 최신 기준 분석 요청]
+대상 종목: ${targetName} (${targetSymbol})
+${priceInfo}
+
+당신은 월스트리트의 전문 주식 애널리스트입니다. 위 종목에 대해 다음 구조로 심층 투자 분석 리포트를 작성해주세요:
+
+## 1. 🏢 기업 개요 및 2025년 핵심 현황
+- 기업의 비즈니스 모델 요약
+- 2025년 현재 가장 중요한 이슈 및 최근 실적 트렌드
+
+## 2. 📈 투자 포인트 (Bull Case) & 리스크 (Bear Case)
+- 주가 상승을 견인할 긍정적 요인 2~3가지
+- 투자자가 주의해야 할 리스크 2~3가지
+
+## 3. 💼 월스트리트 컨센서스 & 전망
+- 시장의 전반적인 평가 (매수/중립/매도 분위기)
+- 단기 및 중장기 전망
+
+**작성 원칙:**
+- 최신 정보를 바탕으로 구체적인 근거를 제시하세요.
+- 불확실한 루머보다는 팩트와 데이터에 기반하세요.
+- 결론에 명확한 투자 의견(매수/홀드/관망 등)을 포함하세요.`
+
+      const analysis = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 주식 시장 전문가입니다. 팩트에 기반한 날카로운 분석을 제공합니다.',
+        selectedAI
+      )
+      setStockAnalysis(analysis)
+      appendHistory({
+        id: Date.now(),
+        type: 'stock',
+        createdAt: new Date().toISOString(),
+        stock: targetSymbol,
+        summary: `${targetSymbol} 종목 분석`,
+        content: analysis
+      })
+    } catch (error) {
+      setStockAnalysis('종목 분석 중 오류가 발생했습니다. API 키를 확인해주세요.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // AI 매매 타이밍 분석
   const generateTimingAnalysis = async () => {
     // 선택된 종목이 없고 포트폴리오도 없는 경우
@@ -1468,37 +1530,59 @@ ${assetsList}
                 </div>
               )}
 
-              {/* Perplexity 검색 버튼 */}
-              <div className="flex justify-center">
+              {/* Native AI Analysis UI */}
+              <div className="flex flex-col items-center gap-4 mt-6">
                 <button
-                  onClick={() => {
-                    const symbol = selectedStock ? selectedStock.symbol : customStockCode
-                    const name = selectedStock ? selectedStock.name : customStockName
-                    const searchQuery = `${symbol} ${name} 주식 종목 분석 실적 전망 2025 한국어로 답변`
-                    const perplexityUrl = `https://www.perplexity.ai/search/new?q=${encodeURIComponent(searchQuery)}`
-                    window.open(perplexityUrl, '_blank', 'noopener,noreferrer')
-                  }}
-                  className="cyber-btn flex items-center justify-center gap-2 px-8 py-3 text-base shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                  onClick={generateStockAnalysis}
+                  disabled={loading}
+                  className="cyber-btn flex items-center justify-center gap-2 px-8 py-3 text-base shadow-[0_0_15px_rgba(20,184,166,0.4)] w-full md:w-auto"
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                  </svg>
-                  🔍 Perplexity에서 최신 정보 검색
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      AI 심층 분석 중... (Deep Think)
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      AI 종목 분석 시작 (GPT-4o / Gemini)
+                    </>
+                  )}
                 </button>
+                <p className="text-xs text-gray-500">
+                  * 2025년 최신 데이터 기반으로 기업 개요, 투자 포인트, 리스크를 분석합니다.
+                </p>
               </div>
 
-              <div className="cyber-card text-center py-8 border-dashed border-gray-700 bg-slate-900/30">
-                <div className="max-w-2xl mx-auto">
-                  <Sparkles className="w-12 h-12 text-purple-400 mx-auto mb-4" />
-                  <p className="text-gray-300 font-medium mb-2">
-                    Perplexity에서 최신 실시간 정보를 확인하세요
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    위 버튼을 클릭하면 새 창에서 Perplexity AI가 2025년 최신 데이터를 기반으로<br />
-                    종목 분석, 실적, 전망 등을 실시간으로 검색합니다.
-                  </p>
+              {stockAnalysis && (
+                <div className="cyber-card mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-teal-400" />
+                      <h3 className="text-lg font-semibold text-white">
+                        {selectedStock?.symbol || customStockCode} 분석 결과
+                      </h3>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => copyToClipboard(stockAnalysis)}
+                        className="p-1.5 text-gray-400 hover:text-white border border-slate-600 rounded hover:bg-slate-700"
+                        title="복사"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
+                    <ReactMarkdown
+                      className="prose prose-invert max-w-none leading-relaxed prose-headings:text-teal-300 prose-strong:text-teal-200"
+                      remarkPlugins={[remarkGfm]}
+                    >
+                      {stockAnalysis}
+                    </ReactMarkdown>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
 
