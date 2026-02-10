@@ -1321,16 +1321,22 @@ const AssetStatus = () => {
                 </tr>
               ))}
 
-              {/* Income Total Row */}
-              <tr className="bg-slate-800/60 border-t border-slate-700 font-bold">
-                <td className="py-3 px-3 text-emerald-400 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">수입 합계</td>
+              {/* Income Total Row - Neon Green Glow */}
+              <tr className="bg-emerald-950/40 border-t-2 border-emerald-500/50 font-bold">
+                <td className="py-3 px-3 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                  <span className="text-emerald-400" style={{ textShadow: '0 0 8px rgba(16, 185, 129, 0.6), 0 0 20px rgba(16, 185, 129, 0.3)' }}>수입 합계</span>
+                </td>
                 {calculateMonthlyData.map((monthData, idx) => (
-                  <td key={idx} className="text-right py-3 px-2 text-emerald-400/90">
-                    {formatCurrency(monthData.income)}
+                  <td key={idx} className="text-right py-3 px-2">
+                    <span className="text-emerald-400" style={{ textShadow: monthData.income > 0 ? '0 0 6px rgba(16, 185, 129, 0.5)' : 'none' }}>
+                      {formatCurrency(monthData.income)}
+                    </span>
                   </td>
                 ))}
-                <td className="text-right py-3 px-3 text-emerald-400 bg-slate-800/80 border-l border-slate-700">
-                  {formatCurrency(yearlyTotals.incomeTotal)}
+                <td className="text-right py-3 px-3 bg-emerald-950/30 border-l border-emerald-500/30">
+                  <span className="text-emerald-300 text-base" style={{ textShadow: '0 0 10px rgba(16, 185, 129, 0.7), 0 0 30px rgba(16, 185, 129, 0.4)' }}>
+                    {formatCurrency(yearlyTotals.incomeTotal)}
+                  </span>
                 </td>
               </tr>
 
@@ -1379,16 +1385,22 @@ const AssetStatus = () => {
                 </tr>
               ))}
 
-              {/* Expense Total Row */}
-              <tr className="bg-slate-800/60 border-t border-slate-700 font-bold">
-                <td className="py-3 px-3 text-rose-400 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">지출 합계</td>
+              {/* Expense Total Row - Neon Rose Glow */}
+              <tr className="bg-rose-950/40 border-t-2 border-rose-500/50 font-bold">
+                <td className="py-3 px-3 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                  <span className="text-rose-400" style={{ textShadow: '0 0 8px rgba(244, 63, 94, 0.6), 0 0 20px rgba(244, 63, 94, 0.3)' }}>지출 합계</span>
+                </td>
                 {calculateMonthlyData.map((monthData, idx) => (
-                  <td key={idx} className="text-right py-3 px-2 text-rose-400/90">
-                    {formatCurrency(monthData.expense)}
+                  <td key={idx} className="text-right py-3 px-2">
+                    <span className="text-rose-400" style={{ textShadow: monthData.expense > 0 ? '0 0 6px rgba(244, 63, 94, 0.5)' : 'none' }}>
+                      {formatCurrency(monthData.expense)}
+                    </span>
                   </td>
                 ))}
-                <td className="text-right py-3 px-3 text-rose-400 bg-slate-800/80 border-l border-slate-700">
-                  {formatCurrency(yearlyTotals.expenseTotal)}
+                <td className="text-right py-3 px-3 bg-rose-950/30 border-l border-rose-500/30">
+                  <span className="text-rose-300 text-base" style={{ textShadow: '0 0 10px rgba(244, 63, 94, 0.7), 0 0 30px rgba(244, 63, 94, 0.4)' }}>
+                    {formatCurrency(yearlyTotals.expenseTotal)}
+                  </span>
                 </td>
               </tr>
 
