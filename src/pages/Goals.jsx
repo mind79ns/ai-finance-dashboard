@@ -646,37 +646,37 @@ ${JSON.stringify(context, null, 2)}
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-cyan-400/20">
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-cyan-500/20">
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">현재 금액</p>
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-xs text-gray-400 mb-1">현재 금액</p>
+                    <p className="text-lg font-bold text-white">
                       {goal.currency === 'KRW'
                         ? `₩${Math.round(goal.currentAmount).toLocaleString()}`
                         : `$${goal.currentAmount.toLocaleString()}`}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">목표 금액</p>
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-xs text-gray-400 mb-1">목표 금액</p>
+                    <p className="text-lg font-bold text-white">
                       {goal.currency === 'KRW'
                         ? `₩${Math.round(goal.targetAmount).toLocaleString()}`
                         : `$${goal.targetAmount.toLocaleString()}`}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">남은 기간</p>
+                    <p className="text-xs text-gray-400 mb-1">남은 기간</p>
                     <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <p className="text-sm font-medium text-gray-700">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <p className="text-sm font-medium text-gray-300">
                         {monthsLeft}개월
                       </p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">월 필요액</p>
+                    <p className="text-xs text-gray-400 mb-1">월 필요액</p>
                     <div className="flex items-center gap-1">
-                      <TrendingUp className="w-4 h-4 text-success" />
-                      <p className="text-sm font-medium text-success">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                      <p className="text-sm font-medium text-emerald-400">
                         {goal.currency === 'KRW'
                           ? `₩${Math.round(monthlyRequired).toLocaleString()}`
                           : `$${monthlyRequired.toFixed(0)}`}
@@ -686,9 +686,9 @@ ${JSON.stringify(context, null, 2)}
                 </div>
 
                 {/* Target Date */}
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-600">목표 달성일</p>
-                  <p className="text-sm font-medium text-gray-900 mt-1">
+                <div className="pt-4 border-t border-slate-700">
+                  <p className="text-xs text-gray-400">목표 달성일</p>
+                  <p className="text-sm font-medium text-white mt-1">
                     {new Date(goal.targetDate).toLocaleDateString('ko-KR')}
                   </p>
                 </div>
@@ -715,11 +715,11 @@ ${JSON.stringify(context, null, 2)}
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="year"
-                stroke="#6b7280"
+                stroke="#94a3b8"
                 style={{ fontSize: '12px' }}
               />
               <YAxis
-                stroke="#6b7280"
+                stroke="#94a3b8"
                 style={{ fontSize: '12px' }}
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
@@ -729,10 +729,11 @@ ${JSON.stringify(context, null, 2)}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#fff',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                  border: '1px solid #334155',
                   borderRadius: '8px',
-                  padding: '8px 12px'
+                  padding: '8px 12px',
+                  color: '#e2e8f0'
                 }}
                 formatter={(value) => {
                   const activeGoal = goals.filter(g => g.status === 'active')[0]
@@ -811,14 +812,14 @@ ${JSON.stringify(context, null, 2)}
           )}
         </ChartCard>
       ) : (
-        <div className="card">
+        <div className="cyber-card border-dashed border-slate-700 bg-slate-800/30">
           <div className="text-center py-12">
-            <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">목표를 추가하여 시작하세요</h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <Target className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">목표를 추가하여 시작하세요</h3>
+            <p className="text-sm text-gray-400 mb-4">
               목표를 설정하면 달성 예상 경로 차트가 자동으로 생성됩니다
             </p>
-            <button onClick={handleAddGoal} className="btn-primary">
+            <button onClick={handleAddGoal} className="cyber-btn">
               첫 번째 목표 추가
             </button>
           </div>
@@ -826,16 +827,16 @@ ${JSON.stringify(context, null, 2)}
       )}
 
       {/* AI Recommendations - Active Feature */}
-      <div className="card">
+      <div className="cyber-card">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-purple-600" />
-            <h3 className="text-lg font-semibold text-gray-900">AI 목표 달성 제안</h3>
+            <Sparkles className="w-6 h-6 text-purple-400" />
+            <h3 className="text-lg font-semibold text-white">AI 목표 달성 제안</h3>
           </div>
           <button
             onClick={handleGenerateAISuggestions}
             disabled={loadingAI || goals.length === 0}
-            className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cyber-btn flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loadingAI ? (
               <>
@@ -854,17 +855,17 @@ ${JSON.stringify(context, null, 2)}
         {aiSuggestions.length > 0 ? (
           <div className="space-y-3">
             {aiSuggestions.map((suggestion, index) => {
-              const bgColor = suggestion.type === 'error' ? 'bg-red-50 border-red-200'
-                : suggestion.type === 'warning' ? 'bg-yellow-50 border-yellow-200'
-                  : suggestion.type === 'rebalance' ? 'bg-purple-50 border-purple-200'
-                    : suggestion.type === 'investment' ? 'bg-green-50 border-green-200'
-                      : 'bg-blue-50 border-blue-200'
+              const bgColor = suggestion.type === 'error' ? 'bg-red-900/20 border-red-500/30'
+                : suggestion.type === 'warning' ? 'bg-orange-900/20 border-orange-500/30'
+                  : suggestion.type === 'rebalance' ? 'bg-purple-900/20 border-purple-500/30'
+                    : suggestion.type === 'investment' ? 'bg-emerald-900/20 border-emerald-500/30'
+                      : 'bg-blue-900/20 border-blue-500/30'
 
-              const iconColor = suggestion.type === 'error' ? 'text-red-600'
-                : suggestion.type === 'warning' ? 'text-yellow-600'
-                  : suggestion.type === 'rebalance' ? 'text-purple-600'
-                    : suggestion.type === 'investment' ? 'text-green-600'
-                      : 'text-blue-600'
+              const iconColor = suggestion.type === 'error' ? 'text-red-400'
+                : suggestion.type === 'warning' ? 'text-orange-400'
+                  : suggestion.type === 'rebalance' ? 'text-purple-400'
+                    : suggestion.type === 'investment' ? 'text-emerald-400'
+                      : 'text-blue-400'
 
               const Icon = suggestion.type === 'error' ? X
                 : suggestion.type === 'warning' ? Calendar
@@ -874,12 +875,12 @@ ${JSON.stringify(context, null, 2)}
 
               return (
                 <div key={index} className={`flex items-start gap-3 p-4 rounded-lg border ${bgColor}`}>
-                  <div className={`p-2 rounded ${bgColor}`}>
+                  <div className={`p-2 rounded bg-slate-800/50`}>
                     <Icon className={`w-5 h-5 ${iconColor}`} />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{suggestion.title}</p>
-                    <p className="text-sm text-gray-700 mt-1">
+                    <p className="font-medium text-white">{suggestion.title}</p>
+                    <p className="text-sm text-gray-300 mt-1">
                       {suggestion.description}
                     </p>
                   </div>
@@ -888,9 +889,9 @@ ${JSON.stringify(context, null, 2)}
             })}
           </div>
         ) : (
-          <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
-            <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-600 mb-2">AI 분석을 시작하려면 버튼을 클릭하세요</p>
+          <div className="text-center py-8 border-2 border-dashed border-slate-700 rounded-lg bg-slate-800/30">
+            <Sparkles className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-gray-300 mb-2">AI 분석을 시작하려면 버튼을 클릭하세요</p>
             <p className="text-sm text-gray-500">
               포트폴리오와 목표를 분석하여 맞춤형 제안을 생성합니다
             </p>
@@ -898,8 +899,8 @@ ${JSON.stringify(context, null, 2)}
         )}
 
         {goals.length === 0 && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-800">
+          <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+            <p className="text-xs text-yellow-500">
               <strong>안내:</strong> AI 제안을 받으려면 먼저 목표를 추가하세요.
             </p>
           </div>
@@ -908,18 +909,18 @@ ${JSON.stringify(context, null, 2)}
 
       {/* Add Goal Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">목표 추가</h3>
-              <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-xl font-bold text-white">목표 추가</h3>
+              <button onClick={handleCloseModal} className="text-gray-400 hover:text-white">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   목표 이름
                 </label>
                 <input
@@ -929,12 +930,12 @@ ${JSON.stringify(context, null, 2)}
                   onChange={handleInputChange}
                   required
                   placeholder="예: 1억 달성"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   카테고리
                 </label>
                 <select
@@ -942,7 +943,7 @@ ${JSON.stringify(context, null, 2)}
                   value={formData.category}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
                 >
                   <option value="장기목표">장기목표</option>
                   <option value="단기목표">단기목표</option>
@@ -954,7 +955,7 @@ ${JSON.stringify(context, null, 2)}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   통화
                 </label>
                 <select
@@ -962,31 +963,31 @@ ${JSON.stringify(context, null, 2)}
                   value={formData.currency}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
                 >
                   <option value="USD">USD ($)</option>
                   <option value="KRW">KRW (₩)</option>
                 </select>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 space-y-3">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     name="linkedToPortfolio"
                     checked={formData.linkedToPortfolio}
                     onChange={(e) => setFormData(prev => ({ ...prev, linkedToPortfolio: e.target.checked }))}
-                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    className="w-4 h-4 text-blue-500 bg-slate-800 border-slate-600 rounded focus:ring-blue-500 focus:ring-offset-slate-900"
                   />
                   <div>
-                    <p className="text-sm font-medium text-blue-900">포트폴리오와 연동</p>
-                    <p className="text-xs text-blue-700">체크하면 포트폴리오 금액이 자동으로 현재 금액에 반영됩니다</p>
+                    <p className="text-sm font-medium text-blue-300">포트폴리오와 연동</p>
+                    <p className="text-xs text-blue-400/80">체크하면 포트폴리오 금액이 자동으로 현재 금액에 반영됩니다</p>
                   </div>
                 </label>
 
                 {formData.linkedToPortfolio && (
-                  <div className="ml-6 space-y-2 pt-2 border-t border-blue-200">
-                    <p className="text-xs font-medium text-blue-900">연동 기준:</p>
+                  <div className="ml-6 space-y-2 pt-2 border-t border-blue-500/30">
+                    <p className="text-xs font-medium text-blue-300">연동 기준:</p>
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -995,9 +996,9 @@ ${JSON.stringify(context, null, 2)}
                           value="total"
                           checked={formData.linkType === 'total'}
                           onChange={handleInputChange}
-                          className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                          className="w-4 h-4 text-blue-500 bg-slate-800 border-slate-600 focus:ring-blue-500 focus:ring-offset-slate-900"
                         />
-                        <span className="text-sm text-blue-800">포트폴리오 총액</span>
+                        <span className="text-sm text-blue-200">포트폴리오 총액</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1006,9 +1007,9 @@ ${JSON.stringify(context, null, 2)}
                           value="profit"
                           checked={formData.linkType === 'profit'}
                           onChange={handleInputChange}
-                          className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                          className="w-4 h-4 text-blue-500 bg-slate-800 border-slate-600 focus:ring-blue-500 focus:ring-offset-slate-900"
                         />
-                        <span className="text-sm text-blue-800">포트폴리오 총수익금</span>
+                        <span className="text-sm text-blue-200">포트폴리오 총수익금</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1017,9 +1018,9 @@ ${JSON.stringify(context, null, 2)}
                           value="assetTotal"
                           checked={formData.linkType === 'assetTotal'}
                           onChange={handleInputChange}
-                          className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                          className="w-4 h-4 text-blue-500 bg-slate-800 border-slate-600 focus:ring-blue-500 focus:ring-offset-slate-900"
                         />
-                        <span className="text-sm text-blue-800">자산현황 TOTAL</span>
+                        <span className="text-sm text-blue-200">자산현황 TOTAL</span>
                       </label>
                     </div>
                   </div>
@@ -1028,11 +1029,11 @@ ${JSON.stringify(context, null, 2)}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     현재 금액 ({formData.currency === 'KRW' ? '₩' : '$'})
                   </label>
                   {formData.linkedToPortfolio ? (
-                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                    <div className="w-full px-3 py-2 border border-blue-500/30 rounded-lg bg-blue-900/10 text-blue-300">
                       {(() => {
                         let amount
                         if (formData.linkType === 'assetTotal') {
@@ -1052,7 +1053,7 @@ ${JSON.stringify(context, null, 2)}
                           ? `₩${Math.round(amount).toLocaleString()}`
                           : `$${amount.toFixed(0)}`
                       })()}
-                      <span className="text-xs ml-1">({formData.linkType === 'assetTotal' ? '자산현황' : formData.linkType === 'profit' ? '수익금' : '총액'} 연동)</span>
+                      <span className="text-xs ml-1 opacity-70">({formData.linkType === 'assetTotal' ? '자산현황' : formData.linkType === 'profit' ? '수익금' : '총액'} 연동)</span>
                     </div>
                   ) : (
                     <input
@@ -1063,13 +1064,13 @@ ${JSON.stringify(context, null, 2)}
                       step="0.01"
                       min="0"
                       placeholder="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
                     />
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     목표 금액 ({formData.currency === 'KRW' ? '₩' : '$'})
                   </label>
                   <input
@@ -1081,13 +1082,13 @@ ${JSON.stringify(context, null, 2)}
                     step="0.01"
                     min="0"
                     placeholder="100000"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   목표 달성일
                 </label>
                 <input
@@ -1096,7 +1097,7 @@ ${JSON.stringify(context, null, 2)}
                   value={formData.targetDate}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
                 />
               </div>
 
@@ -1104,13 +1105,13 @@ ${JSON.stringify(context, null, 2)}
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-slate-600 rounded-lg text-gray-300 hover:bg-slate-700 transition-colors"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 btn-primary"
+                  className="flex-1 cyber-btn"
                 >
                   추가
                 </button>
@@ -1122,24 +1123,24 @@ ${JSON.stringify(context, null, 2)}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && goalToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-red-100 rounded-full">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="p-3 bg-red-900/30 rounded-full border border-red-500/30">
+                <Trash2 className="w-6 h-6 text-red-400" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">목표 삭제</h3>
-                <p className="text-sm text-gray-600">이 작업은 되돌릴 수 없습니다</p>
+                <h3 className="text-xl font-bold text-white">목표 삭제</h3>
+                <p className="text-sm text-gray-400">이 작업은 되돌릴 수 없습니다</p>
               </div>
             </div>
 
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-700 mb-2">
+            <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
+              <p className="text-sm text-gray-300 mb-2">
                 다음 목표를 삭제하시겠습니까?
               </p>
-              <p className="font-semibold text-gray-900">{goalToDelete.name}</p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="font-semibold text-white">{goalToDelete.name}</p>
+              <p className="text-sm text-gray-400 mt-1">
                 {goalToDelete.category} - {goalToDelete.currency === 'KRW'
                   ? `₩${Math.round(goalToDelete.targetAmount).toLocaleString()}`
                   : `$${goalToDelete.targetAmount.toLocaleString()}`}
@@ -1149,13 +1150,13 @@ ${JSON.stringify(context, null, 2)}
             <div className="flex gap-3">
               <button
                 onClick={handleCancelDelete}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-slate-600 rounded-lg text-gray-300 hover:bg-slate-700 transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium shadow-[0_0_15px_rgba(220,38,38,0.4)]"
               >
                 삭제
               </button>

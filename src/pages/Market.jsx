@@ -311,9 +311,9 @@ const IndexCard = ({ name, subtitle, data }) => {
 const CryptoCard = ({ crypto }) => {
   if (!crypto || crypto.error || crypto.price === 0 || crypto.price === undefined || crypto.price === null) {
     return (
-      <div className="card bg-gray-50">
-        <p className="text-sm text-gray-600">{crypto?.name || 'Crypto'}</p>
-        <p className="text-xs text-orange-600">
+      <div className="cyber-card bg-slate-900/50 border-orange-500/30">
+        <p className="text-sm text-gray-400 mb-1">{crypto?.name || 'Crypto'}</p>
+        <p className="text-xs text-orange-400">
           {crypto?.error || 'CoinGecko API 응답이 없어 기본 데이터를 표시합니다.'}
         </p>
       </div>
@@ -372,10 +372,10 @@ const CryptoCard = ({ crypto }) => {
 const CurrencyCard = ({ pair, name, data }) => {
   if (!data || data.error || data.rate === undefined || data.rate === null) {
     return (
-      <div className="p-4 bg-gray-50 rounded-lg border border-orange-100">
-        <p className="text-xs text-gray-600 mb-1">{pair}</p>
-        <p className="text-sm font-medium text-gray-700 mb-2">{name}</p>
-        <p className="text-xs text-orange-600">
+      <div className="p-4 bg-slate-900/50 rounded-lg border border-orange-500/30">
+        <p className="text-xs text-gray-400 mb-1">{pair}</p>
+        <p className="text-sm font-medium text-gray-300 mb-2">{name}</p>
+        <p className="text-xs text-orange-400">
           {data?.error || '환율 데이터를 불러오지 못했습니다.'}
         </p>
       </div>

@@ -164,9 +164,9 @@ const Settings = () => {
       </div>
 
       {/* Currency Settings */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <DollarSign className="w-5 h-5" />
+      <div className="cyber-card">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-emerald-400" />
           기본 통화 설정
         </h3>
         <div className="grid grid-cols-3 gap-3">
@@ -175,12 +175,12 @@ const Settings = () => {
               key={currency}
               onClick={() => handleCurrencyChange(currency)}
               className={`p-3 rounded-lg border-2 transition-all ${defaultCurrency === currency
-                ? 'border-primary-500 bg-primary-50 text-primary-700'
-                : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                ? 'border-emerald-500 bg-emerald-900/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                : 'border-slate-700 hover:border-slate-500 text-gray-400 hover:text-gray-200 bg-slate-800/50'
                 }`}
             >
               <p className="font-semibold">{currency}</p>
-              <p className="text-xs">
+              <p className="text-xs opacity-70">
                 {currency === 'KRW' ? '원화' : currency === 'USD' ? '달러' : '유로'}
               </p>
             </button>
@@ -189,36 +189,36 @@ const Settings = () => {
       </div>
 
       {/* API Keys */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Key className="w-5 h-5" />
+      <div className="cyber-card">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Key className="w-5 h-5 text-purple-400" />
           API 키 관리
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-gray-400 mb-4">
           AI 기능 사용을 위한 API 키를 설정합니다. 키는 브라우저에만 저장됩니다.
         </p>
 
         <div className="space-y-4">
           {/* OpenAI */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">OpenAI API Key</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">OpenAI API Key</label>
             <div className="flex gap-2">
               <input
                 type={showApiKeys.openai ? 'text' : 'password'}
                 value={apiKeys.openai}
                 onChange={(e) => setApiKeys(prev => ({ ...prev, openai: e.target.value }))}
                 placeholder="sk-..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
               />
               <button
                 onClick={() => setShowApiKeys(prev => ({ ...prev, openai: !prev.openai }))}
-                className="px-3 py-2 text-gray-600 hover:text-gray-900"
+                className="px-3 py-2 text-gray-400 hover:text-white"
               >
                 {showApiKeys.openai ? '숨기기' : '보기'}
               </button>
               <button
                 onClick={() => handleSaveApiKey('openai', apiKeys.openai)}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className="px-4 py-2 cyber-btn"
               >
                 저장
               </button>
@@ -227,24 +227,24 @@ const Settings = () => {
 
           {/* Gemini */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Gemini API Key</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Gemini API Key</label>
             <div className="flex gap-2">
               <input
                 type={showApiKeys.gemini ? 'text' : 'password'}
                 value={apiKeys.gemini}
                 onChange={(e) => setApiKeys(prev => ({ ...prev, gemini: e.target.value }))}
                 placeholder="AI..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
               />
               <button
                 onClick={() => setShowApiKeys(prev => ({ ...prev, gemini: !prev.gemini }))}
-                className="px-3 py-2 text-gray-600 hover:text-gray-900"
+                className="px-3 py-2 text-gray-400 hover:text-white"
               >
                 {showApiKeys.gemini ? '숨기기' : '보기'}
               </button>
               <button
                 onClick={() => handleSaveApiKey('gemini', apiKeys.gemini)}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                className="px-4 py-2 cyber-btn"
               >
                 저장
               </button>
@@ -254,20 +254,20 @@ const Settings = () => {
       </div>
 
       {/* Data Backup/Restore - Enhanced */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-          <Download className="w-5 h-5" />
+      <div className="cyber-card">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Download className="w-5 h-5 text-blue-400" />
           데이터 백업 및 복원
         </h3>
 
         {/* Auto-backup Toggle */}
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+        <div className="mb-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <Clock className="w-5 h-5 text-blue-400" />
               <div>
-                <p className="font-medium text-gray-900 dark:text-gray-100">자동 백업</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="font-medium text-white">자동 백업</p>
+                <p className="text-xs text-blue-300/80">
                   24시간마다 자동으로 백업 (최근 5개 유지)
                 </p>
               </div>
@@ -288,7 +288,7 @@ const Settings = () => {
                   showSaveMessage('자동 백업이 비활성화되었습니다.')
                 }
               }}
-              className={`relative w-14 h-7 rounded-full transition-colors ${autoBackupEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+              className={`relative w-14 h-7 rounded-full transition-colors ${autoBackupEnabled ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.5)]' : 'bg-slate-700'
                 }`}
             >
               <span
@@ -298,7 +298,7 @@ const Settings = () => {
             </button>
           </div>
           {lastBackupDate && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+            <p className="text-xs text-blue-400 mt-2">
               마지막 백업: {new Date(lastBackupDate).toLocaleString('ko-KR')}
             </p>
           )}
@@ -312,17 +312,17 @@ const Settings = () => {
               backupManager.downloadBackup(backup)
               showSaveMessage('데이터가 내보내기 되었습니다.')
             }}
-            className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-all group"
+            className="p-4 border-2 border-dashed border-slate-600 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/10 transition-all group"
           >
-            <Download className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600" />
-            <p className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary-700">JSON 내보내기</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">전체 데이터 백업</p>
+            <Download className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-cyan-400" />
+            <p className="font-medium text-gray-300 group-hover:text-cyan-400">JSON 내보내기</p>
+            <p className="text-xs text-gray-500">전체 데이터 백업</p>
           </button>
 
-          <label className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-all cursor-pointer group">
-            <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600" />
-            <p className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-primary-700">JSON 가져오기</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">백업 파일 복원</p>
+          <label className="p-4 border-2 border-dashed border-slate-600 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/10 transition-all cursor-pointer group">
+            <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-cyan-400" />
+            <p className="font-medium text-gray-300 group-hover:text-cyan-400">JSON 가져오기</p>
+            <p className="text-xs text-gray-500">백업 파일 복원</p>
             <input
               type="file"
               accept=".json"
@@ -340,30 +340,30 @@ const Settings = () => {
                 showSaveMessage('⚠️ ' + e.message)
               }
             }}
-            className="p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all group"
+            className="p-4 border-2 border-dashed border-slate-600 rounded-lg hover:border-emerald-500 hover:bg-emerald-900/10 transition-all group"
           >
-            <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-emerald-600" />
-            <p className="font-medium text-gray-700 dark:text-gray-300 group-hover:text-emerald-700">CSV 내보내기</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">포트폴리오 스프레드시트</p>
+            <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-emerald-400" />
+            <p className="font-medium text-gray-300 group-hover:text-emerald-400">CSV 내보내기</p>
+            <p className="text-xs text-gray-500">포트폴리오 스프레드시트</p>
           </button>
         </div>
 
         {/* Backup History */}
         {backupHistory.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="border-t border-slate-700 pt-4">
             <div className="flex items-center gap-2 mb-3">
-              <History className="w-4 h-4 text-gray-500" />
-              <h4 className="font-medium text-gray-700 dark:text-gray-300">백업 히스토리</h4>
+              <History className="w-4 h-4 text-gray-400" />
+              <h4 className="font-medium text-gray-300">백업 히스토리</h4>
             </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               {backupHistory.map((backup) => (
                 <div
                   key={backup.id}
-                  className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg p-3"
+                  className="flex items-center justify-between bg-slate-800 rounded-lg p-3 border border-slate-700"
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{backup.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium text-white">{backup.name}</p>
+                    <p className="text-xs text-gray-400">
                       {new Date(backup.date).toLocaleString('ko-KR')} · {backup.size}KB · {backup.itemCount}개 항목
                     </p>
                   </div>
@@ -375,7 +375,7 @@ const Settings = () => {
                           showSaveMessage('백업이 복원되었습니다. 페이지를 새로고침하세요.')
                         }
                       }}
-                      className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
+                      className="p-2 text-blue-400 hover:bg-blue-900/30 rounded-lg transition-colors"
                       title="복원"
                     >
                       <RotateCcw className="w-4 h-4" />
@@ -385,7 +385,7 @@ const Settings = () => {
                         backupManager.downloadBackup(backup.data, `backup-${backup.id}.json`)
                         showSaveMessage('백업 파일이 다운로드되었습니다.')
                       }}
-                      className="p-2 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg"
+                      className="p-2 text-gray-400 hover:bg-slate-700 rounded-lg transition-colors"
                       title="다운로드"
                     >
                       <Download className="w-4 h-4" />
@@ -398,7 +398,7 @@ const Settings = () => {
                           showSaveMessage('백업이 삭제되었습니다.')
                         }
                       }}
-                      className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg"
+                      className="p-2 text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
                       title="삭제"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -415,8 +415,8 @@ const Settings = () => {
       <DataMigrationPanel />
 
       {/* Danger Zone */}
-      <div className="card border-2 border-red-200 bg-red-50">
-        <h3 className="text-lg font-semibold text-red-900 mb-4 flex items-center gap-2">
+      <div className="cyber-card border-red-500/30 bg-red-900/10">
+        <h3 className="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">
           <AlertTriangle className="w-5 h-5" />
           위험 영역
         </h3>
@@ -424,26 +424,26 @@ const Settings = () => {
         {!showResetConfirm ? (
           <button
             onClick={() => setShowResetConfirm(true)}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)]"
           >
             <Trash2 className="w-4 h-4" />
             모든 데이터 초기화
           </button>
         ) : (
-          <div className="p-4 bg-red-100 rounded-lg">
-            <p className="text-red-800 font-medium mb-3">
+          <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+            <p className="text-red-400 font-medium mb-3">
               ⚠️ 정말 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleResetData}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)]"
               >
                 예, 삭제합니다
               </button>
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                className="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition-colors"
               >
                 취소
               </button>
