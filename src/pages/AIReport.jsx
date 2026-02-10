@@ -838,6 +838,9 @@ ${priceInfo}
 * **대응 전략**: (지금 사야 할지, 팔아야 할지, 기다려야 할지 구체적 행동 지침)
 
 **작성 원칙:**
+- 🔴 **중요**: 2024년 이후의 구체적인 뉴스(출시 지연, 계약 체결 등)를 "검색 없이" 단정적으로 생성하지 마세요. (할루시네이션 방지)
+- 대신, **위에서 제공한 가격 정보(Price Info)의 수익률**에 기반하여 **밸류에이션(저평가 여부) 및 기술적 과매도**를 집중 분석하세요.
+- 특히 수익률이 크게 하락한 경우, 이것이 '구조적 문제'인지 '일시적 과매도(저가 매수 기회)'인지 논리적으로 구분하여 설명하세요.
 - 서술형 문장을 지양하고, **개조식(Bullet points)** 위주로 작성하여 가독성을 극대화하세요.
 - 불필요한 미사여구는 빼고 "돈이 되는 정보"만 담으세요.
 - ${today} 기준 최신 데이터를 반영하세요.`
@@ -888,35 +891,35 @@ ${priceInfo}
       }
 
       const assetsList = analysisAssets
-        .map(a => `${a.symbol} (${a.name || ''}): 현재가 ${a.currentPrice?.toLocaleString() || 'N/A'}, 수익률 ${a.profitPercent?.toFixed?.(1) || 'N/A'}%`)
+        .map(a => `${a.symbol} (${a.name || ''}): 현재가 ${a.currentPrice?.toLocaleString() || 'N/A'}, 수익률 ${a.profitPercent?.toFixed?.(1) || 'N/A'}% `)
         .join('\n')
 
       const marketContext = marketData ? `
 시장 현황:
-- 원/달러 환율: ${marketData?.currency?.usdKrw?.rate?.toLocaleString()}원
-- VIX 변동성: ${marketData?.volatility?.vix?.value || 'N/A'}
-- Fear & Greed: ${marketData?.sentiment?.fearGreed?.value || 'N/A'}
-` : ''
+      - 원 / 달러 환율: ${marketData?.currency?.usdKrw?.rate?.toLocaleString()} 원
+        - VIX 변동성: ${marketData?.volatility?.vix?.value || 'N/A'}
+      - Fear & Greed: ${marketData?.sentiment?.fearGreed?.value || 'N/A'}
+      ` : ''
 
       const currentDate = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
 
       const prompt = `[현재 날짜: ${currentDate}]
 
-당신은 기술적 분석 전문가입니다. 포트폴리오 보유 종목에 대해 2025년 12월 현재 시점 기준으로 매매 타이밍 분석을 제공해주세요.
+당신은 기술적 분석 전문가입니다.포트폴리오 보유 종목에 대해 2025년 12월 현재 시점 기준으로 매매 타이밍 분석을 제공해주세요.
 
-${marketContext}
+        ${marketContext}
 
 보유 종목:
 ${assetsList}
 
 다음 내용을 포함해 분석해주세요:
-1. **종목별 기술적 분석** (RSI, 이동평균선 등 추정 상태)
-2. **매수/매도/홀드 신호** (🟢 매수, 🔴 매도, 🟡 홀드)
-3. **주요 지지선/저항선** 추정
-4. **단기(1-2주) 전망**
-5. **추천 행동** (구체적 조언)
+      1. ** 종목별 기술적 분석 ** (RSI, 이동평균선 등 추정 상태)
+      2. ** 매수 / 매도 / 홀드 신호 ** (🟢 매수, 🔴 매도, 🟡 홀드)
+      3. ** 주요 지지선 / 저항선 ** 추정
+      4. ** 단기(1 - 2주) 전망 **
+        5. ** 추천 행동 ** (구체적 조언)
 
-⚠️ 중요: 2025년 12월 현재 시장 상황을 기준으로 분석해주세요. 실제 차트 데이터 없이 종목 특성과 시장 상황 기반으로 추정하되, 투자 결정은 사용자가 직접 해야 함을 명시해주세요.`
+⚠️ 중요: 2025년 12월 현재 시장 상황을 기준으로 분석해주세요.실제 차트 데이터 없이 종목 특성과 시장 상황 기반으로 추정하되, 투자 결정은 사용자가 직접 해야 함을 명시해주세요.`
 
       const analysis = await aiService.routeAIRequest(
         prompt,
@@ -961,30 +964,30 @@ ${assetsList}
 
       const prompt = `[현재 날짜: ${currentDate}]
 
-당신은 금융 뉴스 분석 전문가입니다. 다음 보유 종목들에 대한 2025년 12월 기준 최신 동향과 뉴스 분석을 제공해주세요.
+당신은 금융 뉴스 분석 전문가입니다.다음 보유 종목들에 대한 2025년 12월 기준 최신 동향과 뉴스 분석을 제공해주세요.
 
 보유 종목: ${symbols}
 
 다음 내용을 포함해 분석해주세요:
 
-## 📰 종목별 주요 동향 (2025년 기준)
+## 📰 종목별 주요 동향(2025년 기준)
 각 종목에 대해:
-- 2025년 주요 뉴스/이벤트 (실적발표, 신제품, M&A 등)
-- 업계 동향
-- 투자자 관심 포인트
+- 2025년 주요 뉴스 / 이벤트(실적발표, 신제품, M & A 등)
+  - 업계 동향
+    - 투자자 관심 포인트
 
 ## 🔍 섹터별 분석
-- 관련 섹터 전반적인 흐름
-- 2025년 규제/정책 영향
+  - 관련 섹터 전반적인 흐름
+    - 2025년 규제 / 정책 영향
 
 ## ⚠️ 리스크 요인
-- 주의해야 할 뉴스/이슈
-- 잠재적 위험 요소
+  - 주의해야 할 뉴스 / 이슈
+    - 잠재적 위험 요소
 
 ## 💡 투자 시사점
-- 종합적인 뉴스 기반 투자 시사점
+  - 종합적인 뉴스 기반 투자 시사점
 
-⚠️ 중요: 2025년 12월 현재 시점을 기준으로 분석해주세요. 실시간 뉴스 접근이 불가하므로, 각 종목의 일반적인 특성과 2025년 트렌드를 기반으로 분석해주세요.`
+⚠️ 중요: 2025년 12월 현재 시점을 기준으로 분석해주세요.실시간 뉴스 접근이 불가하므로, 각 종목의 일반적인 특성과 2025년 트렌드를 기반으로 분석해주세요.`
 
       const summary = await aiService.routeAIRequest(
         prompt,
@@ -1110,10 +1113,10 @@ ${assetsList}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <button
                   onClick={() => setSelectedAI('auto')}
-                  className={`p-3 rounded-lg border transition-all text-left group ${selectedAI === 'auto'
-                    ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
-                    : 'border-gray-700 bg-slate-800 hover:border-purple-500/50 hover:bg-slate-700'
-                    }`}
+                  className={`p - 3 rounded - lg border transition - all text - left group ${selectedAI === 'auto'
+                      ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                      : 'border-gray-700 bg-slate-800 hover:border-purple-500/50 hover:bg-slate-700'
+                    } `}
                 >
                   <div>
                     <p className="font-semibold text-sm text-white group-hover:text-purple-300 transition-colors">🤖 자동 선택</p>
@@ -1126,10 +1129,10 @@ ${assetsList}
 
                 <button
                   onClick={() => setSelectedAI('gpt')}
-                  className={`p-3 rounded-lg border transition-all text-left group ${selectedAI === 'gpt'
-                    ? 'border-green-500 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]'
-                    : 'border-gray-700 bg-slate-800 hover:border-green-500/50 hover:bg-slate-700'
-                    }`}
+                  className={`p - 3 rounded - lg border transition - all text - left group ${selectedAI === 'gpt'
+                      ? 'border-green-500 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]'
+                      : 'border-gray-700 bg-slate-800 hover:border-green-500/50 hover:bg-slate-700'
+                    } `}
                 >
                   <div>
                     <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🧠 GPT-4o</p>
@@ -1142,13 +1145,13 @@ ${assetsList}
 
                 <button
                   onClick={() => setSelectedAI('gemini')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${selectedAI === 'gemini'
-                    ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                    : 'border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:border-blue-500/50'
+                  className={`flex items - center gap - 3 px - 4 py - 3 rounded - xl border transition - all ${selectedAI === 'gemini'
+                      ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                      : 'border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:border-blue-500/50'
                     } group`}
                 >
-                  <div className={`p-2 rounded-lg ${selectedAI === 'gemini' ? 'bg-blue-500/20' : 'bg-slate-700 group-hover:bg-blue-500/20'}`}>
-                    <TrendingUp className={`w-5 h-5 ${selectedAI === 'gemini' ? 'text-blue-400' : 'text-gray-400 group-hover:text-blue-400'}`} />
+                  <div className={`p - 2 rounded - lg ${selectedAI === 'gemini' ? 'bg-blue-500/20' : 'bg-slate-700 group-hover:bg-blue-500/20'} `}>
+                    <TrendingUp className={`w - 5 h - 5 ${selectedAI === 'gemini' ? 'text-blue-400' : 'text-gray-400 group-hover:text-blue-400'} `} />
                   </div>
                   <div>
                     <p className="font-semibold text-sm text-white group-hover:text-blue-300 transition-colors">⚡ Gemini 1.5 Pro</p>
@@ -1187,10 +1190,10 @@ ${assetsList}
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 font-medium transition-all duration-300 whitespace-nowrap rounded-t-lg ${activeTab === tab.id
-              ? 'text-cyan-300 border-b-2 border-cyan-500 bg-slate-800/50'
-              : 'text-gray-500 hover:text-gray-300 hover:bg-slate-800/30'
-              }`}
+            className={`px - 4 py - 2 font - medium transition - all duration - 300 whitespace - nowrap rounded - t - lg ${activeTab === tab.id
+                ? 'text-cyan-300 border-b-2 border-cyan-500 bg-slate-800/50'
+                : 'text-gray-500 hover:text-gray-300 hover:bg-slate-800/30'
+              } `}
           >
             {tab.label}
           </button>
@@ -1422,15 +1425,15 @@ ${assetsList}
                       setCustomStockCode('')
                       setCustomStockName('')
                     }}
-                    className={`p-3 rounded-lg border transition-all text-left ${selectedStock?.symbol === asset.symbol
-                      ? 'border-teal-500 bg-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.2)]'
-                      : 'border-slate-700 bg-slate-800 hover:border-teal-500/50 hover:bg-slate-700'
-                      }`}
+                    className={`p - 3 rounded - lg border transition - all text - left ${selectedStock?.symbol === asset.symbol
+                        ? 'border-teal-500 bg-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.2)]'
+                        : 'border-slate-700 bg-slate-800 hover:border-teal-500/50 hover:bg-slate-700'
+                      } `}
                   >
                     <p className="font-semibold text-sm text-white">{asset.symbol}</p>
                     <p className="text-xs text-gray-400 mt-1 truncate">{asset.name}</p>
-                    <p className={`text-xs mt-1 font-medium ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                      }`}>
+                    <p className={`text - xs mt - 1 font - medium ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                      } `}>
                       {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(1)}%
                     </p>
                   </button>
@@ -1508,14 +1511,14 @@ ${assetsList}
                         <p className="text-sm text-gray-500 mb-1">현재가</p>
                         <p className="text-2xl font-bold text-white">
                           {selectedStock.currency === 'KRW'
-                            ? `₩${selectedStock.currentPrice.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`
-                            : `$${selectedStock.currentPrice.toFixed(2)}`
+                            ? `₩${selectedStock.currentPrice.toLocaleString('ko-KR', { maximumFractionDigits: 0 })} `
+                            : `$${selectedStock.currentPrice.toFixed(2)} `
                           }
                         </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500 mb-1">수익률</p>
-                        <p className={`text-2xl font-bold ${selectedStock.profitPercent >= 0 ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'text-rose-400 drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]'}`}>
+                        <p className={`text - 2xl font - bold ${selectedStock.profitPercent >= 0 ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'text-rose-400 drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]'} `}>
                           {selectedStock.profitPercent >= 0 ? '+' : ''}{selectedStock.profitPercent.toFixed(2)}%
                         </p>
                       </div>
@@ -1649,7 +1652,7 @@ ${assetsList}
                         <p className="text-xs text-gray-500">가중 평균 수익률</p>
                         <p className="text-2xl font-bold text-white">
                           {Number.isFinite(riskAnalysis.avgReturn)
-                            ? `${riskAnalysis.avgReturn >= 0 ? '+' : ''}${formatNumber(riskAnalysis.avgReturn, 2)}%`
+                            ? `${riskAnalysis.avgReturn >= 0 ? '+' : ''}${formatNumber(riskAnalysis.avgReturn, 2)}% `
                             : 'N/A'}
                         </p>
                       </div>
@@ -1675,15 +1678,15 @@ ${assetsList}
                       <div>
                         <p className="text-xs text-gray-500">변동성 (Volatility)</p>
                         <p
-                          className={`text-2xl font-bold ${riskAnalysis.riskLevel === 'High'
-                            ? 'text-rose-500'
-                            : riskAnalysis.riskLevel === 'Medium'
-                              ? 'text-orange-400'
-                              : 'text-emerald-400'
-                            }`}
+                          className={`text - 2xl font - bold ${riskAnalysis.riskLevel === 'High'
+                              ? 'text-rose-500'
+                              : riskAnalysis.riskLevel === 'Medium'
+                                ? 'text-orange-400'
+                                : 'text-emerald-400'
+                            } `}
                         >
                           {Number.isFinite(riskAnalysis.volatility)
-                            ? `${formatNumber(riskAnalysis.volatility, 2)}%`
+                            ? `${formatNumber(riskAnalysis.volatility, 2)}% `
                             : 'N/A'}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">위험도: {riskAnalysis.riskLevel}</p>
@@ -1691,14 +1694,14 @@ ${assetsList}
                       <div>
                         <p className="text-xs text-gray-500">분산 점수</p>
                         <p
-                          className={`text-lg font-bold ${riskAnalysis.diversificationScore === 'Excellent'
-                            ? 'text-emerald-400'
-                            : riskAnalysis.diversificationScore === 'Good'
+                          className={`text - lg font - bold ${riskAnalysis.diversificationScore === 'Excellent'
                               ? 'text-emerald-400'
-                              : riskAnalysis.diversificationScore === 'Fair'
-                                ? 'text-orange-400'
-                                : 'text-rose-500'
-                            }`}
+                              : riskAnalysis.diversificationScore === 'Good'
+                                ? 'text-emerald-400'
+                                : riskAnalysis.diversificationScore === 'Fair'
+                                  ? 'text-orange-400'
+                                  : 'text-rose-500'
+                            } `}
                         >
                           {riskAnalysis.diversificationScore}
                         </p>
@@ -1912,7 +1915,7 @@ ${assetsList}
                         </div>
                         <div className="w-20 text-right">
                           {targetPercent !== currentPercent && (
-                            <span className={`text-xs font-medium ${targetPercent > currentPercent ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            <span className={`text - xs font - medium ${targetPercent > currentPercent ? 'text-emerald-400' : 'text-rose-400'} `}>
                               {targetPercent > currentPercent ? '▲' : '▼'} {Math.abs(targetPercent - currentPercent).toFixed(1)}%
                             </span>
                           )}
@@ -1926,9 +1929,9 @@ ${assetsList}
                 <div className="mt-4 p-3 bg-slate-800 rounded-lg border border-slate-700">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">목표 비율 합계:</span>
-                    <span className={`font-semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
-                      ? 'text-emerald-400' : 'text-orange-400'
-                      }`}>
+                    <span className={`font - semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
+                        ? 'text-emerald-400' : 'text-orange-400'
+                      } `}>
                       {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
                       {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 1 &&
                         ' (100%로 맞춰주세요)'}
@@ -1952,10 +1955,10 @@ ${assetsList}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className={`font-semibold ${trade.action === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <span className={`font - semibold ${trade.action === 'BUY' ? 'text-emerald-400' : 'text-rose-400'} `}>
                           {trade.action === 'BUY' ? '📈 매수' : '📉 매도'}
                         </span>
-                        <p className={`text-sm font-bold ${trade.action === 'BUY' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        <p className={`text - sm font - bold ${trade.action === 'BUY' ? 'text-emerald-500' : 'text-rose-500'} `}>
                           {formatCurrency(Math.abs(trade.tradeAmount), 'KRW')}
                         </p>
                       </div>
@@ -1988,13 +1991,13 @@ ${assetsList}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name, percent }) => `${name} ${percent}%`}
+                          label={({ name, percent }) => `${name} ${percent}% `}
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="value"
                         >
                           {allocationChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} stroke="rgba(0,0,0,0.5)" />
+                            <Cell key={`cell - ${index} `} fill={entry.fill} stroke="rgba(0,0,0,0.5)" />
                           ))}
                         </Pie>
                         <Tooltip
@@ -2015,7 +2018,7 @@ ${assetsList}
                         <XAxis type="number" domain={[0, 100]} unit="%" stroke="#94a3b8" fontSize={12} />
                         <YAxis type="category" dataKey="name" width={60} stroke="#94a3b8" fontSize={12} />
                         <Tooltip
-                          formatter={(value) => `${value}%`}
+                          formatter={(value) => `${value}% `}
                           contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#334155', color: '#e2e8f0' }}
                         />
                         <Legend wrapperStyle={{ color: '#94a3b8' }} />
@@ -2153,10 +2156,10 @@ ${assetsList}
                     {portfolioData.assets.map(asset => (
                       <label
                         key={asset.symbol}
-                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
-                          ? 'bg-purple-500/20 border-purple-500/50 border'
-                          : 'bg-slate-800 hover:bg-slate-700 border border-transparent'
-                          }`}
+                        className={`flex items - center gap - 2 p - 2 rounded - lg cursor - pointer transition - all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
+                            ? 'bg-purple-500/20 border-purple-500/50 border'
+                            : 'bg-slate-800 hover:bg-slate-700 border border-transparent'
+                          } `}
                       >
                         <input
                           type="checkbox"
@@ -2501,13 +2504,13 @@ ${assetsList}
                   chatMessages.map((msg, idx) => (
                     <div
                       key={idx}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} `}
                     >
                       <div
-                        className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-md ${msg.role === 'user'
-                          ? 'bg-indigo-600 text-white rounded-br-none'
-                          : 'bg-slate-700 text-gray-100 rounded-bl-none'
-                          }`}
+                        className={`max - w - [85 %] rounded - 2xl px - 5 py - 4 shadow - md ${msg.role === 'user'
+                            ? 'bg-indigo-600 text-white rounded-br-none'
+                            : 'bg-slate-700 text-gray-100 rounded-bl-none'
+                          } `}
                       >
                         <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
                           {msg.content}
