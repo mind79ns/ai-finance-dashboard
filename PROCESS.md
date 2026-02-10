@@ -1,97 +1,73 @@
-# AI Finance Dashboard - Development Process & History
+# 📜 프로젝트 개발 이력 및 개선 프로세스 (PROCESS.MD)
 
-## 1. Project Overview
-
-**AI Finance Dashboard** is a comprehensive personal finance application designed with a high-end **Cyberpunk Dark Theme**. It features real-time asset tracking, portfolio management, investment journaling, and AI-driven market analysis.
-
-### Key Tech Stack
-
-- **Frontend**: React, Tailwind CSS (Custom Cyberpunk Theme), Recharts, Lucide React
-- **Backend/Data**: Supabase (Database), Yahoo Finance API (Market Data)
-- **Deployment**: Netlify (CI/CD via GitHub)
+이 문서는 **AI Finance Dashboard** 프로젝트의 개발 히스토리, 주요 변경 사항, 그리고 향후 개선 계획을 추적 관리하기 위한 문서입니다.
 
 ---
 
-## 2. Development Standards & Guidelines
+## 1. 📅 개발 히스토리 (Change Log)
 
-### UI/UX Philosophy
+### [2026-02-10] 투자 일지 (Investment Log) 리디자인 & 배포
 
-- **Cyberpunk Aesthetics**: STRICT adherence to dark mode.
-  - **Backgrounds**: `bg-slate-950` (Main), `bg-slate-900` (Cards/Sidebar).
-  - **Accents**: Neon Cyan (`text-cyan-400`), Rose (`text-rose-400`), Emerald (`text-emerald-400`).
-  - **Effects**: Glassmorphism (`bg-slate-800/50`, `backdrop-blur`), Glow Borders (`border-cyan-500/30`, `shadow-cyan-500/20`).
-- **Data Visualization**: Charts must use dark themes, custom tooltips, and neon color palettes.
+- **주요 변경 사항**:
+  - **사이버펑크 다크 테마 적용**: `InvestmentLog.jsx` 전체 컴포넌트(리스트, 테이블, 캘린더, 모달)에 `slate-900` 배경 및 네온 컬러(`cyan`, `rose`, `emerald`) 적용.
+  - **자산 명칭 표시 강화**: 테이블 뷰에서 심볼(Symbol)과 함께 자산명(Asset Name)을 병기하여 가독성 향상.
+  - **캘린더 뷰 스타일링**: `react-calendar`의 기본 스타일을 오버라이딩하여 다크 모드에 최적화된 커스텀 CSS 적용.
+  - **통계 카드 개선**: `MoveUp`, `MoveDown` 등의 아이콘과 네온 글로우 효과(`cyber-card-glow`)를 적용하여 시각적 완성도 제고.
+  - **트랜잭션 추가 모달**: 입력 폼, 드롭다운, 버튼 등에 일관된 다크 테마 적용.
 
-### Code Quality
+### [2026-02-10] 거래 내역 (Transaction History) 다크 모드
 
-- **Clean Code**: Use functional components, hooks (`useMemo`, `useCallback`), and clear variable naming.
-- **Modularity**: Break down complex pages into reusable components (e.g., `ChartCard`, `CyberTable`).
-- **Validation**: Ensure no light-mode utility classes (`bg-white`, `text-gray-900`) remain in the codebase.
+- **주요 변경 사항**:
+  - **전면적 다크 모드 전환**: `TransactionHistory.jsx` 내 모든 모달(내역, 배당, 통계)과 섹션을 다크 테마로 전환.
+  - **레거시 스타일 제거**: `bg-white`, `text-gray-*` 등 기존 라이트 모드 잔재 코드 완전 제거 및 `grep` 검증 완료.
 
-### Workflow
+### [2026-02-09] 자산 현황 (Asset Status) & 포트폴리오 개선
 
-1. **Plan**: Update `task.md` with detailed steps.
-2. **Implement**: Apply changes, focusing on one component at a time.
-3. **Verify**:
-    - **Visual**: Check responsiveness and theme consistency.
-    - **Code**: Run `grep` to find leftover light-mode classes.
-4. **Document**: Update `PROCESS.md` and create `walkthrough.md`.
-5. **Deploy**: Commit with semantic messages (`feat`, `fix`, `style`) and push to trigger auto-deploy.
+- **주요 변경 사항**:
+  - **자산 현황 카드**: 수입/지출 카드에 그라디언트 글로우 효과 적용.
+  - **포트폴리오 요약**: 밝은 그라디언트를 제거하고 차분한 네온 스타일로 변경.
+  - **차트 페이징**: 다수의 자산을 효율적으로 표시하기 위한 차트 페이지네이션 구현.
 
----
+### [2026-02-08] 글로벌 레이아웃 (Global Layout) 개편
 
-## 3. Change Log (History)
-
-### [2026-02-10] Investment Journal Redesign
-
-- **Component**: `InvestmentLog.jsx`
-- **Changes**:
-  - Applied **Cyberpunk Dark Theme** to all views (List, Desktop Table, Calendar).
-  - Enhanced **Table View** to display Asset Symbol + Name.
-  - Styled **Add Transaction Modal** with dark backgrounds and neon inputs.
-  - Updated **Stats Cards** with glow effects and icons.
-  - Implemented dynamic month filtering.
-
-### [2026-02-10] Transaction History Dark Mode
-
-- **Component**: `TransactionHistory.jsx`
-- **Changes**:
-  - Full dark mode conversion for all modals (History, Dividend, Stats).
-  - Styled Currency Converter and Dividend Charts.
-  - Removed all legacy light-mode classes.
-
-### [2026-02-09] Asset Status & Portfolio Polish
-
-- **Component**: `AssetStatus.jsx`, `Portfolio.jsx`
-- **Changes**:
-  - Redesigned **Asset Status Cards** with gradient glows (Green/Red).
-  - Updated **Portfolio Summary Cards** to remove bright gradients in favor of dark neon styles.
-  - Implemented pagination and full name display in Portfolio Charts.
-
-### [2026-02-08] Global Layout Overhaul
-
-- **Component**: `Layout.jsx`, `index.css`
-- **Changes**:
-  - Established the core **Cyberpunk Theme** (Sidebar, Header, Main Background).
-  - Defined global CSS variables for base colors (`slate-950`).
+- **주요 변경 사항**:
+  - **사이버펑크 테마 기틀 마련**: `Layout.jsx` 및 `index.css`를 수정하여 전체 배경(`bg-slate-950`)과 사이드바, 헤더의 기본 스타일 정의.
 
 ---
 
-## 4. Roadmap (Upcoming)
+## 2. 🚀 향후 개선 계획 (Roadmap)
 
-### Phase 1: Remaining UI Polish
+### Phase 1: 잔여 UI 폴리싱 (진행 중)
 
-- **Goals.jsx**: Apply Cyberpunkstyled goal cards and progress bars.
-- **Settings.jsx**: Dark mode forms, profile management, and system settings.
-- **Market / AI Report**: Ensure consistent dark styling for news feeds and AI recommendations.
+- [ ] **목표 관리 (Goals.jsx)**: 목표 카드 및 진행률 바에 사이버펑크 스타일 적용.
+- [ ] **설정 (Settings.jsx)**: 폼 입력 필드, 프로필 섹션 다크 모드 전환.
+- [ ] **시장/AI 리포트**: 뉴스 피드 및 AI 제안 카드 디자인 일관성 확보.
 
-### Phase 2: Feature Enhancements
+### Phase 2: 기능 고도화
 
-- **Mobile Optimization**: Further refine mobile layouts for complex tables.
-- **Performance**: Optimize heavy chart rendering and data fetching.
-- **AI Integration**: Enhance the "AI Report" with real LLM-based insights (Future).
+- [ ] **모바일 최적화**: 복잡한 데이터 테이블의 모바일 가독성 개선 (카드형 뷰 강화).
+- [ ] **성능 최적화**: 대용량 데이터 차트 렌더링 속도 개선 (상태 관리 최적화).
+- [ ] **AI 분석 심화**: 단순 요약을 넘어선 포트폴리오 리밸런싱 제안 알고리즘 강화.
 
-### Phase 3: System Stability
+### Phase 3: 시스템 안정성
 
-- **Testing**: Implement unit tests for core utilities (`dataSync`, calculations).
-- **Error Handling**: Improve boundary error catching and user notifications.
+- [ ] **테스트 커버리지 확대**: 핵심 유틸리티(`dataSync`) 및 계산 로직에 대한 단위 테스트 추가.
+- [ ] **에러 핸들링**: API 오류 및 데이터 동기화 실패 시 사용자 피드백(Toast 알림) 강화.
+
+---
+
+## 3. 🛠 개발 원칙 및 컨벤션
+
+### 디자인 (Design)
+
+- **테마**: **Cyberpunk Dark** (`slate-950` 배경 기준).
+- **컬러 팔레트**:
+  - Main: `Slate-900` (Card/Sidebar)
+  - Accent: `Cyan-400` (Info/Primary), `Rose-400` (Sell/Loss), `Emerald-400` (Buy/Profit)
+- **효과**: `backdrop-blur` (Glassmorphism), `border-opacity-30` (Subtle Borders).
+
+### 코드 (Code)
+
+- **컴포넌트**: 기능 단위 분리 (`ChartCard`, `CyberTable` 등 재사용성 극대화).
+- **데이터 관리**: `localStorage` 우선 저장 + `Supabase` 백그라운드 동기화 구조 유지.
+- **검증**: UI 변경 시 반드시 모바일/데스크탑 반응형 확인 및 라이트 모드 잔재 코드 검사.
