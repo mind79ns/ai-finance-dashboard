@@ -1027,86 +1027,248 @@ const InvestmentLog = () => {
 
       {/* Add Transaction Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-lg max-w-md w-full p-6 border border-cyan-500/30 shadow-2xl shadow-cyan-500/10">
-            <div className="flex items-center justify-between mb-6 border-b border-cyan-500/30 pb-4">
-              <h3 className="text-xl font-bold text-cyan-300">{editId ? '거래 수정' : '거래 추가'}</h3>
-              <button onClick={handleCloseModal} className="text-slate-400 hover:text-cyan-300 transition-colors">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-cyan-500/30 shadow-[0_0_50px_rgba(6,182,212,0.15)] relative overflow-hidden">
+            {/* Background Glow Effects */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* ... Date, Type, Asset fields ... */}
-
-              {/* ... (Skipping middle parts) ... */}
-
-              <div className="grid grid-cols-2 gap-4">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8">
                 <div>
-                  <label className="block text-sm font-medium text-cyan-300/80 mb-2">
-                    수량
-                  </label>
-                  <input
-                    type="number"
-                    name="quantity"
-                    value={formData.quantity}
-                    onChange={handleInputChange}
-                    required
-                    step="0.000001"
-                    min="0"
-                    placeholder="1.0"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                  />
+                  <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
+                    {editId ? '거래 수정' : '거래 추가'}
+                  </h3>
+                  <p className="text-slate-400 text-sm mt-1">포트폴리오에 새로운 거래를 기록합니다</p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-cyan-300/80 mb-2">
-                    가격 ({formData.customAssetCurrency === 'KRW' ? '₩' : '$'})
-                  </label>
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    required
-                    step="0.01"
-                    min="0"
-                    placeholder="100.00"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-cyan-300/80 mb-2">
-                  메모 (선택)
-                </label>
-                <textarea
-                  name="note"
-                  value={formData.note}
-                  onChange={handleInputChange}
-                  rows="3"
-                  placeholder="거래에 대한 메모를 입력하세요..."
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
-                />
-              </div>
-
-              <div className="flex gap-3 mt-6 pt-2 border-t border-cyan-500/20">
-                <button
-                  type="button"
+                <button 
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors"
+                  className="p-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
                 >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:from-cyan-500 hover:to-blue-500 hover:shadow-cyan-500/50 transition-all transform hover:-translate-y-0.5"
-                >
-                  {editId ? '수정' : '추가'}
+                  <X className="w-6 h-6" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Date Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-cyan-300">날짜</label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
+                    />
+                    <CalendarIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Type Selection */}
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, type: 'buy' }))}
+                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${
+                      formData.type === 'buy'
+                        ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
+                        : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <span className="font-bold">매수 (Buy)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, type: 'sell' }))}
+                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${
+                      formData.type === 'sell'
+                        ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                        : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <span className="font-bold">매도 (Sell)</span>
+                  </button>
+                </div>
+
+                {/* Asset Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-cyan-300">자산 선택</label>
+                  <select
+                    name="asset"
+                    value={formData.asset}
+                    onChange={handleInputChange}
+                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all appearance-none"
+                  >
+                    <option value="" disabled>자산을 선택하세요</option>
+                    {portfolioAssets.map(asset => (
+                      <option key={asset.id || asset.symbol} value={asset.symbol}>
+                        {asset.name} ({asset.symbol}) - 현보유: {asset.quantity}
+                      </option>
+                    ))}
+                    <option value="__custom__">+ 직접 입력 (새로운 자산)</option>
+                  </select>
+                </div>
+
+                {/* Custom Asset Inputs - Conditional */}
+                {formData.asset === '__custom__' && (
+                  <div className="p-4 bg-slate-800/30 rounded-xl border border-dashed border-slate-700 space-y-4 animate-fadeIn">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs text-slate-400">종목코드 (Ticker)</label>
+                        <input
+                          type="text"
+                          name="customAsset"
+                          value={formData.customAsset}
+                          onChange={handleInputChange}
+                          placeholder="AAPL"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:border-cyan-500/50 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-slate-400">종목명</label>
+                        <input
+                          type="text"
+                          name="customAssetName"
+                          value={formData.customAssetName}
+                          onChange={handleInputChange}
+                          placeholder="Apple Inc."
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:border-cyan-500/50 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs text-slate-400">자산 유형</label>
+                        <select
+                          name="customAssetType"
+                          value={formData.customAssetType}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:border-cyan-500/50 focus:outline-none"
+                        >
+                          <option value="주식">주식</option>
+                          <option value="코인">코인</option>
+                          <option value="부동산">부동산</option>
+                          <option value="현금">현금</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-slate-400">통화</label>
+                        <select
+                          name="customAssetCurrency"
+                          value={formData.customAssetCurrency}
+                          onChange={handleInputChange}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:border-cyan-500/50 focus:outline-none"
+                        >
+                          <option value="USD">USD ($)</option>
+                          <option value="KRW">KRW (₩)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Account Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-cyan-300">계좌 선택</label>
+                  <select
+                    name="selectedAccount"
+                    value={formData.selectedAccount}
+                    onChange={handleInputChange}
+                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
+                  >
+                    {accountOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                    <option value="__custom__">+ 새 계좌 입력</option>
+                  </select>
+                  {formData.selectedAccount === '__custom__' && (
+                    <input
+                      type="text"
+                      name="customAccountName"
+                      value={formData.customAccountName}
+                      onChange={handleInputChange}
+                      placeholder="새 계좌 이름 입력 (예: 키움증권)"
+                      className="w-full mt-2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 focus:border-cyan-500/50 focus:outline-none"
+                    />
+                  )}
+                </div>
+
+                {/* Quantity & Price */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-cyan-300">수량</label>
+                    <input
+                      type="number"
+                      name="quantity"
+                      value={formData.quantity}
+                      onChange={handleInputChange}
+                      required
+                      step="0.000001"
+                      min="0"
+                      placeholder="0"
+                      className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-cyan-300">
+                      단가 <span className="text-slate-500 font-normal">({formData.customAssetCurrency === 'KRW' ? '₩' : '$'})</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      required
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Total Preview */}
+                <div className="bg-slate-800/30 rounded-xl p-4 flex justify-between items-center border border-slate-700/50">
+                  <span className="text-slate-400 text-sm">총 거래금액</span>
+                  <span className="text-xl font-bold text-cyan-300">
+                    {formData.customAssetCurrency === 'KRW' ? '₩' : '$'} 
+                    {((parseFloat(formData.quantity) || 0) * (parseFloat(formData.price) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Note */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-cyan-300">메모 (선택)</label>
+                  <textarea
+                    name="note"
+                    value={formData.note}
+                    onChange={handleInputChange}
+                    rows="2"
+                    placeholder="거래 관련 메모..."
+                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all resize-none"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="flex-1 px-4 py-3 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 transition-all font-medium"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-[2] px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold shadow-lg shadow-cyan-500/20 transition-all transform hover:-translate-y-0.5"
+                  >
+                    {editId ? '수정 완료' : '거래내역 추가'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

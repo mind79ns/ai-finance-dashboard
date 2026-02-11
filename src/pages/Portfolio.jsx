@@ -37,7 +37,82 @@ const Portfolio = () => {
   // Investment Management - Account-based principal/deposit tracking
   const [accountPrincipals, setAccountPrincipals] = useState({}) // { accountName: { principal, remaining, note } }
   const [showPrincipalModal, setShowPrincipalModal] = useState(false)
-  const [editingAccount, setEditingAccount] = useState(null)
+  const [editingAsset, setEditingAsset] = useState(null)
+  const [editFormData, setEditFormData] = useState({
+    quantity: '',
+    avgPrice: ''
+  })
+
+  // ... (previous useEffects)
+
+  const handleEditAsset = (asset) => {
+    setEditingAsset(asset)
+    setEditFormData({
+      quantity: asset.quantity,
+      avgPrice: asset.avgPrice
+    })
+  }
+
+  const handleCloseEditModal = () => {
+    setEditingAsset(null)
+    setEditFormData({
+      quantity: '',
+      avgPrice: ''
+    })
+  }
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSaveAssetEdit = async (e) => {
+    e.preventDefault()
+    if (!editingAsset) return
+
+    const newQuantity = parseFloat(editFormData.quantity)
+    const newAvgPrice = parseFloat(editFormData.avgPrice)
+
+    if (isNaN(newQuantity) || newQuantity < 0) {
+      alert('유효한 수량을 입력해주세요.')
+      return
+    }
+
+    if (isNaN(newAvgPrice) || newAvgPrice < 0) {
+      alert('유효한 평단가를 입력해주세요.')
+      return
+    }
+
+    const updatedAsset = {
+      ...editingAsset,
+      quantity: newQuantity,
+      avgPrice: newAvgPrice,
+      totalValue: newQuantity * editingAsset.currentPrice, // Recalculate total value
+      profit: (newQuantity * editingAsset.currentPrice) - (newQuantity * newAvgPrice), // Recalculate profit
+      profitPercent: newAvgPrice !== 0 ? ((editingAsset.currentPrice - newAvgPrice) / newAvgPrice) * 100 : 0
+    }
+
+    // Save to dataSync
+    await dataSync.savePortfolioAssets(assets.map(a => a.id === editingAsset.id ? updatedAsset : a))
+
+    // Update local state
+    setAssets(prev => prev.map(a => a.id === editingAsset.id ? updatedAsset : a))
+
+    alert('자산 정보가 수정되었습니다.')
+    handleCloseEditModal()
+  }
+
+  // ... (rest of the component)
+
+  // In the rendering part (Asset List), add Edit button:
+  // <button onClick={() => handleEditAsset(asset)} ...><Edit2 .../></button>
+
+  // And add the Edit Modal at the end:
+
+
 
   // Chart Pagination
   const [chartPage, setChartPage] = useState(0)
@@ -1666,20 +1741,27 @@ const Portfolio = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleViewDetail(asset)}
-                          className="p-1 hover:bg-cyan-500/20 rounded transition-colors group"
+                          className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
                           title="상세 보기"
                         >
-                          <Eye className="w-4 h-4 text-cyan-500 group-hover:text-cyan-400" />
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditAsset(asset)}
+                          className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                          title="자산 수정"
+                        >
+                          <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteAsset(asset.id)}
-                          className="p-1 hover:bg-red-500/20 rounded transition-colors group"
+                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                           title="삭제"
                         >
-                          <Trash2 className="w-4 h-4 text-red-500 group-hover:text-red-400" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -2005,6 +2087,69 @@ BTC,Bitcoin,코인,0.1,67234,USD`}
           />
         )}
       </SlidePanel>
+
+      {/* Edit Asset Modal */}
+      {editingAsset && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-2xl max-w-sm w-full p-6 border border-cyan-500/30 shadow-[0_0_50px_rgba(6,182,212,0.15)] relative overflow-hidden">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">
+                자산 수정 <span className="text-cyan-400 text-base font-normal">({editingAsset.name})</span>
+              </h3>
+              <button onClick={handleCloseEditModal} className="text-slate-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAssetEdit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-cyan-300">보유 수량</label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={editFormData.quantity}
+                  onChange={handleEditInputChange}
+                  required
+                  step="0.000001"
+                  min="0"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-cyan-300">
+                  평균 단가 <span className="text-slate-500">({editingAsset.currency})</span>
+                </label>
+                <input
+                  type="number"
+                  name="avgPrice"
+                  value={editFormData.avgPrice}
+                  onChange={handleEditInputChange}
+                  required
+                  step="0.000001"
+                  min="0"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-cyan-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition-colors"
+                >
+                  저장
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
