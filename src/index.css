@@ -480,7 +480,7 @@
 
 .dark td {
   background-color: #1f2937 !important;
-  color: #d1d5db !important;
+  color: #f3f4f6 !important;
   border-color: #4b5563 !important;
 }
 
@@ -489,6 +489,64 @@
 }
 
 .dark tbody tr:hover td {
+  background-color: #374151 !important;
+}
+
+/* ========== PROSE / MARKDOWN DARK MODE TEXT OVERRIDES ========== */
+/* These MUST be outside @layer to override layered rules */
+.dark .prose p,
+.dark .prose li,
+.dark .prose span,
+.dark .markdown-body p,
+.dark .markdown-body li,
+.dark .markdown-body span {
+  color: #f3f4f6 !important;
+}
+
+.dark .prose strong,
+.dark .prose b,
+.dark .prose em,
+.dark .markdown-body strong,
+.dark .markdown-body b,
+.dark .markdown-body em {
+  color: #ffffff !important;
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose h5,
+.dark .prose h6,
+.dark .markdown-body h1,
+.dark .markdown-body h2,
+.dark .markdown-body h3,
+.dark .markdown-body h4,
+.dark .markdown-body h5,
+.dark .markdown-body h6 {
+  color: #ffffff !important;
+}
+
+.dark .prose th,
+.dark .markdown-body th {
+  color: #ffffff !important;
+  background-color: #374151 !important;
+}
+
+.dark .prose td,
+.dark .markdown-body td {
+  color: #f3f4f6 !important;
+}
+
+.dark .prose blockquote,
+.dark .markdown-body blockquote {
+  color: #e5e7eb !important;
+  border-left-color: #3b82f6 !important;
+}
+
+.dark .prose code,
+.dark .markdown-body code {
+  color: #e5e7eb !important;
   background-color: #374151 !important;
 }
 
@@ -696,8 +754,13 @@
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Stat Items around hub */
@@ -813,8 +876,15 @@
 
 /* Pulse Animation */
 @keyframes cyber-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .cyber-pulse {
