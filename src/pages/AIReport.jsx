@@ -73,6 +73,9 @@ const AIReport = () => {
   const [customStockCode, setCustomStockCode] = useState('') // 직접 입력 종목코드
   const [customStockName, setCustomStockName] = useState('') // 직접 입력 종목명
   const [stockAnalysis, setStockAnalysis] = useState('')     // 종목 분석 결과명
+  const [stockEnrichedData, setStockEnrichedData] = useState(null) // Finnhub 보강 데이터
+  const [stockCompareMode, setStockCompareMode] = useState(false) // 비교 모드
+  const [compareStock, setCompareStock] = useState(null) // 비교 대상 종목
 
   // AI Features Expansion
   const [timingAnalysis, setTimingAnalysis] = useState('')  // AI 매매 타이밍
@@ -851,47 +854,131 @@ ${insights.map(i => '- ' + i).join('\n')}
     }
 
     setLoading(true)
+    setStockAnalysis('') // Clear previous
     try {
-      const priceInfo = selectedStock
-        ? `현재가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.currentPrice?.toLocaleString()} (수익률: ${selectedStock.profitPercent?.toFixed(2)}%)`
-        : '가격 정보 없음 (직접 입력된 종목)'
+      // 1단계: Finnhub 데이터 병렬 수집
+      const [quoteRes, profileRes, metricsRes, newsRes] = await Promise.allSettled([
+        marketDataService.getStockPrice(targetSymbol),
+        marketDataService.getStockProfile(targetSymbol),
+        marketDataService.getStockMetrics(targetSymbol),
+        marketDataService.getCompanyNews(targetSymbol, 7, 5)
+      ])
 
-      const prompt = `[${today} 기준 최신 분석 요청]
-대상 종목: ${targetName} (${targetSymbol})
-${priceInfo}
+      const quote = quoteRes.status === 'fulfilled' ? quoteRes.value : null
+      const profile = profileRes.status === 'fulfilled' ? profileRes.value : null
+      const metrics = metricsRes.status === 'fulfilled' ? metricsRes.value : null
+      const news = newsRes.status === 'fulfilled' ? newsRes.value : null
 
-당신은 월스트리트의 최상위 헤지펀드 매니저이자 수석 애널리스트입니다.
-오늘(${today}) 기준으로 위 종목에 대해 투자자가 즉시 행동할 수 있는 핵심 정보를 짧고 강렬하게 요약해주세요.
+      // 보강 데이터 저장 (UI 카드 표시용)
+      setStockEnrichedData({ quote, profile, metrics, news })
 
-반드시 다음 형식(Format)을 엄격히 준수하여 Markdown으로 출력하세요:
+      // 2단계: 프롬프트 데이터 구성
+      const priceSection = quote
+        ? `현재가: $${quote.price?.toLocaleString()} | 전일대비: ${quote.change >= 0 ? '+' : ''}${quote.change?.toFixed(2)} (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent?.toFixed(2)}%) | 당일 고/저: $${quote.high} / $${quote.low}`
+        : selectedStock
+          ? `현재가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.currentPrice?.toLocaleString()} (수익률: ${selectedStock.profitPercent?.toFixed(2)}%)`
+          : '가격 정보 없음'
+
+      const profileSection = profile
+        ? `\n[기업 프로필]\n이름: ${profile.name} | 산업: ${profile.industry} | 국가: ${profile.country}\n거래소: ${profile.exchange} | 시가총액: $${(profile.marketCap || 0).toLocaleString()}M | IPO: ${profile.ipo || 'N/A'}`
+        : ''
+
+      const metricsSection = metrics
+        ? `\n[재무 지표 - Finnhub 실시간]\n52주 고가: $${metrics['52WeekHigh']} (${metrics['52WeekHighDate'] || 'N/A'}) | 52주 저가: $${metrics['52WeekLow']} (${metrics['52WeekLowDate'] || 'N/A'})\nPER: ${metrics.peRatio?.toFixed(2) || 'N/A'} | PBR: ${metrics.pbRatio?.toFixed(2) || 'N/A'} | PSR: ${metrics.psRatio?.toFixed(2) || 'N/A'}\nROE: ${metrics.roe?.toFixed(2) || 'N/A'}% | ROA: ${metrics.roa?.toFixed(2) || 'N/A'}%\n배당수익률: ${metrics.dividendYield?.toFixed(2) || 'N/A'}% | Beta: ${metrics.beta?.toFixed(2) || 'N/A'}\nEPS 성장률: ${metrics.epsGrowth?.toFixed(2) || 'N/A'}% | 매출 성장률: ${metrics.revenueGrowth?.toFixed(2) || 'N/A'}%\n유동비율: ${metrics.currentRatio?.toFixed(2) || 'N/A'} | 부채비율: ${metrics.debtToEquity?.toFixed(2) || 'N/A'}\n10일 평균 거래량: ${metrics.avgVolume10Day?.toFixed(2) || 'N/A'}M주`
+        : ''
+
+      const newsSection = news && news.length > 0
+        ? `\n[최근 뉴스 헤드라인 (${news.length}건)]\n${news.map((n, i) => `${i + 1}. [${n.datetime}] ${n.headline} (${n.source})`).join('\n')}`
+        : ''
+
+      const portfolioContext = selectedStock
+        ? `\n[투자자 보유 정보]\n보유수량: ${selectedStock.quantity}주 | 매수가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.purchasePrice?.toLocaleString()} | 현재 수익률: ${selectedStock.profitPercent?.toFixed(2)}%`
+        : ''
+
+      // 3단계: 확장된 AI 프롬프트 (7개 섹션)
+      const prompt = `[${today} 기준 실시간 종목 심층 분석 요청]
+
+=== 분석 대상 ===
+종목: ${targetName} (${targetSymbol})
+${priceSection}
+${profileSection}
+${metricsSection}
+${newsSection}
+${portfolioContext}
+
+=== 분석 지시 ===
+당신은 월스트리트의 최상위 헤지펀드 매니저이자 CFA(공인재무분석사)입니다.
+위에 제공된 **실제 시장 데이터(Finnhub API 기준)**를 기반으로, 투자자가 즉시 행동할 수 있는 심층 분석을 작성하세요.
+
+반드시 다음 7개 섹션을 Markdown 형식으로 작성하세요:
 
 ## 1. 🎯 투자 의견 (Investment Rating)
-* **결론**: (매수 / 강력 매수 / 중립 / 매도 / 강력 매도 중 택 1)
-* **목표 주가**: (예상 범위 제시, 없으면 'N/A')
-* **핵심 근거**: (한 줄 요약)
+| 항목 | 내용 |
+|---|---|
+| **투자 등급** | (강력매수 / 매수 / 중립 / 매도 / 강력매도) |
+| **신뢰도** | (상 / 중 / 하) |
+| **목표 주가** | (구체적 범위 또는 N/A) |
+| **핵심 근거** | (한 줄 요약) |
 
-## 2. 🔥 3줄 핵심 요약 (Key Takeaways)
-* (가장 중요한 상승 모멘텀)
-* (실적 또는 시장의 주요 우려 사항)
-* (수급 또는 차트상의 특이점)
+## 2. 📊 핵심 지표 대시보드 (Key Metrics)
+위에서 제공된 재무 지표 데이터를 기반으로 표 형태로 정리하세요:
+| 지표 | 수치 | 업종 평균 대비 | 평가 |
+|---|---|---|---|
+| PER | | | (고평가/적정/저평가) |
+| PBR | | | |
+| ROE | | | |
+| 배당수익률 | | | |
+| 부채비율 | | | |
 
-## 3. 📈 실적 전망 및 방향성 (Forecasting)
-* **단기 방향성**: (상승 / 하락 / 횡보 예상)
-* **실적 체크**: (최근 실적 요약 및 다음 분기 전망)
-* **대응 전략**: (지금 사야 할지, 팔아야 할지, 기다려야 할지 구체적 행동 지침)
+## 3. 📈 기술적 분석 (Technical Analysis)
+* **52주 고/저 대비 위치**: 현재가가 52주 범위에서 어디에 있는지 (%) 분석
+* **추세 판단**: 상승추세 / 하락추세 / 횡보구간
+* **주요 지지/저항선**: 근거와 함께 제시
+* **거래량 분석**: 평균 거래량 대비 현재 수급 상황
+
+## 4. 💰 재무 건전성 (Financial Health)
+* **수익성**: ROE, ROA 기반 수익 창출 능력 평가
+* **성장성**: EPS/매출 성장률 기반 성장 모멘텀
+* **안정성**: 유동비율, 부채비율 기반 재무 안정성
+* **종합 등급**: (🟢 우수 / 🟡 보통 / 🔴 주의)
+
+## 5. ⚔️ 경쟁사 비교 (Peer Comparison)
+동종 업계의 주요 경쟁 기업 2-3개와 핵심 지표 비교표:
+| 종목 | PER | 시가총액 | 성장률 | 투자매력도 |
+|---|---|---|---|---|
+
+## 6. ⚠️ 리스크 요인 (Risk Factors)
+* **시장 리스크**: (금리, 환율, 지정학적 요인)
+* **산업 리스크**: (경쟁 심화, 규제 변화)
+* **기업 고유 리스크**: (실적 변동, 구조적 문제)
+* **리스크 종합 등급**: (🟢 낮음 / 🟡 보통 / 🔴 높음)
+
+## 7. 🎯 실전 매매 전략 (Action Plan)
+| 항목 | 가격/수준 |
+|---|---|
+| **현재가** | |
+| **1차 진입가 (공격적)** | |
+| **2차 진입가 (보수적)** | |
+| **손절가 (Stop Loss)** | |
+| **1차 목표가** | |
+| **2차 목표가** | |
+| **비중 제안** | (포트폴리오 대비 %) |
+
+**구체적 행동 지침:**
+* 지금 바로 매수/매도/관망해야 하는 이유
+* 분할 매수 전략 또는 손절 시나리오
 
 **작성 원칙:**
-- 🔴 **중요**: 2024년 이후의 구체적인 뉴스(출시 지연, 계약 체결 등)를 "검색 없이" 단정적으로 생성하지 마세요. (할루시네이션 방지)
-- 대신, **위에서 제공한 가격 정보(Price Info)의 수익률**에 기반하여 **밸류에이션(저평가 여부) 및 기술적 과매도**를 집중 분석하세요.
-- 특히 수익률이 크게 하락한 경우, 이것이 '구조적 문제'인지 '일시적 과매도(저가 매수 기회)'인지 논리적으로 구분하여 설명하세요.
-- 서술형 문장을 지양하고, **개조식(Bullet points)** 위주로 작성하여 가독성을 극대화하세요.
-- 불필요한 미사여구는 빼고 "돈이 되는 정보"만 담으세요.
-- ${today} 기준 최신 데이터를 반영하세요.`
+- 🔴 위에 제공된 실제 데이터(Finnhub 재무지표, 가격, 뉴스)를 적극 활용하세요.
+- 데이터가 없는 항목은 "데이터 없음"으로 표시하고, 일반적 분석으로 대체하세요.
+- 구체적인 수치와 근거를 반드시 제시하세요. 추상적 서술 금지.
+- 개조식(Bullet points)과 표(Table) 위주로 가독성을 극대화하세요.
+- ${today} 기준 분석임을 명시하세요.`
 
       const analysis = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
-        '당신은 주식 시장 전문가입니다. 팩트에 기반한 날카로운 분석을 제공합니다.',
+        '당신은 CFA 자격을 보유한 월스트리트 수석 애널리스트입니다. 실제 재무 데이터를 기반으로 근거 있는 분석만 제공합니다. 한국어로 작성하되, 전문 용어는 원어 병기합니다.',
         selectedAI
       )
       setStockAnalysis(analysis)
@@ -900,11 +987,103 @@ ${priceInfo}
         type: 'stock',
         createdAt: new Date().toISOString(),
         stock: targetSymbol,
-        summary: `${targetSymbol} 종목 분석`,
-        content: analysis
+        summary: `${targetName} (${targetSymbol}) 심층 분석`,
+        content: analysis,
+        enrichedData: { quote, profile, metrics }
       })
     } catch (error) {
       setStockAnalysis('종목 분석 중 오류가 발생했습니다. API 키를 확인해주세요.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 종목 비교 분석
+  const generateComparisonAnalysis = async () => {
+    if (!selectedStock || !compareStock) {
+      setStockAnalysis('비교할 두 종목을 모두 선택해주세요.')
+      return
+    }
+
+    const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+    setLoading(true)
+    setStockAnalysis('')
+
+    try {
+      // 두 종목 데이터 병렬 수집
+      const [quote1, profile1, metrics1, quote2, profile2, metrics2] = await Promise.allSettled([
+        marketDataService.getStockPrice(selectedStock.symbol),
+        marketDataService.getStockProfile(selectedStock.symbol),
+        marketDataService.getStockMetrics(selectedStock.symbol),
+        marketDataService.getStockPrice(compareStock.symbol),
+        marketDataService.getStockProfile(compareStock.symbol),
+        marketDataService.getStockMetrics(compareStock.symbol)
+      ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null))
+
+      const buildStockInfo = (stock, quote, profile, metrics) => {
+        let info = `${stock.name} (${stock.symbol})`
+        if (quote) info += `\n  현재가: $${quote.price} (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent?.toFixed(2)}%)`
+        if (profile) info += `\n  산업: ${profile.industry} | 시가총액: $${(profile.marketCap || 0).toLocaleString()}M`
+        if (metrics) {
+          info += `\n  PER: ${metrics.peRatio?.toFixed(2) || 'N/A'} | PBR: ${metrics.pbRatio?.toFixed(2) || 'N/A'} | ROE: ${metrics.roe?.toFixed(2) || 'N/A'}%`
+          info += `\n  52주: $${metrics['52WeekLow']} - $${metrics['52WeekHigh']} | 배당: ${metrics.dividendYield?.toFixed(2) || 'N/A'}%`
+          info += `\n  Beta: ${metrics.beta?.toFixed(2) || 'N/A'} | 부채비율: ${metrics.debtToEquity?.toFixed(2) || 'N/A'}`
+        }
+        return info
+      }
+
+      const prompt = `[${today} 기준 종목 비교 분석]
+
+=== 종목 A ===
+${buildStockInfo(selectedStock, quote1, profile1, metrics1)}
+
+=== 종목 B ===
+${buildStockInfo(compareStock, quote2, profile2, metrics2)}
+
+위 두 종목을 아래 형식으로 비교 분석해주세요:
+
+## 📊 핵심 지표 비교표
+| 지표 | ${selectedStock.symbol} | ${compareStock.symbol} | 우위 |
+|---|---|---|---|
+| 현재가 | | | |
+| PER | | | |
+| PBR | | | |
+| ROE | | | |
+| 시가총액 | | | |
+| 배당수익률 | | | |
+| 52주 고/저 위치 | | | |
+| Beta (변동성) | | | |
+
+## 🏆 종합 비교 결론
+* **가치 투자 관점**: 어느 종목이 저평가?
+* **성장 투자 관점**: 어느 종목이 성장성 우수?
+* **안정성 관점**: 어느 종목이 안정적?
+* **최종 추천**: 지금 투자한다면 어느 종목? (근거 포함)
+
+## 💡 투자 시나리오
+* **공격적 투자자**: (추천 + 이유)
+* **보수적 투자자**: (추천 + 이유)
+* **분산 투자**: 두 종목 비중 배분 제안
+
+작성 원칙: 실제 데이터 기반, 표와 개조식 중심, 한국어.`
+
+      const analysis = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 CFA 자격 보유 수석 애널리스트입니다. 두 종목을 객관적으로 비교 분석합니다.',
+        selectedAI
+      )
+      setStockAnalysis(analysis)
+      appendHistory({
+        id: Date.now(),
+        type: 'stock-compare',
+        createdAt: new Date().toISOString(),
+        stock: `${selectedStock.symbol} vs ${compareStock.symbol}`,
+        summary: `${selectedStock.symbol} vs ${compareStock.symbol} 비교 분석`,
+        content: analysis
+      })
+    } catch (error) {
+      setStockAnalysis('비교 분석 중 오류가 발생했습니다.')
     } finally {
       setLoading(false)
     }
@@ -1064,63 +1243,103 @@ ${assetsList}
 
     return (
       <div className="space-y-3">
-        {analysisHistory.slice(0, 5).map(entry => (
-          <div key={entry.id} className="border border-slate-700 rounded-lg p-4 bg-slate-800/60 space-y-3 hover:border-cyan-500/30 transition-colors">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span className="text-sm font-semibold text-cyan-300">{entry.summary}</span>
-                <p className="text-xs text-gray-500 mt-1 capitalize">
-                  타입: {entry.type}
-                </p>
+        {analysisHistory.slice(0, 5).map(entry => {
+          let accuracyBadge = null
+          // 정확도계산 로직: 분석 당시 가격(enrichedData.quote.price)과 현재가 비교
+          if (entry.type === 'stock' && entry.enrichedData?.quote?.price) {
+            const analysisPrice = entry.enrichedData.quote.price
+            // 현재가 찾기 (1. 포트폴리오, 2. 현재 선택된 종목, 3. enrichedData)
+            let currentPrice = null
+
+            // 1. Check Portfolio
+            const portfolioItem = portfolioData?.assets?.find(a => a.symbol === entry.stock)
+            if (portfolioItem) currentPrice = portfolioItem.currentPrice
+
+            // 2. Check Currently Selected/Fetched Data
+            if (!currentPrice && stockEnrichedData?.quote && (selectedStock?.symbol === entry.stock || customStockCode === entry.stock)) {
+              currentPrice = stockEnrichedData.quote.price
+            }
+
+            if (currentPrice) {
+              const returnPct = ((currentPrice - analysisPrice) / analysisPrice) * 100
+              const isPositive = returnPct >= 0
+              accuracyBadge = (
+                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded border ${isPositive
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'}`}>
+                  {isPositive ? '🎯 적중' : '⚠️ 주의'} {isPositive ? '+' : ''}{returnPct.toFixed(1)}%
+                </span>
+              )
+            } else {
+              accuracyBadge = (
+                <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded border bg-slate-700/50 text-gray-500 border-slate-600">
+                  기준가 ${analysisPrice.toLocaleString()}
+                </span>
+              )
+            }
+          }
+
+          return (
+            <div key={entry.id} className="border border-slate-700 rounded-lg p-4 bg-slate-800/60 space-y-3 hover:border-cyan-500/30 transition-colors">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center flex-wrap gap-1 mb-1">
+                    <span className="text-sm font-semibold text-cyan-300">{entry.summary}</span>
+                    {accuracyBadge}
+                  </div>
+                  <p className="text-xs text-gray-500 capitalize">
+                    타입: {entry.type}
+                  </p>
+                </div>
+                <span className="text-xs text-gray-500 flex items-center gap-1 whitespace-nowrap">
+                  <Clock className="w-3 h-3" />
+                  {new Date(entry.createdAt).toLocaleString('ko-KR')}
+                </span>
               </div>
-              <span className="text-xs text-gray-500 flex items-center gap-1 whitespace-nowrap">
-                <Clock className="w-3 h-3" />
-                {new Date(entry.createdAt).toLocaleString('ko-KR')}
-              </span>
+              <div className="text-xs text-gray-400 line-clamp-4 whitespace-pre-line">{entry.content}</div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/10 transition-colors"
+                  onClick={() => setHistoryViewer({ open: true, entry })}
+                >
+                  전체 보기
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
+                  onClick={() => copyToClipboard(entry.content, '클립보드에 복사되었습니다.', '복사에 실패했습니다. 브라우저 권한을 확인하세요.')}
+                >
+                  복사
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
+                  onClick={() => {
+                    try {
+                      const baseName = (entry.summary || 'ai_report').replace(/\s+/g, '_')
+                      const filename = `${baseName}_${new Date(entry.createdAt).toISOString().slice(0, 10)}.md`
+                      const blob = new Blob([entry.content], { type: 'text/markdown;charset=utf-8;' })
+                      const url = URL.createObjectURL(blob)
+                      const link = document.createElement('a')
+                      link.href = url
+                      link.download = filename
+                      document.body.appendChild(link)
+                      link.click()
+                      document.body.removeChild(link)
+                      URL.revokeObjectURL(url)
+                    } catch (err) {
+                      console.error('Download failed:', err)
+                      window.alert('다운로드 생성에 실패했습니다.')
+                    }
+                  }}
+                >
+                  다운로드
+                </button>
+              </div>
             </div>
-            <div className="text-xs text-gray-400 line-clamp-4 whitespace-pre-line">{entry.content}</div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/10 transition-colors"
-                onClick={() => setHistoryViewer({ open: true, entry })}
-              >
-                전체 보기
-              </button>
-              <button
-                type="button"
-                className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
-                onClick={() => copyToClipboard(entry.content, '클립보드에 복사되었습니다.', '복사에 실패했습니다. 브라우저 권한을 확인하세요.')}
-              >
-                복사
-              </button>
-              <button
-                type="button"
-                className="px-3 py-1.5 text-xs font-medium text-gray-400 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
-                onClick={() => {
-                  try {
-                    const baseName = (entry.summary || 'ai_report').replace(/\s+/g, '_')
-                    const filename = `${baseName}_${new Date(entry.createdAt).toISOString().slice(0, 10)}.md`
-                    const blob = new Blob([entry.content], { type: 'text/markdown;charset=utf-8;' })
-                    const url = URL.createObjectURL(blob)
-                    const link = document.createElement('a')
-                    link.href = url
-                    link.download = filename
-                    document.body.appendChild(link)
-                    link.click()
-                    document.body.removeChild(link)
-                    URL.revokeObjectURL(url)
-                  } catch (err) {
-                    console.error('Download failed:', err)
-                    window.alert('다운로드 생성에 실패했습니다.')
-                  }
-                }}
-              >
-                다운로드
-              </button>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     )
   }
@@ -1590,57 +1809,251 @@ ${assetsList}
                 </div>
               )}
 
+              {/* 비교 모드 토글 */}
+              <div className="flex items-center gap-3 mt-4 p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
+                <button
+                  onClick={() => {
+                    setStockCompareMode(!stockCompareMode)
+                    if (stockCompareMode) setCompareStock(null)
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${stockCompareMode ? 'bg-purple-600' : 'bg-slate-600'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${stockCompareMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className="text-sm text-gray-300">⚔️ 종목 비교 모드</span>
+                {stockCompareMode && (
+                  <span className="text-xs text-purple-400 ml-auto">두 종목을 비교 분석합니다</span>
+                )}
+              </div>
+
+              {/* 비교 종목 선택 (비교 모드일 때만) */}
+              {stockCompareMode && (
+                <div className="cyber-card bg-gradient-to-br from-purple-900/10 to-indigo-900/10 border-purple-500/20 mt-3">
+                  <h4 className="text-sm font-medium text-purple-300 mb-3">⚔️ 비교 대상 종목 선택</h4>
+                  {portfolioData && portfolioData.assets && portfolioData.assets.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {portfolioData.assets
+                        .filter(a => a.symbol !== selectedStock?.symbol)
+                        .map((asset) => (
+                          <button
+                            key={`cmp-${asset.symbol}`}
+                            onClick={() => setCompareStock(asset)}
+                            className={`p-3 rounded-lg border transition-all text-left ${compareStock?.symbol === asset.symbol
+                              ? 'border-purple-500 bg-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                              : 'border-slate-700 bg-slate-800 hover:border-purple-500/50 hover:bg-slate-700'
+                              }`}
+                          >
+                            <p className="font-semibold text-sm text-white">{asset.symbol}</p>
+                            <p className="text-xs text-gray-400 mt-1 truncate">{asset.name}</p>
+                            <p className={`text-xs mt-1 font-medium ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(1)}%
+                            </p>
+                          </button>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">포트폴리오에 비교할 수 있는 종목이 없습니다.</p>
+                  )}
+                  {compareStock && (
+                    <div className="mt-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-3">
+                      <span className="text-purple-400 font-semibold">{selectedStock?.symbol || customStockCode}</span>
+                      <span className="text-gray-500">vs</span>
+                      <span className="text-purple-400 font-semibold">{compareStock.symbol}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Enriched Data Cards (shown when data is available) */}
+              {stockEnrichedData && (stockEnrichedData.metrics || stockEnrichedData.profile) && (
+                <div className="cyber-card bg-gradient-to-br from-slate-800/50 to-slate-900/80 border-cyan-500/20 mt-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Zap className="w-4 h-4 text-cyan-400" />
+                    <h4 className="text-sm font-semibold text-cyan-300">📡 Finnhub 실시간 데이터</h4>
+                    {stockEnrichedData.profile?.industry && (
+                      <span className="ml-auto px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-300">
+                        {stockEnrichedData.profile.industry}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                    {stockEnrichedData.metrics?.['52WeekHigh'] && (
+                      <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700/50">
+                        <p className="text-xs text-gray-500 mb-1">52주 범위</p>
+                        <p className="text-sm font-bold text-white">
+                          ${stockEnrichedData.metrics['52WeekLow']?.toFixed(1)} - ${stockEnrichedData.metrics['52WeekHigh']?.toFixed(1)}
+                        </p>
+                        {stockEnrichedData.quote?.price && (
+                          <div className="mt-1.5">
+                            <div className="w-full bg-slate-700 rounded-full h-1.5">
+                              <div
+                                className="bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 h-1.5 rounded-full"
+                                style={{
+                                  width: `${Math.min(100, Math.max(0, ((stockEnrichedData.quote.price - stockEnrichedData.metrics['52WeekLow']) / (stockEnrichedData.metrics['52WeekHigh'] - stockEnrichedData.metrics['52WeekLow'])) * 100))}%`
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {stockEnrichedData.profile?.marketCap && (
+                      <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700/50">
+                        <p className="text-xs text-gray-500 mb-1">시가총액</p>
+                        <p className="text-sm font-bold text-white">
+                          ${stockEnrichedData.profile.marketCap >= 1000
+                            ? `${(stockEnrichedData.profile.marketCap / 1000).toFixed(1)}B`
+                            : `${stockEnrichedData.profile.marketCap.toFixed(0)}M`
+                          }
+                        </p>
+                      </div>
+                    )}
+                    {stockEnrichedData.metrics?.peRatio && (
+                      <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700/50">
+                        <p className="text-xs text-gray-500 mb-1">PER</p>
+                        <p className={`text-sm font-bold ${stockEnrichedData.metrics.peRatio > 30 ? 'text-rose-400' : stockEnrichedData.metrics.peRatio > 15 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          {stockEnrichedData.metrics.peRatio.toFixed(1)}x
+                        </p>
+                      </div>
+                    )}
+                    {stockEnrichedData.metrics?.roe && (
+                      <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700/50">
+                        <p className="text-xs text-gray-500 mb-1">ROE</p>
+                        <p className={`text-sm font-bold ${stockEnrichedData.metrics.roe > 15 ? 'text-emerald-400' : stockEnrichedData.metrics.roe > 8 ? 'text-amber-400' : 'text-rose-400'}`}>
+                          {stockEnrichedData.metrics.roe.toFixed(1)}%
+                        </p>
+                      </div>
+                    )}
+                    {stockEnrichedData.metrics?.dividendYield != null && (
+                      <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700/50">
+                        <p className="text-xs text-gray-500 mb-1">배당수익률</p>
+                        <p className="text-sm font-bold text-purple-400">
+                          {stockEnrichedData.metrics.dividendYield.toFixed(2)}%
+                        </p>
+                      </div>
+                    )}
+                    {stockEnrichedData.metrics?.beta && (
+                      <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-700/50">
+                        <p className="text-xs text-gray-500 mb-1">Beta</p>
+                        <p className={`text-sm font-bold ${stockEnrichedData.metrics.beta > 1.5 ? 'text-rose-400' : stockEnrichedData.metrics.beta > 1 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          {stockEnrichedData.metrics.beta.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* News Headlines (shown when data is available) */}
+              {stockEnrichedData?.news && stockEnrichedData.news.length > 0 && (
+                <div className="cyber-card bg-slate-800/30 border-amber-500/20 mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-sm font-semibold text-amber-300">📰 최근 뉴스 ({stockEnrichedData.news.length}건)</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {stockEnrichedData.news.slice(0, 3).map((news, i) => (
+                      <a
+                        key={i}
+                        href={news.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-2.5 rounded-lg bg-slate-900/40 border border-slate-700/50 hover:border-amber-500/30 transition-all group"
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs text-gray-500 whitespace-nowrap mt-0.5">{news.datetime}</span>
+                          <p className="text-sm text-gray-300 group-hover:text-amber-200 transition-colors line-clamp-1">
+                            {news.headline}
+                          </p>
+                          <span className="text-xs text-gray-600 whitespace-nowrap ml-auto">{news.source}</span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Native AI Analysis UI */}
               <div className="flex flex-col items-center gap-4 mt-6">
                 <button
-                  onClick={generateStockAnalysis}
+                  onClick={stockCompareMode ? generateComparisonAnalysis : generateStockAnalysis}
                   disabled={loading}
-                  className="cyber-btn flex items-center justify-center gap-2 px-8 py-3 text-base shadow-[0_0_15px_rgba(20,184,166,0.4)] w-full md:w-auto"
+                  className={`cyber-btn flex items-center justify-center gap-2 px-8 py-3 text-base shadow-[0_0_15px_rgba(20,184,166,0.4)] w-full md:w-auto ${stockCompareMode ? 'from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : ''}`}
                 >
                   {loading ? (
                     <>
                       <RefreshCw className="w-5 h-5 animate-spin" />
-                      AI 심층 분석 중... (Deep Think)
+                      {stockCompareMode ? '두 종목 데이터 수집 + 비교 분석 중...' : 'Finnhub 데이터 수집 + AI 심층 분석 중...'}
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      AI 종목 분석 시작 (GPT-4o / Gemini)
+                      {stockCompareMode ? '⚔️ AI 종목 비교 분석 시작' : '🚀 AI 심층 분석 시작 (7개 섹션)'}
                     </>
                   )}
                 </button>
                 <p className="text-sm text-gray-400 mt-2">
-                  * 오늘({new Date().toLocaleDateString('ko-KR')}) 기준 최신 시장 데이터 및 실시간 이슈를 기반으로 정밀 분석합니다.
+                  * Finnhub 실시간 데이터(재무지표, 52주 범위, 뉴스) + AI 분석을 결합합니다.
                 </p>
               </div>
 
               {stockAnalysis && (
-                <div className="cyber-card mt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-teal-400" />
-                      <h3 className="text-lg font-semibold text-white">
-                        {selectedStock?.symbol || customStockCode} 분석 결과
-                      </h3>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => copyToClipboard(stockAnalysis)}
-                        className="p-1.5 text-gray-400 hover:text-white border border-slate-600 rounded hover:bg-slate-700"
-                        title="복사"
+                <div className="space-y-4 mt-6">
+                  {/* Investment Rating Badge - parsed from analysis */}
+                  {(() => {
+                    const ratingMatch = stockAnalysis.match(/투자\s*등급[^|]*\|\s*(강력매수|매수|중립|매도|강력매도)/i)
+                    const rating = ratingMatch?.[1]
+                    if (!rating) return null
+                    const ratingConfig = {
+                      '강력매수': { color: 'from-emerald-500 to-green-600', border: 'border-emerald-500', text: 'text-emerald-400', icon: '🟢', label: 'STRONG BUY' },
+                      '매수': { color: 'from-blue-500 to-cyan-600', border: 'border-blue-500', text: 'text-blue-400', icon: '🔵', label: 'BUY' },
+                      '중립': { color: 'from-amber-500 to-yellow-600', border: 'border-amber-500', text: 'text-amber-400', icon: '🟡', label: 'HOLD' },
+                      '매도': { color: 'from-orange-500 to-red-600', border: 'border-orange-500', text: 'text-orange-400', icon: '🟠', label: 'SELL' },
+                      '강력매도': { color: 'from-red-500 to-rose-700', border: 'border-red-500', text: 'text-red-400', icon: '🔴', label: 'STRONG SELL' }
+                    }
+                    const cfg = ratingConfig[rating] || ratingConfig['중립']
+                    return (
+                      <div className={`flex items-center justify-center gap-4 p-4 rounded-xl bg-gradient-to-r ${cfg.color} bg-opacity-10 border ${cfg.border}/30`}
+                        style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
                       >
-                        <FileText className="w-4 h-4" />
-                      </button>
+                        <span className="text-3xl">{cfg.icon}</span>
+                        <div className="text-center">
+                          <p className={`text-2xl font-black ${cfg.text}`}>{rating}</p>
+                          <p className="text-xs text-gray-400 tracking-widest">{cfg.label}</p>
+                        </div>
+                        <span className="text-3xl">{cfg.icon}</span>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Analysis Result */}
+                  <div className="cyber-card">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-teal-400" />
+                        <h3 className="text-lg font-semibold text-white">
+                          {selectedStock?.name || customStockName} ({selectedStock?.symbol || customStockCode}) 심층 분석
+                        </h3>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => copyToClipboard(stockAnalysis)}
+                          className="p-1.5 text-gray-400 hover:text-white border border-slate-600 rounded hover:bg-slate-700"
+                          title="복사"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
-                    <ReactMarkdown
-                      className="prose max-w-none leading-relaxed"
-                      remarkPlugins={[remarkGfm]}
-                      components={darkMarkdownComponents}
-                    >
-                      {stockAnalysis}
-                    </ReactMarkdown>
+                    <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
+                      <ReactMarkdown
+                        className="prose max-w-none leading-relaxed"
+                        remarkPlugins={[remarkGfm]}
+                        components={darkMarkdownComponents}
+                      >
+                        {stockAnalysis}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               )}

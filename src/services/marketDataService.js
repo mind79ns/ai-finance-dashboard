@@ -456,6 +456,172 @@ class MarketDataService {
   }
 
   /**
+   * ✅ Finnhub - 기업 프로필 정보 조회
+   * 산업, 시가총액, 직원수, IPO일자, 웹사이트 등
+   */
+  async getStockProfile(symbol) {
+    const cacheKey = `profile_${symbol}`
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      if (!API_CONFIG.FINNHUB_API_KEY) return null
+
+      const response = await axios.get(`${this.finnhubBaseURL}/stock/profile2`, {
+        params: {
+          symbol: symbol.toUpperCase(),
+          token: API_CONFIG.FINNHUB_API_KEY
+        }
+      })
+
+      const data = response.data
+      if (!data || !data.name) {
+        console.warn(`⚠️ No profile data for ${symbol}`)
+        return null
+      }
+
+      const result = {
+        name: data.name,
+        ticker: data.ticker,
+        country: data.country,
+        currency: data.currency,
+        exchange: data.exchange,
+        industry: data.finnhubIndustry,
+        ipo: data.ipo,
+        logo: data.logo,
+        marketCap: data.marketCapitalization, // in millions
+        shareOutstanding: data.shareOutstanding,
+        weburl: data.weburl,
+        phone: data.phone
+      }
+
+      this.setCache(cacheKey, result)
+      console.log(`✅ Finnhub Profile: ${symbol} - ${result.name} (${result.industry})`)
+      return result
+
+    } catch (error) {
+      console.error(`❌ Finnhub profile error for ${symbol}:`, error.message)
+      return null
+    }
+  }
+
+  /**
+   * ✅ Finnhub - 재무 지표 조회
+   * 52주 고/저, PER, PBR, EPS, 배당수익률, ROE 등
+   */
+  async getStockMetrics(symbol) {
+    const cacheKey = `metrics_${symbol}`
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      if (!API_CONFIG.FINNHUB_API_KEY) return null
+
+      const response = await axios.get(`${this.finnhubBaseURL}/stock/metric`, {
+        params: {
+          symbol: symbol.toUpperCase(),
+          metric: 'all',
+          token: API_CONFIG.FINNHUB_API_KEY
+        }
+      })
+
+      const data = response.data
+      if (!data || !data.metric) {
+        console.warn(`⚠️ No metrics data for ${symbol}`)
+        return null
+      }
+
+      const m = data.metric
+      const result = {
+        // 가격 지표
+        '52WeekHigh': m['52WeekHigh'],
+        '52WeekLow': m['52WeekLow'],
+        '52WeekHighDate': m['52WeekHighDate'],
+        '52WeekLowDate': m['52WeekLowDate'],
+        // 밸류에이션
+        peRatio: m['peNormalizedAnnual'] || m['peTTM'],
+        pbRatio: m['pbQuarterly'] || m['pbAnnual'],
+        psRatio: m['psTTM'],
+        // 수익성
+        epsGrowth: m['epsGrowthTTMYoy'],
+        revenueGrowth: m['revenueGrowthTTMYoy'],
+        roe: m['roeTTM'],
+        roa: m['roaTTM'],
+        // 배당
+        dividendYield: m['dividendYieldIndicatedAnnual'],
+        dividendPerShare: m['dividendPerShareAnnual'],
+        // 재무건전성
+        currentRatio: m['currentRatioQuarterly'],
+        debtToEquity: m['totalDebt/totalEquityQuarterly'],
+        // 시장 데이터
+        marketCap: m['marketCapitalization'],
+        beta: m['beta'],
+        // 거래
+        avgVolume10Day: m['10DayAverageTradingVolume'],
+        avgVolume3Month: m['3MonthAverageTradingVolume']
+      }
+
+      this.setCache(cacheKey, result)
+      console.log(`✅ Finnhub Metrics: ${symbol} - PE: ${result.peRatio}, 52W: ${result['52WeekLow']}-${result['52WeekHigh']}`)
+      return result
+
+    } catch (error) {
+      console.error(`❌ Finnhub metrics error for ${symbol}:`, error.message)
+      return null
+    }
+  }
+
+  /**
+   * ✅ Finnhub - 기업 뉴스 조회
+   * 최근 N일간의 뉴스 헤드라인 (최대 maxItems건)
+   */
+  async getCompanyNews(symbol, daysBack = 7, maxItems = 5) {
+    const cacheKey = `news_${symbol}_${daysBack}`
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      if (!API_CONFIG.FINNHUB_API_KEY) return null
+
+      const to = new Date().toISOString().split('T')[0]
+      const from = new Date(Date.now() - daysBack * 86400000).toISOString().split('T')[0]
+
+      const response = await axios.get(`${this.finnhubBaseURL}/company-news`, {
+        params: {
+          symbol: symbol.toUpperCase(),
+          from,
+          to,
+          token: API_CONFIG.FINNHUB_API_KEY
+        }
+      })
+
+      const data = response.data
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        console.warn(`⚠️ No news for ${symbol}`)
+        return null
+      }
+
+      const result = data.slice(0, maxItems).map(item => ({
+        headline: item.headline,
+        summary: item.summary?.substring(0, 150),
+        source: item.source,
+        url: item.url,
+        datetime: new Date(item.datetime * 1000).toLocaleDateString('ko-KR'),
+        category: item.category,
+        sentiment: item.sentiment
+      }))
+
+      this.setCache(cacheKey, result)
+      console.log(`✅ Finnhub News: ${symbol} - ${result.length} articles`)
+      return result
+
+    } catch (error) {
+      console.error(`❌ Finnhub news error for ${symbol}:`, error.message)
+      return null
+    }
+  }
+
+  /**
    * ✅ 모든 시장 데이터 한번에 가져오기
    */
   async getAllMarketData() {
