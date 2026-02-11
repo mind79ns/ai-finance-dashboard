@@ -37,11 +37,12 @@ const darkMarkdownComponents = {
     ? <code style={{ color: '#e5e7eb', backgroundColor: '#374151', padding: '0.125rem 0.375rem', borderRadius: '0.25rem', fontSize: '0.85em' }} {...props}>{children}</code>
     : <code style={{ color: '#e5e7eb' }} {...props}>{children}</code>,
   pre: ({ children, ...props }) => <pre style={{ backgroundColor: '#1e293b', color: '#e5e7eb', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto', margin: '0.75rem 0' }} {...props}>{children}</pre>,
-  table: ({ children, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0', fontSize: '0.875rem' }} {...props}>{children}</table>,
-  thead: ({ children, ...props }) => <thead style={{ backgroundColor: '#374151' }} {...props}>{children}</thead>,
-  th: ({ children, ...props }) => <th style={{ color: '#ffffff', fontWeight: 600, padding: '0.5rem 0.75rem', border: '1px solid #4b5563', textAlign: 'left' }} {...props}>{children}</th>,
-  td: ({ children, ...props }) => <td style={{ color: '#f3f4f6', padding: '0.5rem 0.75rem', border: '1px solid #4b5563' }} {...props}>{children}</td>,
-  tr: ({ children, ...props }) => <tr style={{ borderBottom: '1px solid #4b5563' }} {...props}>{children}</tr>,
+  table: ({ children, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0', fontSize: '0.875rem', backgroundColor: '#1e293b' }} {...props}>{children}</table>,
+  thead: ({ children, ...props }) => <thead style={{ backgroundColor: '#334155' }} {...props}>{children}</thead>,
+  tbody: ({ children, ...props }) => <tbody style={{ backgroundColor: '#1e293b' }} {...props}>{children}</tbody>,
+  th: ({ children, ...props }) => <th style={{ color: '#ffffff', fontWeight: 600, padding: '0.5rem 0.75rem', border: '1px solid #475569', textAlign: 'left', backgroundColor: '#334155' }} {...props}>{children}</th>,
+  td: ({ children, ...props }) => <td style={{ color: '#f3f4f6', padding: '0.5rem 0.75rem', border: '1px solid #475569', backgroundColor: '#1e293b' }} {...props}>{children}</td>,
+  tr: ({ children, ...props }) => <tr style={{ borderBottom: '1px solid #475569', backgroundColor: '#1e293b' }} {...props}>{children}</tr>,
   hr: (props) => <hr style={{ borderColor: '#4b5563', margin: '1rem 0' }} {...props} />,
 }
 
