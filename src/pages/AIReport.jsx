@@ -19,6 +19,32 @@ import {
   buildChatPrompt
 } from '../utils/aiInsights'
 
+// Dark mode markdown components with inline styles (bypasses all CSS cascade issues)
+const darkMarkdownComponents = {
+  p: ({ children, ...props }) => <p style={{ color: '#f3f4f6', marginBottom: '0.5rem' }} {...props}>{children}</p>,
+  span: ({ children, ...props }) => <span style={{ color: '#f3f4f6' }} {...props}>{children}</span>,
+  strong: ({ children, ...props }) => <strong style={{ color: '#ffffff', fontWeight: 700 }} {...props}>{children}</strong>,
+  b: ({ children, ...props }) => <b style={{ color: '#ffffff', fontWeight: 700 }} {...props}>{children}</b>,
+  em: ({ children, ...props }) => <em style={{ color: '#e5e7eb' }} {...props}>{children}</em>,
+  h1: ({ children, ...props }) => <h1 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700, marginTop: '1.5rem', marginBottom: '0.75rem' }} {...props}>{children}</h1>,
+  h2: ({ children, ...props }) => <h2 style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: 600, marginTop: '1.25rem', marginBottom: '0.5rem' }} {...props}>{children}</h2>,
+  h3: ({ children, ...props }) => <h3 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: 600, marginTop: '1rem', marginBottom: '0.5rem' }} {...props}>{children}</h3>,
+  h4: ({ children, ...props }) => <h4 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 600, marginTop: '0.75rem', marginBottom: '0.25rem' }} {...props}>{children}</h4>,
+  li: ({ children, ...props }) => <li style={{ color: '#f3f4f6', marginBottom: '0.25rem' }} {...props}>{children}</li>,
+  a: ({ children, ...props }) => <a style={{ color: '#60a5fa', textDecoration: 'underline' }} {...props}>{children}</a>,
+  blockquote: ({ children, ...props }) => <blockquote style={{ color: '#e5e7eb', borderLeft: '3px solid #3b82f6', paddingLeft: '1rem', margin: '0.75rem 0' }} {...props}>{children}</blockquote>,
+  code: ({ children, inline, ...props }) => inline
+    ? <code style={{ color: '#e5e7eb', backgroundColor: '#374151', padding: '0.125rem 0.375rem', borderRadius: '0.25rem', fontSize: '0.85em' }} {...props}>{children}</code>
+    : <code style={{ color: '#e5e7eb' }} {...props}>{children}</code>,
+  pre: ({ children, ...props }) => <pre style={{ backgroundColor: '#1e293b', color: '#e5e7eb', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto', margin: '0.75rem 0' }} {...props}>{children}</pre>,
+  table: ({ children, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0', fontSize: '0.875rem' }} {...props}>{children}</table>,
+  thead: ({ children, ...props }) => <thead style={{ backgroundColor: '#374151' }} {...props}>{children}</thead>,
+  th: ({ children, ...props }) => <th style={{ color: '#ffffff', fontWeight: 600, padding: '0.5rem 0.75rem', border: '1px solid #4b5563', textAlign: 'left' }} {...props}>{children}</th>,
+  td: ({ children, ...props }) => <td style={{ color: '#f3f4f6', padding: '0.5rem 0.75rem', border: '1px solid #4b5563' }} {...props}>{children}</td>,
+  tr: ({ children, ...props }) => <tr style={{ borderBottom: '1px solid #4b5563' }} {...props}>{children}</tr>,
+  hr: (props) => <hr style={{ borderColor: '#4b5563', margin: '1rem 0' }} {...props} />,
+}
+
 const AIReport = () => {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('market')
@@ -1286,12 +1312,9 @@ ${assetsList}
               </div>
               <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
-                  className="prose prose-invert max-w-none leading-relaxed 
-                    prose-headings:text-cyan-300 prose-strong:text-white 
-                    prose-p:text-gray-100 prose-li:text-gray-100 
-                    prose-td:text-gray-100 prose-th:text-cyan-400
-                    [&_strong]:text-white [&_b]:text-white"
+                  className="prose max-w-none leading-relaxed"
                   remarkPlugins={[remarkGfm]}
+                  components={darkMarkdownComponents}
                 >
                   {marketReport}
                 </ReactMarkdown>
@@ -1398,12 +1421,9 @@ ${assetsList}
               </div>
               <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
-                  className="prose prose-invert max-w-none leading-relaxed 
-                    prose-headings:text-purple-300 prose-strong:text-white
-                    prose-p:text-gray-100 prose-li:text-gray-100 
-                    prose-td:text-gray-100 prose-th:text-purple-400
-                    [&_strong]:text-white [&_b]:text-white"
+                  className="prose max-w-none leading-relaxed"
                   remarkPlugins={[remarkGfm]}
+                  components={darkMarkdownComponents}
                 >
                   {portfolioAnalysis}
                 </ReactMarkdown>
@@ -1607,12 +1627,9 @@ ${assetsList}
                   </div>
                   <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                     <ReactMarkdown
-                      className="prose prose-invert max-w-none leading-relaxed 
-                        prose-headings:text-teal-300 prose-strong:text-white
-                        prose-p:text-gray-100 prose-li:text-gray-100 
-                        prose-td:text-gray-100 prose-th:text-teal-400
-                        [&_strong]:text-white [&_b]:text-white"
+                      className="prose max-w-none leading-relaxed"
                       remarkPlugins={[remarkGfm]}
+                      components={darkMarkdownComponents}
                     >
                       {stockAnalysis}
                     </ReactMarkdown>
@@ -1833,8 +1850,9 @@ ${assetsList}
                     </div>
                     <div className="markdown-body">
                       <ReactMarkdown
-                        className="prose prose-invert max-w-none leading-relaxed prose-strong:text-indigo-300"
+                        className="prose max-w-none leading-relaxed"
                         remarkPlugins={[remarkGfm]}
+                        components={darkMarkdownComponents}
                       >
                         {riskAnalysis.aiInterpretation}
                       </ReactMarkdown>
@@ -2136,8 +2154,9 @@ ${assetsList}
                 </div>
                 <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                   <ReactMarkdown
-                    className="prose prose-invert max-w-none leading-relaxed prose-headings:text-emerald-300 prose-strong:text-emerald-200"
+                    className="prose max-w-none leading-relaxed"
                     remarkPlugins={[remarkGfm]}
+                    components={darkMarkdownComponents}
                   >
                     {rebalancingSuggestion}
                   </ReactMarkdown>
@@ -2292,8 +2311,9 @@ ${assetsList}
                 </div>
                 <div className="markdown-body">
                   <ReactMarkdown
-                    className="prose prose-invert max-w-none leading-relaxed prose-headings:text-purple-300 prose-strong:text-purple-200"
+                    className="prose max-w-none leading-relaxed"
                     remarkPlugins={[remarkGfm]}
+                    components={darkMarkdownComponents}
                   >
                     {timingAnalysis}
                   </ReactMarkdown>
@@ -2356,8 +2376,9 @@ ${assetsList}
                 </div>
                 <div className="markdown-body">
                   <ReactMarkdown
-                    className="prose prose-invert max-w-none leading-relaxed prose-headings:text-amber-300 prose-strong:text-amber-200"
+                    className="prose max-w-none leading-relaxed"
                     remarkPlugins={[remarkGfm]}
+                    components={darkMarkdownComponents}
                   >
                     {newsSummary}
                   </ReactMarkdown>
@@ -2421,12 +2442,9 @@ ${assetsList}
               <div className="px-6 py-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
                 <div className="markdown-body text-sm text-gray-300">
                   <ReactMarkdown
-                    className="prose prose-invert max-w-none leading-relaxed
-                      prose-headings:text-white prose-strong:text-white
-                      prose-p:text-gray-100 prose-li:text-gray-100
-                      prose-td:text-gray-100 prose-th:text-white
-                      [&_strong]:text-white [&_b]:text-white"
+                    className="prose max-w-none leading-relaxed"
                     remarkPlugins={[remarkGfm]}
+                    components={darkMarkdownComponents}
                   >
                     {historyViewer.entry.content}
                   </ReactMarkdown>
