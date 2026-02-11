@@ -131,20 +131,28 @@
   .dark .markdown-body h1,
   .dark .markdown-body h2,
   .dark .markdown-body h3 {
-    @apply text-gray-100;
+    color: #ffffff !important;
   }
 
   .dark .markdown-body p,
-  .dark .markdown-body li {
-    @apply text-gray-300;
+  .dark .markdown-body li,
+  .dark .markdown-body span {
+    color: #f3f4f6 !important;
+  }
+
+  .dark .markdown-body strong,
+  .dark .markdown-body b {
+    color: #ffffff !important;
   }
 
   .dark .markdown-body blockquote {
-    @apply border-primary-600 text-gray-400;
+    @apply border-primary-600;
+    color: #e5e7eb !important;
   }
 
   .dark .markdown-body code {
-    @apply bg-gray-700 text-gray-200;
+    @apply bg-gray-700;
+    color: #e5e7eb !important;
   }
 
   .dark .markdown-body thead {
@@ -152,11 +160,13 @@
   }
 
   .dark .markdown-body th {
-    @apply border-gray-600 text-gray-100;
+    @apply border-gray-600;
+    color: #ffffff !important;
   }
 
   .dark .markdown-body td {
-    @apply border-gray-600 text-gray-300;
+    @apply border-gray-600;
+    color: #f3f4f6 !important;
   }
 
   .dark .markdown-body tr:nth-child(even) {
@@ -200,16 +210,38 @@
     @apply break-words;
   }
 
+  .dark .prose h1,
+  .dark .prose h2,
+  .dark .prose h3,
+  .dark .prose h4,
+  .dark .prose h5,
+  .dark .prose h6 {
+    color: #ffffff !important;
+  }
+
+  .dark .prose p,
+  .dark .prose li,
+  .dark .prose span {
+    color: #f3f4f6 !important;
+  }
+
+  .dark .prose strong,
+  .dark .prose b {
+    color: #ffffff !important;
+  }
+
   .dark .prose thead {
     @apply bg-gray-700;
   }
 
   .dark .prose th {
-    @apply border-gray-600 text-gray-100;
+    @apply border-gray-600;
+    color: #ffffff !important;
   }
 
   .dark .prose td {
-    @apply border-gray-600 text-gray-300;
+    @apply border-gray-600;
+    color: #f3f4f6 !important;
   }
 
   .dark .prose tbody tr:nth-child(odd) {
