@@ -439,7 +439,16 @@ const AIReport = () => {
 
     setLoading(true)
     try {
-      const prompt = buildMarketReportPrompt(marketData, marketInsights)
+      // AI 분석용 데이터 준비
+      const promptData = {
+        ...marketData,
+        interestRates: marketData.interestRates ? {
+          fedFunds: `${marketData.interestRates.fedRate.value}% (${marketData.interestRates.fedRate.date})`,
+          treasury10y: `${marketData.interestRates.treasury10y.value}% (${marketData.interestRates.treasury10y.date})`
+        } : '데이터 없음'
+      }
+
+      const prompt = buildMarketReportPrompt(promptData, marketInsights)
       const report = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
@@ -1277,7 +1286,10 @@ ${assetsList}
               </div>
               <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
-                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-cyan-300 prose-strong:text-cyan-200"
+                  className="prose prose-invert max-w-none leading-relaxed 
+                    prose-headings:text-cyan-300 prose-strong:text-cyan-200 
+                    prose-p:text-gray-100 prose-li:text-gray-100 
+                    prose-td:text-gray-200 prose-th:text-cyan-400"
                   remarkPlugins={[remarkGfm]}
                 >
                   {marketReport}

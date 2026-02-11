@@ -269,6 +269,68 @@ class MarketDataService {
   }
 
   /**
+   * ✅ FRED - 실시간 금리 (Fed Funds Rate, 10Y Treasury)
+   */
+  async fetchInterestRates() {
+    const cacheKey = 'interest_rates'
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      if (!API_CONFIG.FRED_API_KEY) {
+        return this.getFallbackInterestRateData()
+      }
+
+      // FRED API: series_id=FEDFUNDS (Fed Rate), DGS10 (10Y Treasury)
+      // sort_order=desc to get latest
+      const responses = await Promise.all([
+        axios.get(this.fredBaseURL, {
+          params: {
+            series_id: 'FEDFUNDS',
+            api_key: API_CONFIG.FRED_API_KEY,
+            file_type: 'json',
+            limit: 1,
+            sort_order: 'desc'
+          }
+        }),
+        axios.get(this.fredBaseURL, {
+          params: {
+            series_id: 'DGS10',
+            api_key: API_CONFIG.FRED_API_KEY,
+            file_type: 'json',
+            limit: 1,
+            sort_order: 'desc'
+          }
+        })
+      ])
+
+      const fedFunds = responses[0].data.observations[0]
+      const treasury10y = responses[1].data.observations[0]
+
+      const result = {
+        fedRate: {
+          name: 'Fed Funds Rate',
+          value: parseFloat(fedFunds.value),
+          date: fedFunds.date
+        },
+        treasury10y: {
+          name: '10-Year Treasury Yield',
+          value: parseFloat(treasury10y.value),
+          date: treasury10y.date
+        }
+      }
+
+      this.setCache(cacheKey, result)
+      console.log('✅ FRED: Real-time interest rates fetched', result)
+      return result
+
+    } catch (error) {
+      console.error('❌ FRED interest rate error:', error.message)
+      return this.getFallbackInterestRateData()
+    }
+  }
+
+  /**
    * ✅ ExchangeRate-API - 실시간 환율
    * 100% 무료, API 키 불필요
    */
@@ -398,11 +460,12 @@ class MarketDataService {
    */
   async getAllMarketData() {
     try {
-      const [stocks, gold, crypto, currency] = await Promise.all([
+      const [stocks, gold, crypto, currency, interestRates] = await Promise.all([
         this.fetchStockIndices(),
         this.fetchGoldPrice(),
         this.getCryptoPrices(),
-        this.getExchangeRates()
+        this.getExchangeRates(),
+        this.fetchInterestRates()
       ])
 
       return {
@@ -410,6 +473,7 @@ class MarketDataService {
         gold,
         crypto,
         currency,
+        interestRates,
         lastUpdated: new Date().toISOString()
       }
     } catch (error) {
@@ -529,6 +593,24 @@ class MarketDataService {
         target: 'GBP',
         rate: 0.79,
         name: 'US Dollar to British Pound',
+        error: 'API unavailable'
+      }
+    }
+  }
+
+  getFallbackInterestRateData() {
+    console.warn('⚠️ Using fallback interest rate data - FRED API unavailable')
+    return {
+      fedRate: {
+        name: 'Fed Funds Rate',
+        value: 5.33,
+        date: '2024-02-01',
+        error: 'API unavailable'
+      },
+      treasury10y: {
+        name: '10-Year Treasury Yield',
+        value: 4.25,
+        date: '2024-02-09',
         error: 'API unavailable'
       }
     }

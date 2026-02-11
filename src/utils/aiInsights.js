@@ -60,18 +60,18 @@ export const computeMarketInsights = (marketData) => {
 
   const gold = marketData.gold
     ? {
-        name: 'Gold',
-        price: safeNumber(marketData.gold.price),
-        changePercent: safeNumber(marketData.gold.changePercent)
-      }
+      name: 'Gold',
+      price: safeNumber(marketData.gold.price),
+      changePercent: safeNumber(marketData.gold.changePercent)
+    }
     : null
 
   const usdKrw = marketData.currency?.usdKrw
     ? {
-        base: marketData.currency.usdKrw.base,
-        target: marketData.currency.usdKrw.target,
-        rate: safeNumber(marketData.currency.usdKrw.rate)
-      }
+      base: marketData.currency.usdKrw.base,
+      target: marketData.currency.usdKrw.target,
+      rate: safeNumber(marketData.currency.usdKrw.rate)
+    }
     : null
 
   const indexAverage = indices.length > 0
@@ -259,11 +259,11 @@ export const computePortfolioInsights = (portfolioData, goalsSummary) => {
 const normalizeCategoryList = (items, fallback = [], options = {}) => {
   const list = Array.isArray(items) && items.length
     ? items.map(item => ({
-        id: item?.id || item?.key || item?.name || '',
-        name: item?.name || item?.label || item?.title || item?.id || '',
-        isAccumulated: !!item?.isAccumulated,
-        color: item?.color
-      })).filter(item => item.id)
+      id: item?.id || item?.key || item?.name || '',
+      name: item?.name || item?.label || item?.title || item?.id || '',
+      isAccumulated: !!item?.isAccumulated,
+      color: item?.color
+    })).filter(item => item.id)
     : fallback
 
   if (options.ensureAccumulated) {
@@ -442,12 +442,12 @@ export const computeCashflowInsights = ({
     totalAssets: monthlySummaries.length ? monthlySummaries[monthlySummaries.length - 1].accumulated : 0,
     latestMonth: latestActiveMonth
       ? {
-          label: latestActiveMonth.label,
-          income: latestActiveMonth.income,
-          expense: latestActiveMonth.expense,
-          netChange: latestActiveMonth.netChange,
-          accumulated: latestActiveMonth.accumulated
-        }
+        label: latestActiveMonth.label,
+        income: latestActiveMonth.income,
+        expense: latestActiveMonth.expense,
+        netChange: latestActiveMonth.netChange,
+        accumulated: latestActiveMonth.accumulated
+      }
       : null,
     topIncomeCategories: incomeTotalsByCategory.slice(0, 3),
     topExpenseCategories: expenseTotalsByCategory.slice(0, 3),
@@ -484,6 +484,11 @@ export const buildMarketReportPrompt = (marketData, insights) => {
     ? `- USD/KRW 환율: ${formatNumber(insights.usdKrw.rate, 2)}`
     : '- 환율 데이터 없음'
 
+  // Interest Rates handling
+  const interestRateLine = marketData.interestRates && typeof marketData.interestRates === 'object'
+    ? `- 기준금리(Fed Funds): ${marketData.interestRates.fedFunds}\n- 국채금리(10Y Treasury): ${marketData.interestRates.treasury10y}`
+    : '- 금리 데이터 확인 필요'
+
   return `다음은 최신 시장 데이터 스냅샷입니다.
 업데이트 시점: ${marketData.lastUpdated || 'N/A'}
 
@@ -495,7 +500,8 @@ ${indexLines}
 주요 코인 변동:
 ${cryptoLines}
 
-귀금속 및 환율:
+금리 및 환율/원자재:
+${interestRateLine}
 ${goldLine}
 ${fxLine}
 
@@ -693,59 +699,59 @@ ${topHoldings}
 export const buildChatPrompt = ({ userMessage, context, marketInsights, portfolioInsights }) => {
   const marketSummary = marketInsights
     ? [
-        `시장 톤: ${marketInsights.sentiment.label}`,
-        ...(marketInsights.quickHighlights.slice(0, 3))
-      ].join('\n')
+      `시장 톤: ${marketInsights.sentiment.label}`,
+      ...(marketInsights.quickHighlights.slice(0, 3))
+    ].join('\n')
     : '시장 인사이트 없음'
 
   const portfolioSummary = portfolioInsights
     ? [
-        `총 평가액: ${formatCurrency(portfolioInsights.totalValueKRW, 'KRW')} / 수익률 ${formatPercent(portfolioInsights.profitPercent)}`,
-        ...(portfolioInsights.quickHighlights.slice(0, 3)),
-        ...(portfolioInsights.riskAlerts.slice(0, 2))
-      ].join('\n')
+      `총 평가액: ${formatCurrency(portfolioInsights.totalValueKRW, 'KRW')} / 수익률 ${formatPercent(portfolioInsights.profitPercent)}`,
+      ...(portfolioInsights.quickHighlights.slice(0, 3)),
+      ...(portfolioInsights.riskAlerts.slice(0, 2))
+    ].join('\n')
     : '포트폴리오 인사이트 없음'
 
   const cashflowInsights = context.cashflow
   const cashflowSummary = cashflowInsights
     ? [
-        `총자산: ${formatCurrency(cashflowInsights.totalAssets, 'KRW')}`,
-        `평균 월수입/지출: ${formatCurrency(cashflowInsights.averageMonthlyIncome, 'KRW')} / ${formatCurrency(cashflowInsights.averageMonthlyExpense, 'KRW')}`,
-        cashflowInsights.latestMonth
-          ? `최근 월(${cashflowInsights.latestMonth.label}) 수입/지출: ${formatCurrency(cashflowInsights.latestMonth.income, 'KRW')} / ${formatCurrency(cashflowInsights.latestMonth.expense, 'KRW')}`
-          : '최근 월 데이터 없음',
-        `연간 순변화: ${formatCurrency(cashflowInsights.annualNetChange, 'KRW')} (${cashflowInsights.averageMonthlyNet >= 0 ? '흑자' : '적자'} 경향)`
-      ].join('\n')
+      `총자산: ${formatCurrency(cashflowInsights.totalAssets, 'KRW')}`,
+      `평균 월수입/지출: ${formatCurrency(cashflowInsights.averageMonthlyIncome, 'KRW')} / ${formatCurrency(cashflowInsights.averageMonthlyExpense, 'KRW')}`,
+      cashflowInsights.latestMonth
+        ? `최근 월(${cashflowInsights.latestMonth.label}) 수입/지출: ${formatCurrency(cashflowInsights.latestMonth.income, 'KRW')} / ${formatCurrency(cashflowInsights.latestMonth.expense, 'KRW')}`
+        : '최근 월 데이터 없음',
+      `연간 순변화: ${formatCurrency(cashflowInsights.annualNetChange, 'KRW')} (${cashflowInsights.averageMonthlyNet >= 0 ? '흑자' : '적자'} 경향)`
+    ].join('\n')
     : '수입/지출 데이터 없음'
 
   const trimmedContext = {
     portfolio: portfolioInsights
       ? {
-          totalValueKRW: portfolioInsights.totalValueKRW,
-          profitPercent: portfolioInsights.profitPercent,
-          largestPositions: portfolioInsights.largestPositions,
-          currencyExposure: portfolioInsights.currencyExposure
-        }
+        totalValueKRW: portfolioInsights.totalValueKRW,
+        profitPercent: portfolioInsights.profitPercent,
+        largestPositions: portfolioInsights.largestPositions,
+        currencyExposure: portfolioInsights.currencyExposure
+      }
       : null,
     market: marketInsights
       ? {
-          sentiment: marketInsights.sentiment,
-          indices: marketInsights.indices,
-          crypto: marketInsights.crypto.slice(0, 4),
-          usdKrw: marketInsights.usdKrw
-        }
+        sentiment: marketInsights.sentiment,
+        indices: marketInsights.indices,
+        crypto: marketInsights.crypto.slice(0, 4),
+        usdKrw: marketInsights.usdKrw
+      }
       : null,
     cashflow: cashflowInsights
       ? {
-          totalAssets: cashflowInsights.totalAssets,
-          totalIncome: cashflowInsights.totalIncome,
-          totalExpense: cashflowInsights.totalExpense,
-          averageMonthlyIncome: cashflowInsights.averageMonthlyIncome,
-          averageMonthlyExpense: cashflowInsights.averageMonthlyExpense,
-          latestMonth: cashflowInsights.latestMonth,
-          topIncomeCategories: cashflowInsights.topIncomeCategories,
-          topExpenseCategories: cashflowInsights.topExpenseCategories
-        }
+        totalAssets: cashflowInsights.totalAssets,
+        totalIncome: cashflowInsights.totalIncome,
+        totalExpense: cashflowInsights.totalExpense,
+        averageMonthlyIncome: cashflowInsights.averageMonthlyIncome,
+        averageMonthlyExpense: cashflowInsights.averageMonthlyExpense,
+        latestMonth: cashflowInsights.latestMonth,
+        topIncomeCategories: cashflowInsights.topIncomeCategories,
+        topExpenseCategories: cashflowInsights.topExpenseCategories
+      }
       : null,
     goals: context.goalsSummary || null,
     latestReports: {
