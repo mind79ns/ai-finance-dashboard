@@ -1135,11 +1135,11 @@ ${assetsList}
                     }`}
                 >
                   <div>
-                    <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🧠 GPT-4o</p>
+                    <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🧠 GPT-4.1</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      최신 플래그십 (Omni)
+                      최신 플래그십 (API/Context)
                     </p>
-                    <p className="text-xs text-yellow-500 mt-1">⭐ 최고 성능</p>
+                    <p className="text-xs text-yellow-500 mt-1">⭐ 핵심 분석 엔진</p>
                   </div>
                 </button>
 
@@ -1166,7 +1166,7 @@ ${assetsList}
               <div className="text-xs text-gray-400 bg-slate-800/50 p-2 rounded border border-gray-700">
                 <strong className="text-cyan-400">현재 선택:</strong> {
                   selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
-                    selectedAI === 'gpt' ? '🧠 GPT-4o (최신 플래그십)' :
+                    selectedAI === 'gpt' ? '🧠 GPT-4.1 (핵심 분석 엔진)' :
                       '⚡ Gemini 1.5 Pro (High Context)'
                 }
               </div>
@@ -1205,7 +1205,7 @@ ${assetsList}
         <div className="space-y-6">
           <div className="bg-slate-800/50 border border-cyan-500/20 rounded-lg p-4 mb-4">
             <p className="text-sm text-cyan-200">
-              <strong className="text-cyan-400">🧠 GPT-4o 사용:</strong> 상세한 시장 분석 및 투자 전략을 제공합니다 (고급 분석)
+              <strong className="text-cyan-400">🧠 GPT-4.1 사용:</strong> 상세한 시장 분석 및 투자 전략을 제공합니다 (핵심 분석 엔진)
             </p>
           </div>
           {marketInsights && (
@@ -1300,7 +1300,7 @@ ${assetsList}
         <div className="space-y-6">
           <div className="bg-slate-800/50 border border-purple-500/20 rounded-lg p-4 mb-4">
             <p className="text-sm text-purple-200">
-              <strong className="text-purple-400">🧠 GPT-4o 사용:</strong> 심층 포트폴리오 분석 및 최적화 전략을 제공합니다 (전문가급 분석)
+              <strong className="text-purple-400">🧠 GPT-4.1 사용:</strong> 심층 포트폴리오 분석 및 최적화 전략을 제공합니다 (전문가급 분석)
             </p>
           </div>
           {portfolioInsights && (
