@@ -20,30 +20,37 @@ import {
 } from '../utils/aiInsights'
 
 // Dark mode markdown components with inline styles (bypasses all CSS cascade issues)
+// IMPORTANT: {...rest} is spread FIRST, then style={} LAST so our colors always win
 const darkMarkdownComponents = {
-  p: ({ children, ...props }) => <p style={{ color: '#f3f4f6', marginBottom: '0.5rem' }} {...props}>{children}</p>,
-  span: ({ children, ...props }) => <span style={{ color: '#f3f4f6' }} {...props}>{children}</span>,
-  strong: ({ children, ...props }) => <strong style={{ color: '#ffffff', fontWeight: 700 }} {...props}>{children}</strong>,
-  b: ({ children, ...props }) => <b style={{ color: '#ffffff', fontWeight: 700 }} {...props}>{children}</b>,
-  em: ({ children, ...props }) => <em style={{ color: '#e5e7eb' }} {...props}>{children}</em>,
-  h1: ({ children, ...props }) => <h1 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700, marginTop: '1.5rem', marginBottom: '0.75rem' }} {...props}>{children}</h1>,
-  h2: ({ children, ...props }) => <h2 style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: 600, marginTop: '1.25rem', marginBottom: '0.5rem' }} {...props}>{children}</h2>,
-  h3: ({ children, ...props }) => <h3 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: 600, marginTop: '1rem', marginBottom: '0.5rem' }} {...props}>{children}</h3>,
-  h4: ({ children, ...props }) => <h4 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 600, marginTop: '0.75rem', marginBottom: '0.25rem' }} {...props}>{children}</h4>,
-  li: ({ children, ...props }) => <li style={{ color: '#f3f4f6', marginBottom: '0.25rem' }} {...props}>{children}</li>,
-  a: ({ children, ...props }) => <a style={{ color: '#60a5fa', textDecoration: 'underline' }} {...props}>{children}</a>,
-  blockquote: ({ children, ...props }) => <blockquote style={{ color: '#e5e7eb', borderLeft: '3px solid #3b82f6', paddingLeft: '1rem', margin: '0.75rem 0' }} {...props}>{children}</blockquote>,
-  code: ({ children, inline, ...props }) => inline
-    ? <code style={{ color: '#e5e7eb', backgroundColor: '#374151', padding: '0.125rem 0.375rem', borderRadius: '0.25rem', fontSize: '0.85em' }} {...props}>{children}</code>
-    : <code style={{ color: '#e5e7eb' }} {...props}>{children}</code>,
-  pre: ({ children, ...props }) => <pre style={{ backgroundColor: '#1e293b', color: '#e5e7eb', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto', margin: '0.75rem 0' }} {...props}>{children}</pre>,
-  table: ({ children, ...props }) => <table style={{ width: '100%', borderCollapse: 'collapse', margin: '1rem 0', fontSize: '0.875rem', backgroundColor: '#1e293b' }} {...props}>{children}</table>,
-  thead: ({ children, ...props }) => <thead style={{ backgroundColor: '#334155' }} {...props}>{children}</thead>,
-  tbody: ({ children, ...props }) => <tbody style={{ backgroundColor: '#1e293b' }} {...props}>{children}</tbody>,
-  th: ({ children, ...props }) => <th style={{ color: '#ffffff', fontWeight: 600, padding: '0.5rem 0.75rem', border: '1px solid #475569', textAlign: 'left', backgroundColor: '#334155' }} {...props}>{children}</th>,
-  td: ({ children, ...props }) => <td style={{ color: '#f3f4f6', padding: '0.5rem 0.75rem', border: '1px solid #475569', backgroundColor: '#1e293b' }} {...props}>{children}</td>,
-  tr: ({ children, ...props }) => <tr style={{ borderBottom: '1px solid #475569', backgroundColor: '#1e293b' }} {...props}>{children}</tr>,
-  hr: (props) => <hr style={{ borderColor: '#4b5563', margin: '1rem 0' }} {...props} />,
+  p: ({ children, node, style, ...rest }) => <p {...rest} style={{ ...style, color: '#f3f4f6', marginBottom: '0.5rem' }}>{children}</p>,
+  span: ({ children, node, style, ...rest }) => <span {...rest} style={{ ...style, color: '#f3f4f6' }}>{children}</span>,
+  strong: ({ children, node, style, ...rest }) => <strong {...rest} style={{ ...style, color: '#ffffff', fontWeight: 700 }}>{children}</strong>,
+  b: ({ children, node, style, ...rest }) => <b {...rest} style={{ ...style, color: '#ffffff', fontWeight: 700 }}>{children}</b>,
+  em: ({ children, node, style, ...rest }) => <em {...rest} style={{ ...style, color: '#e5e7eb' }}>{children}</em>,
+  h1: ({ children, node, style, ...rest }) => <h1 {...rest} style={{ ...style, color: '#ffffff', fontSize: '1.5rem', fontWeight: 700, marginTop: '1.5rem', marginBottom: '0.75rem' }}>{children}</h1>,
+  h2: ({ children, node, style, ...rest }) => <h2 {...rest} style={{ ...style, color: '#ffffff', fontSize: '1.25rem', fontWeight: 600, marginTop: '1.25rem', marginBottom: '0.5rem' }}>{children}</h2>,
+  h3: ({ children, node, style, ...rest }) => <h3 {...rest} style={{ ...style, color: '#ffffff', fontSize: '1.1rem', fontWeight: 600, marginTop: '1rem', marginBottom: '0.5rem' }}>{children}</h3>,
+  h4: ({ children, node, style, ...rest }) => <h4 {...rest} style={{ ...style, color: '#ffffff', fontSize: '1rem', fontWeight: 600, marginTop: '0.75rem', marginBottom: '0.25rem' }}>{children}</h4>,
+  h5: ({ children, node, style, ...rest }) => <h5 {...rest} style={{ ...style, color: '#ffffff', fontSize: '0.9rem', fontWeight: 600 }}>{children}</h5>,
+  h6: ({ children, node, style, ...rest }) => <h6 {...rest} style={{ ...style, color: '#ffffff', fontSize: '0.85rem', fontWeight: 600 }}>{children}</h6>,
+  li: ({ children, node, style, ...rest }) => <li {...rest} style={{ ...style, color: '#f3f4f6', marginBottom: '0.25rem' }}>{children}</li>,
+  ul: ({ children, node, style, ...rest }) => <ul {...rest} style={{ ...style, color: '#f3f4f6', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>{children}</ul>,
+  ol: ({ children, node, style, ...rest }) => <ol {...rest} style={{ ...style, color: '#f3f4f6', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>{children}</ol>,
+  a: ({ children, node, style, ...rest }) => <a {...rest} style={{ ...style, color: '#60a5fa', textDecoration: 'underline' }}>{children}</a>,
+  blockquote: ({ children, node, style, ...rest }) => <blockquote {...rest} style={{ ...style, color: '#e5e7eb', borderLeft: '3px solid #3b82f6', paddingLeft: '1rem', margin: '0.75rem 0' }}>{children}</blockquote>,
+  code: ({ children, node, inline, style, ...rest }) => inline
+    ? <code {...rest} style={{ ...style, color: '#e5e7eb', backgroundColor: '#374151', padding: '0.125rem 0.375rem', borderRadius: '0.25rem', fontSize: '0.85em' }}>{children}</code>
+    : <code {...rest} style={{ ...style, color: '#e5e7eb' }}>{children}</code>,
+  pre: ({ children, node, style, ...rest }) => <pre {...rest} style={{ ...style, backgroundColor: '#1e293b', color: '#e5e7eb', padding: '1rem', borderRadius: '0.5rem', overflow: 'auto', margin: '0.75rem 0' }}>{children}</pre>,
+  table: ({ children, node, style, ...rest }) => <table {...rest} style={{ ...style, width: '100%', borderCollapse: 'collapse', margin: '1rem 0', fontSize: '0.875rem', backgroundColor: '#1e293b', color: '#f3f4f6' }}>{children}</table>,
+  thead: ({ children, node, style, ...rest }) => <thead {...rest} style={{ ...style, backgroundColor: '#334155', color: '#ffffff' }}>{children}</thead>,
+  tbody: ({ children, node, style, ...rest }) => <tbody {...rest} style={{ ...style, backgroundColor: '#1e293b', color: '#f3f4f6' }}>{children}</tbody>,
+  th: ({ children, node, style, ...rest }) => <th {...rest} style={{ ...style, color: '#ffffff', fontWeight: 600, padding: '0.5rem 0.75rem', border: '1px solid #475569', textAlign: 'left', backgroundColor: '#334155' }}>{children}</th>,
+  td: ({ children, node, style, ...rest }) => <td {...rest} style={{ ...style, color: '#f3f4f6', padding: '0.5rem 0.75rem', border: '1px solid #475569', backgroundColor: '#1e293b' }}>{children}</td>,
+  tr: ({ children, node, style, ...rest }) => <tr {...rest} style={{ ...style, borderBottom: '1px solid #475569', backgroundColor: '#1e293b', color: '#f3f4f6' }}>{children}</tr>,
+  hr: ({ node, style, ...rest }) => <hr {...rest} style={{ ...style, borderColor: '#4b5563', margin: '1rem 0' }} />,
+  del: ({ children, node, style, ...rest }) => <del {...rest} style={{ ...style, color: '#9ca3af' }}>{children}</del>,
+  img: ({ node, style, alt, ...rest }) => <img {...rest} alt={alt} style={{ ...style, maxWidth: '100%', borderRadius: '0.5rem', margin: '0.5rem 0' }} />,
 }
 
 const AIReport = () => {
