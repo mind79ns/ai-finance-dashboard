@@ -1287,9 +1287,10 @@ ${assetsList}
               <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
                   className="prose prose-invert max-w-none leading-relaxed 
-                    prose-headings:text-cyan-300 prose-strong:text-cyan-200 
+                    prose-headings:text-cyan-300 prose-strong:text-white 
                     prose-p:text-gray-100 prose-li:text-gray-100 
-                    prose-td:text-gray-200 prose-th:text-cyan-400"
+                    prose-td:text-gray-100 prose-th:text-cyan-400
+                    [&_strong]:text-white [&_b]:text-white"
                   remarkPlugins={[remarkGfm]}
                 >
                   {marketReport}
@@ -1398,9 +1399,10 @@ ${assetsList}
               <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
                   className="prose prose-invert max-w-none leading-relaxed 
-                    prose-headings:text-purple-300 prose-strong:text-purple-200
+                    prose-headings:text-purple-300 prose-strong:text-white
                     prose-p:text-gray-100 prose-li:text-gray-100 
-                    prose-td:text-gray-200 prose-th:text-purple-400"
+                    prose-td:text-gray-100 prose-th:text-purple-400
+                    [&_strong]:text-white [&_b]:text-white"
                   remarkPlugins={[remarkGfm]}
                 >
                   {portfolioAnalysis}
@@ -1606,9 +1608,10 @@ ${assetsList}
                   <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                     <ReactMarkdown
                       className="prose prose-invert max-w-none leading-relaxed 
-                        prose-headings:text-teal-300 prose-strong:text-teal-200
+                        prose-headings:text-teal-300 prose-strong:text-white
                         prose-p:text-gray-100 prose-li:text-gray-100 
-                        prose-td:text-gray-200 prose-th:text-teal-400"
+                        prose-td:text-gray-100 prose-th:text-teal-400
+                        [&_strong]:text-white [&_b]:text-white"
                       remarkPlugins={[remarkGfm]}
                     >
                       {stockAnalysis}
@@ -2419,9 +2422,10 @@ ${assetsList}
                 <div className="markdown-body text-sm text-gray-300">
                   <ReactMarkdown
                     className="prose prose-invert max-w-none leading-relaxed
-                      prose-headings:text-gray-200 prose-strong:text-gray-100
-                      prose-p:text-gray-300 prose-li:text-gray-300
-                      prose-td:text-gray-300 prose-th:text-gray-100"
+                      prose-headings:text-white prose-strong:text-white
+                      prose-p:text-gray-100 prose-li:text-gray-100
+                      prose-td:text-gray-100 prose-th:text-white
+                      [&_strong]:text-white [&_b]:text-white"
                     remarkPlugins={[remarkGfm]}
                   >
                     {historyViewer.entry.content}
