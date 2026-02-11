@@ -1397,7 +1397,10 @@ ${assetsList}
               </div>
               <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                 <ReactMarkdown
-                  className="prose prose-invert max-w-none leading-relaxed prose-headings:text-purple-300 prose-strong:text-purple-200"
+                  className="prose prose-invert max-w-none leading-relaxed 
+                    prose-headings:text-purple-300 prose-strong:text-purple-200
+                    prose-p:text-gray-100 prose-li:text-gray-100 
+                    prose-td:text-gray-200 prose-th:text-purple-400"
                   remarkPlugins={[remarkGfm]}
                 >
                   {portfolioAnalysis}
@@ -1602,7 +1605,10 @@ ${assetsList}
                   </div>
                   <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                     <ReactMarkdown
-                      className="prose prose-invert max-w-none leading-relaxed prose-headings:text-teal-300 prose-strong:text-teal-200"
+                      className="prose prose-invert max-w-none leading-relaxed 
+                        prose-headings:text-teal-300 prose-strong:text-teal-200
+                        prose-p:text-gray-100 prose-li:text-gray-100 
+                        prose-td:text-gray-200 prose-th:text-teal-400"
                       remarkPlugins={[remarkGfm]}
                     >
                       {stockAnalysis}
@@ -2412,7 +2418,10 @@ ${assetsList}
               <div className="px-6 py-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
                 <div className="markdown-body text-sm text-gray-300">
                   <ReactMarkdown
-                    className="prose prose-invert max-w-none leading-relaxed"
+                    className="prose prose-invert max-w-none leading-relaxed
+                      prose-headings:text-gray-200 prose-strong:text-gray-100
+                      prose-p:text-gray-300 prose-li:text-gray-300
+                      prose-td:text-gray-300 prose-th:text-gray-100"
                     remarkPlugins={[remarkGfm]}
                   >
                     {historyViewer.entry.content}
