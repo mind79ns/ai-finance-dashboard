@@ -37,6 +37,7 @@ const Portfolio = () => {
   // Investment Management - Account-based principal/deposit tracking
   const [accountPrincipals, setAccountPrincipals] = useState({}) // { accountName: { principal, remaining, note } }
   const [showPrincipalModal, setShowPrincipalModal] = useState(false)
+  const [editingAccount, setEditingAccount] = useState(null)
   const [editingAsset, setEditingAsset] = useState(null)
   const [editFormData, setEditFormData] = useState({
     quantity: '',
