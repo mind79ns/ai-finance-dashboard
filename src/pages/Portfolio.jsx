@@ -142,16 +142,7 @@ const Portfolio = () => {
     loadData()
   }, [])
 
-  // Save account principals to localStorage + Supabase
-  useEffect(() => {
-    // Only sync if we have data (avoid syncing on initial empty state)
-    if (Object.keys(accountPrincipals).length === 0) return
 
-    // Sync each account principal to localStorage + Supabase
-    Object.entries(accountPrincipals).forEach(async ([accountName, principalData]) => {
-      await dataSync.saveAccountPrincipal(accountName, principalData)
-    })
-  }, [accountPrincipals])
 
   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
   useEffect(() => {
@@ -2058,11 +2049,16 @@ BTC,Bitcoin,코인,0.1,67234,USD`}
         <AccountPrincipalModal
           accountName={editingAccount}
           principalData={accountPrincipals[editingAccount] || { principal: 0, remaining: 0, note: '' }}
-          onSave={(data) => {
+          onSave={async (data) => {
+            // Optimistic UI update
             setAccountPrincipals(prev => ({
               ...prev,
               [editingAccount]: data
             }))
+
+            // Persist to storage
+            await dataSync.saveAccountPrincipal(editingAccount, data)
+
             setShowPrincipalModal(false)
             setEditingAccount(null)
           }}
