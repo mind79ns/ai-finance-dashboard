@@ -182,10 +182,21 @@ const InvestmentLog = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    setFormData(prev => {
+      const updates = { [name]: value }
+
+      // 자산 선택 시 통화 자동 설정
+      if (name === 'asset' && value !== '__custom__') {
+        const selectedAsset = portfolioAssets.find(a => a.symbol === value)
+        if (selectedAsset) {
+          updates.customAssetCurrency = selectedAsset.currency || 'USD'
+        }
+      }
+      return {
+        ...prev,
+        ...updates
+      }
+    })
   }
 
   const handleSubmit = async (e) => {
@@ -1072,8 +1083,8 @@ const InvestmentLog = () => {
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, type: 'buy' }))}
                     className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${formData.type === 'buy'
-                        ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
-                        : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
+                      ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
+                      : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
                       }`}
                   >
                     <span className="font-bold">매수 (Buy)</span>
@@ -1082,8 +1093,8 @@ const InvestmentLog = () => {
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, type: 'sell' }))}
                     className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${formData.type === 'sell'
-                        ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
-                        : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
+                      ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                      : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
                       }`}
                   >
                     <span className="font-bold">매도 (Sell)</span>
@@ -1210,9 +1221,33 @@ const InvestmentLog = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-cyan-300">
-                      단가 <span className="text-slate-500 font-normal">({formData.customAssetCurrency === 'KRW' ? '₩' : '$'})</span>
-                    </label>
+                    <div className="flex justify-between items-end">
+                      <label className="text-sm font-medium text-cyan-300">
+                        단가 <span className="text-slate-500 font-normal">({formData.customAssetCurrency === 'KRW' ? '₩' : '$'})</span>
+                      </label>
+                      <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700 mb-1">
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, customAssetCurrency: 'USD' }))}
+                          className={`px-2 py-1 text-[10px] rounded-md transition-all ${formData.customAssetCurrency !== 'KRW'
+                              ? 'bg-cyan-500/20 text-cyan-400 font-bold shadow-sm'
+                              : 'text-slate-500 hover:text-slate-300'
+                            }`}
+                        >
+                          USD
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, customAssetCurrency: 'KRW' }))}
+                          className={`px-2 py-1 text-[10px] rounded-md transition-all ${formData.customAssetCurrency === 'KRW'
+                              ? 'bg-cyan-500/20 text-cyan-400 font-bold shadow-sm'
+                              : 'text-slate-500 hover:text-slate-300'
+                            }`}
+                        >
+                          KRW
+                        </button>
+                      </div>
+                    </div>
                     <input
                       type="number"
                       name="price"
