@@ -1041,7 +1041,7 @@ const InvestmentLog = () => {
                   </h3>
                   <p className="text-slate-400 text-sm mt-1">포트폴리오에 새로운 거래를 기록합니다</p>
                 </div>
-                <button 
+                <button
                   onClick={handleCloseModal}
                   className="p-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
                 >
@@ -1071,22 +1071,20 @@ const InvestmentLog = () => {
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, type: 'buy' }))}
-                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${
-                      formData.type === 'buy'
+                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${formData.type === 'buy'
                         ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
                         : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
-                    }`}
+                      }`}
                   >
                     <span className="font-bold">매수 (Buy)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, type: 'sell' }))}
-                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${
-                      formData.type === 'sell'
+                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition-all ${formData.type === 'sell'
                         ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
                         : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
-                    }`}
+                      }`}
                   >
                     <span className="font-bold">매도 (Sell)</span>
                   </button>
@@ -1099,15 +1097,15 @@ const InvestmentLog = () => {
                     name="asset"
                     value={formData.asset}
                     onChange={handleInputChange}
-                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all appearance-none"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all appearance-none"
                   >
-                    <option value="" disabled>자산을 선택하세요</option>
+                    <option value="" disabled className="bg-slate-800 text-slate-400">자산을 선택하세요</option>
                     {portfolioAssets.map(asset => (
-                      <option key={asset.id || asset.symbol} value={asset.symbol}>
+                      <option key={asset.id || asset.symbol} value={asset.symbol} className="bg-slate-800 text-slate-200">
                         {asset.name} ({asset.symbol}) - 현보유: {asset.quantity}
                       </option>
                     ))}
-                    <option value="__custom__">+ 직접 입력 (새로운 자산)</option>
+                    <option value="__custom__" className="bg-slate-800 text-cyan-300 font-medium">+ 직접 입력 (새로운 자산)</option>
                   </select>
                 </div>
 
@@ -1176,12 +1174,12 @@ const InvestmentLog = () => {
                     name="selectedAccount"
                     value={formData.selectedAccount}
                     onChange={handleInputChange}
-                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
                   >
                     {accountOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
+                      <option key={option} value={option} className="bg-slate-800 text-slate-200">{option}</option>
                     ))}
-                    <option value="__custom__">+ 새 계좌 입력</option>
+                    <option value="__custom__" className="bg-slate-800 text-cyan-300 font-medium">+ 새 계좌 입력</option>
                   </select>
                   {formData.selectedAccount === '__custom__' && (
                     <input
@@ -1233,7 +1231,7 @@ const InvestmentLog = () => {
                 <div className="bg-slate-800/30 rounded-xl p-4 flex justify-between items-center border border-slate-700/50">
                   <span className="text-slate-400 text-sm">총 거래금액</span>
                   <span className="text-xl font-bold text-cyan-300">
-                    {formData.customAssetCurrency === 'KRW' ? '₩' : '$'} 
+                    {formData.customAssetCurrency === 'KRW' ? '₩' : '$'}
                     {((parseFloat(formData.quantity) || 0) * (parseFloat(formData.price) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
