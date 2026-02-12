@@ -139,6 +139,7 @@ const AssetStatus = () => {
 
   // 입출금 이력 데이터 (연동용)
   const [transactionHistory, setTransactionHistory] = useState({ vnd: [], usd: [], krw: [] })
+  const [dividendTransactions, setDividendTransactions] = useState([]) // 배당금 이력 (연동용)
 
   // 환율 정보 (VND to KRW)
   const [vndToKrwRate, setVndToKrwRate] = useState(0.055) // Default rate
@@ -193,7 +194,9 @@ const AssetStatus = () => {
           dataSync.loadUserSetting('asset_expense_categories', DEFAULT_EXPENSE_CATEGORIES),
           dataSync.loadUserSetting('asset_account_types', DEFAULT_ACCOUNT_TYPES),
           dataSync.loadUserSetting('asset_portfolio_links', {}),
-          dataSync.loadUserSetting('transaction_history_v2', { vnd: [], usd: [], krw: [] })
+          dataSync.loadUserSetting('asset_portfolio_links', {}),
+          dataSync.loadUserSetting('transaction_history_v2', { vnd: [], usd: [], krw: [] }),
+          dataSync.loadUserSetting('dividend_transactions', [])
         ])
 
         if (cancelled) return
@@ -205,6 +208,7 @@ const AssetStatus = () => {
         setAccountTypes(ensureArrayWithFallback(loadedAccountTypes, DEFAULT_ACCOUNT_TYPES))
         setPortfolioLinks(loadedPortfolioLinks && typeof loadedPortfolioLinks === 'object' ? loadedPortfolioLinks : {})
         setTransactionHistory(loadedTransactionHistory || { vnd: [], usd: [], krw: [] })
+        setDividendTransactions(Array.isArray(loadedDividends) ? loadedDividends : [])
 
         statusReadyRef.current = true
         accountReadyRef.current = true
@@ -520,6 +524,25 @@ const AssetStatus = () => {
     return total
   }, [transactionHistory, vndToKrwRate])
 
+  // 배당금 이력에서 월별 합계 계산 (USD는 KRW로 환산)
+  const getDividendMonthlyTotal = useCallback((year, month) => {
+    const total = dividendTransactions
+      .filter(d => {
+        const dDate = new Date(d.date)
+        return dDate.getFullYear() === year && (dDate.getMonth() + 1) === month
+      })
+      .reduce((sum, d) => {
+        let amount = Number(d.amount || 0)
+        // USD는 KRW로 환산 (latestExchangeRateRef 사용)
+        if (d.currency === 'USD') {
+          amount *= (latestExchangeRateRef.current || DEFAULT_EXCHANGE_RATE)
+        }
+        return sum + amount
+      }, 0)
+
+    return total
+  }, [dividendTransactions])
+
   // Calculate monthly totals
   const calculateMonthlyData = useMemo(() => {
     const yearData = statusData[selectedYear] || {}
@@ -540,6 +563,16 @@ const AssetStatus = () => {
       const vndTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'vnd')
       if (vndTotal > 0) {
         monthData['vnd'] = vndTotal // 'vnd' = VND 지출
+      }
+
+      // 배당금 이력 연동: 배당금 자동 반영 (ID 'dividend' or Name '배당금')
+      const dividendTotal = getDividendMonthlyTotal(selectedYear, monthKey)
+      if (dividendTotal > 0) {
+        // Find category ID for dividend
+        const dividendCat = incomeCategories.find(c => c.id === 'dividend' || c.name === '배당금' || c.name === '배당/상여금')
+        if (dividendCat) {
+          monthData[dividendCat.id] = dividendTotal
+        }
       }
 
       // Calculate income total (exclude accumulated amount)
@@ -579,7 +612,7 @@ const AssetStatus = () => {
     }
 
     return monthlyData
-  }, [statusData, selectedYear, incomeCategories, expenseCategories, getTransactionMonthlyTotal, transactionHistory])
+  }, [statusData, selectedYear, incomeCategories, expenseCategories, getTransactionMonthlyTotal, transactionHistory, getDividendMonthlyTotal, dividendTransactions])
 
   // Calculate cumulative data for chart
   const chartData = useMemo(() => {
