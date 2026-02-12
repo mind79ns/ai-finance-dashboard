@@ -1127,26 +1127,54 @@ ${buildStockInfo(compareStock, quote2, profile2, metrics2)}
 
       const prompt = `[현재 날짜: ${currentDate}]
 
-당신은 기술적 분석 전문가입니다.포트폴리오 보유 종목에 대해 2025년 12월 현재 시점 기준으로 매매 타이밍 분석을 제공해주세요.
+당신은 월스트리트의 전설적인 트레이더이자 기술적 분석(Technical Analysis) 마스터입니다.
+보유 종목에 대해 현재 시점 기준의 정밀한 매매 타이밍 분석을 제공해주세요.
 
         ${marketContext}
 
-보유 종목:
+[분석 대상 종목]
 ${assetsList}
 
-다음 내용을 포함해 분석해주세요:
-      1. ** 종목별 기술적 분석 ** (RSI, 이동평균선 등 추정 상태)
-      2. ** 매수 / 매도 / 홀드 신호 ** (🟢 매수, 🔴 매도, 🟡 홀드)
-      3. ** 주요 지지선 / 저항선 ** 추정
-      4. ** 단기(1 - 2주) 전망 **
-        5. ** 추천 행동 ** (구체적 조언)
+---
 
-⚠️ 중요: 2025년 12월 현재 시장 상황을 기준으로 분석해주세요.실제 차트 데이터 없이 종목 특성과 시장 상황 기반으로 추정하되, 투자 결정은 사용자가 직접 해야 함을 명시해주세요.`
+### 분석 지시사항
+각 종목별로 다음 5가지 항목을 포함하여 정밀 분석 보고서를 작성하세요:
+
+1. **🚦 매매 신호 (Signal)**
+   - **강력매수** / **매수** / **중립** / **매도** / **강력매도** 중 하나 선택
+   - 확신도 (Confidence Score): 0~100%
+
+2. **📈 실전 매매 전략 (Action Plan)**
+   - **권장 진입가**: (구체적 가격대)
+   - **목표가 (1차/2차)**: (단기/중기 수익 실현가)
+   - **손절가 (Stop Loss)**: (필수 리스크 관리 가격)
+
+3. **📊 기술적 지표 분석 (AI Estimation)**
+   - **RSI (14)**: (과매수/과매도 여부 판단)
+   - **MACD**: (골든크로스/데드크로스 여부 추정)
+   - **이동평균선**: (정배열/역배열, 20일/60일선 지지 여부)
+   - **볼린저 밴드**: (밴드 상단/하단 위치 여부)
+
+4. **🔮 단기 가격 예측 (Prediction)**
+   - 향후 1-2주 가격 방향성: **상승세** / **하락세** / **횡보**
+   - 예상 변동폭: (±X%)
+
+5. **🗝️ 주요 지지/저항 라인**
+   - 핵심 지지선: (가격)
+   - 핵심 저항선: (가격)
+
+---
+
+### 작성 원칙
+- ⚠️ **중요**: 2025년 12월 현재의 시장 데이터와 차트 패턴을 시뮬레이션하여 분석하세요.
+- 데이터가 부족한 경우, 일반적인 기술적 패턴과 종목의 특성(배타계수, 변동성)을 기반으로 합리적인 추정을 제공하세요.
+- 결과는 가독성 좋은 **Markdown** 형식으로 작성하고, 중요한 숫자는 굵게 표시하세요.
+- 투자 조언이 아닌 참고용 자료임을 명시하세요.`
 
       const analysis = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
-        '당신은 기술적 분석 전문가입니다. 매매 타이밍과 기술적 지표 분석을 전문으로 합니다.',
+        '당신은 기술적 분석 전문가입니다. 차트 패턴, 보조지표, 수급 분석을 통해 구체적인 매매 전략을 제시합니다.',
         selectedAI
       )
       setTimingAnalysis(analysis)
@@ -2611,37 +2639,67 @@ ${assetsList}
 
               {/* 보유 종목에서 선택 */}
               {portfolioData?.assets?.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs text-gray-500 mb-2">보유 종목에서 선택:</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                    {portfolioData.assets.map(asset => (
-                      <label
-                        key={asset.symbol}
-                        className={`flex items - center gap - 2 p - 2 rounded - lg cursor - pointer transition - all ${selectedStocksForAI.some(s => s.symbol === asset.symbol)
-                          ? 'bg-purple-500/20 border-purple-500/50 border'
-                          : 'bg-slate-800 hover:bg-slate-700 border border-transparent'
-                          } `}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedStocksForAI.some(s => s.symbol === asset.symbol)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
+                <div className="mb-6">
+                  <p className="text-xs text-gray-500 mb-3">보유 종목에서 선택:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+                    {portfolioData.assets.map(asset => {
+                      const isSelected = selectedStocksForAI.some(s => s.symbol === asset.symbol)
+                      return (
+                        <div
+                          key={asset.symbol}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== asset.symbol))
+                            } else {
                               setSelectedStocksForAI(prev => [...prev, {
                                 symbol: asset.symbol,
                                 name: asset.name || asset.type,
                                 currentPrice: asset.currentPrice,
                                 profitPercent: asset.profitPercent
                               }])
-                            } else {
-                              setSelectedStocksForAI(prev => prev.filter(s => s.symbol !== asset.symbol))
                             }
                           }}
-                          className="w-4 h-4 text-purple-500 bg-slate-700 border-slate-600 rounded focus:ring-purple-500 focus:ring-offset-slate-800"
-                        />
-                        <span className="text-xs font-medium text-gray-300">{asset.symbol}</span>
-                      </label>
-                    ))}
+                          className={`
+                            relative p-3 rounded-xl border cursor-pointer transition-all duration-200 group
+                            ${isSelected
+                              ? 'bg-purple-900/30 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                              : 'bg-slate-800/50 border-slate-700 hover:border-purple-500/50 hover:bg-slate-800'
+                            }
+                          `}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h5 className={`font-bold text-sm ${isSelected ? 'text-purple-300' : 'text-gray-200'}`}>
+                                {asset.symbol}
+                              </h5>
+                              <p className="text-[10px] text-gray-500 truncate max-w-[80px]">
+                                {asset.name}
+                              </p>
+                            </div>
+                            <div className={`
+                              w-4 h-4 rounded-full border flex items-center justify-center transition-colors
+                              ${isSelected
+                                ? 'bg-purple-500 border-purple-500'
+                                : 'border-slate-600 group-hover:border-purple-500/50'
+                              }
+                            `}>
+                              {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-end">
+                            <span className="text-xs font-medium text-gray-300">
+                              {formatCurrency(asset.currentPrice, asset.currency)}
+                            </span>
+                            <span className={`text-[10px] font-bold ${asset.profitPercent > 0 ? 'text-emerald-400' :
+                              asset.profitPercent < 0 ? 'text-rose-400' : 'text-gray-400'
+                              }`}>
+                              {asset.profitPercent > 0 ? '+' : ''}{formatNumber(asset.profitPercent, 1)}%
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
