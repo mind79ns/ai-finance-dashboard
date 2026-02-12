@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Sparkles, FileText, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive } from 'lucide-react'
+import { Sparkles, FileText, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, Archive, Wand2, Plus, Minus } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, RadialBarChart, RadialBar } from 'recharts'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
@@ -1192,6 +1192,75 @@ ${assetsList}
     }
   }
 
+  // AI 포트폴리오 최적화 제안
+  const optimizeAllocation = async () => {
+    if (!portfolioData || !portfolioData.assets?.length) return
+
+    setLoading(true)
+    try {
+      const assetsList = portfolioData.assets
+        .map(a => `${a.symbol} (${a.name || ''}): 현재비중 ${((a.valueKRW / portfolioData.totalValueKRW) * 100).toFixed(1)}%, 수익률 ${a.profitPercent.toFixed(1)}%`)
+        .join('\n')
+
+      const prompt = `
+당신은 포트폴리오 최적화 전문가(Portfolio Optimization Expert)입니다.
+현재 시장 상황과 종목의 특성을 고려하여, 리스크를 최소화하면서도 수익률과 안정성을 극대화할 수 있는 **최적의 목표 비중(Target Weights)**을 제안해주세요.
+
+[보유 자산 현황]
+${assetsList}
+
+[제약 조건]
+1. 모든 자산의 목표 비중 합계는 정확히 **100%**여야 합니다.
+2. 특정 종목에 50% 이상 몰빵하지 마세요 (분산 투자 원칙).
+3. 수익률이 극도로 저조하고 전망이 어두운 종목은 비중 축소를, 상승 여력이 높은 종목은 비중 확대를 고려하세요.
+4. 결과는 반드시 **JSON 형식**으로만 출력하세요. 설명 등 사족을 달지 마세요.
+
+[출력 형식 예시]
+{
+  "AAPL": 25.5,
+  "TSLA": 15.0,
+  "NVDA": 10.0,
+  ...
+}
+`
+      const response = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 포트폴리오 최적화 AI입니다. JSON 형식으로만 응답합니다.',
+        'gpt' // Force GPT for better JSON handling
+      )
+
+      // Parse JSON response
+      try {
+        const jsonMatch = response.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const suggestedWeights = JSON.parse(jsonMatch[0])
+          setTargetAllocation(prev => {
+            const newAllocation = { ...prev }
+            Object.keys(suggestedWeights).forEach(symbol => {
+              if (newAllocation.hasOwnProperty(symbol) || portfolioData.assets.some(a => a.symbol === symbol)) {
+                newAllocation[symbol] = parseFloat(suggestedWeights[symbol])
+              }
+            })
+            return newAllocation
+          })
+          alert('AI가 제안하는 최적 비중이 적용되었습니다. 세부 조정은 직접 가능합니다.')
+        } else {
+          throw new Error('JSON parsing failed')
+        }
+      } catch (e) {
+        console.error('AI Optimization Parse Error:', e)
+        alert('최적화 제안을 해석하는데 실패했습니다. 다시 시도해주세요.')
+      }
+
+    } catch (error) {
+      console.error('Optimization Error:', error)
+      alert('최적화 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // AI 뉴스 요약
   const generateNewsSummary = async () => {
     // 선택된 종목이 없고 포트폴리오도 없는 경우
@@ -2341,89 +2410,170 @@ ${assetsList}
             {/* 목표 비율 설정 UI */}
             {portfolioData?.assets?.length > 0 && (
               <div className="cyber-card">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-semibold text-white">🎯 목표 자산 배분 설정</h4>
-                  <div className="flex gap-2">
+                <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+                  <div>
+                    <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                      🎯 리밸런싱 목표 설정
+                    </h4>
+                    <p className="text-xs text-gray-400 mt-1">
+                      각 자산의 목표 비중을 설정하면 필요한 매매 금액이 계산됩니다.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                    <button
+                      onClick={optimizeAllocation}
+                      disabled={loading}
+                      className="flex-1 md:flex-none text-xs px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-500 hover:to-indigo-500 transition-all flex items-center justify-center gap-1 shadow-lg shadow-purple-900/20"
+                    >
+                      <Wand2 className="w-3 h-3" />
+                      AI 최적 비중 제안
+                    </button>
                     <button
                       onClick={initTargetAllocation}
-                      className="text-xs px-3 py-1 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition-colors"
+                      className="flex-1 md:flex-none text-xs px-3 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition-colors"
                     >
                       현재 비율로 초기화
                     </button>
                     <button
                       onClick={() => setShowRebalanceCalc(!showRebalanceCalc)}
-                      className="text-xs px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/30 transition-colors"
+                      className="flex-1 md:flex-none text-xs px-3 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/30 transition-colors"
                     >
-                      {showRebalanceCalc ? '계산 숨기기' : '매매 금액 계산'}
+                      {showRebalanceCalc ? '계산 결과 숨기기' : '매매 금액 계산'}
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {portfolioData.assets.map(asset => {
                     const totalValue = portfolioData.assets.reduce((sum, a) => sum + (a.valueKRW || 0), 0)
                     const currentPercent = ((asset.valueKRW || 0) / totalValue) * 100
                     const targetPercent = targetAllocation[asset.symbol] ?? currentPercent
+                    const diffPercent = targetPercent - currentPercent
+
+                    const handleStepParams = (step) => {
+                      setTargetAllocation(prev => ({
+                        ...prev,
+                        [asset.symbol]: Math.max(0, Math.min(100, (parseFloat(prev[asset.symbol] ?? currentPercent) + step)))
+                      }))
+                    }
 
                     return (
-                      <div key={asset.symbol} className="flex items-center gap-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-indigo-500/30 transition-colors">
-                        <div className="w-24 flex-shrink-0">
-                          <p className="text-sm font-medium text-indigo-300">{asset.symbol}</p>
-                          <p className="text-xs text-gray-500">{formatCurrency(asset.valueKRW || 0, 'KRW')}</p>
+                      <div key={asset.symbol} className="bg-slate-900/50 rounded-xl border border-slate-700 p-4 transition-all hover:border-indigo-500/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)] group">
+                        {/* Header */}
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-base text-gray-100">{asset.symbol}</span>
+                              <span className="text-xs text-gray-500 truncate max-w-[100px]">{asset.name}</span>
+                            </div>
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              {formatCurrency(asset.valueKRW || 0, 'KRW')}
+                              <span className={`ml-2 ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {formatNumber(asset.profitPercent, 1)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-bold text-gray-300 block">현재 {currentPercent.toFixed(1)}%</span>
+                            {Math.abs(diffPercent) > 0.1 && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${diffPercent > 0 ? 'bg-emerald-900/50 text-emerald-400' : 'bg-rose-900/50 text-rose-400'}`}>
+                                {diffPercent > 0 ? '+' : ''}{diffPercent.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-gray-400 w-16">현재 {currentPercent.toFixed(1)}%</span>
+
+                        {/* Visualization Bars */}
+                        <div className="space-y-1 mb-4">
+                          <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                            <span className="w-8">현보유</span>
+                            <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-gray-400" style={{ width: `${Math.min(100, currentPercent)}%` }} />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-indigo-300 font-medium">
+                            <span className="w-8">목표</span>
+                            <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-indigo-500" style={{ width: `${Math.min(100, targetPercent)}%` }} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => handleStepParams(-0.5)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-600 text-gray-400 hover:text-white hover:border-indigo-500 transition-colors">
+                            <Minus className="w-3 h-3" />
+                          </button>
+
+                          <div className="flex-1 relative px-2">
                             <input
                               type="range"
                               min="0"
-                              max="100"
+                              max="50"
                               step="0.5"
                               value={targetPercent}
-                              onChange={(e) => setTargetAllocation(prev => ({
-                                ...prev,
-                                [asset.symbol]: parseFloat(e.target.value)
-                              }))}
-                              className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400"
+                              onChange={(e) => setTargetAllocation(prev => ({ ...prev, [asset.symbol]: parseFloat(e.target.value) }))}
+                              className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                             />
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.5"
-                              value={targetPercent}
-                              onChange={(e) => setTargetAllocation(prev => ({
-                                ...prev,
-                                [asset.symbol]: parseFloat(e.target.value) || 0
-                              }))}
-                              className="w-16 px-2 py-1 text-sm bg-slate-900 border border-slate-600 rounded text-center text-white focus:outline-none focus:border-indigo-500"
-                            />
-                            <span className="text-xs text-gray-500">%</span>
                           </div>
-                        </div>
-                        <div className="w-20 text-right">
-                          {targetPercent !== currentPercent && (
-                            <span className={`text - xs font - medium ${targetPercent > currentPercent ? 'text-emerald-400' : 'text-rose-400'} `}>
-                              {targetPercent > currentPercent ? '▲' : '▼'} {Math.abs(targetPercent - currentPercent).toFixed(1)}%
-                            </span>
-                          )}
+
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={targetPercent}
+                            onChange={(e) => setTargetAllocation(prev => ({ ...prev, [asset.symbol]: parseFloat(e.target.value) || 0 }))}
+                            className="w-16 h-8 text-center bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:border-indigo-500 focus:outline-none"
+                          />
+
+                          <button onClick={() => handleStepParams(0.5)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 border border-slate-600 text-gray-400 hover:text-white hover:border-indigo-500 transition-colors">
+                            <Plus className="w-3 h-3" />
+                          </button>
                         </div>
                       </div>
                     )
                   })}
                 </div>
 
-                {/* 목표 비율 합계 */}
-                <div className="mt-4 p-3 bg-slate-800 rounded-lg border border-slate-700">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">목표 비율 합계:</span>
-                    <span className={`font - semibold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 1
-                      ? 'text-emerald-400' : 'text-orange-400'
-                      } `}>
-                      {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
-                      {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 1 &&
-                        ' (100%로 맞춰주세요)'}
-                    </span>
+                {/* 목표 비율 합계 및 시뮬레이션 요약 */}
+                <div className="mt-4 p-4 bg-slate-800 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <span className="text-gray-400 text-xs block mb-1">목표 비중 합계</span>
+                      <span className={`text-lg font-bold ${Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 0.1
+                        ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                        {Object.values(targetAllocation).reduce((a, b) => a + b, 0).toFixed(1)}%
+                      </span>
+                      {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) >= 0.1 && (
+                        <span className="text-xs text-rose-400 ml-2 animate-pulse">
+                          (100%를 맞춰주세요)
+                        </span>
+                      )}
+                    </div>
+                    <div className="hidden md:block w-px h-10 bg-slate-700"></div>
+                    <div>
+                      <span className="text-gray-400 text-xs block mb-1">예상 총 회전율 (매매규모)</span>
+                      <span className="text-lg font-bold text-gray-200">
+                        {formatCurrency(calculateRebalanceTrades.reduce((sum, t) => sum + Math.abs(t.tradeAmount), 0), 'KRW')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status Indicator */}
+                  <div>
+                    {Math.abs(Object.values(targetAllocation).reduce((a, b) => a + b, 0) - 100) < 0.1 ? (
+                      <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span className="text-sm text-emerald-400 font-medium">리밸런싱 준비 완료</span>
+                      </div>
+                    ) : (
+                      <div className="px-4 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-500" />
+                        <span className="text-sm text-rose-400 font-medium">비중 합계 오류</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
