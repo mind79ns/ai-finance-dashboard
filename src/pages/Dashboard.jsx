@@ -62,7 +62,7 @@ const Dashboard = () => {
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
     try {
-      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
+      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories, accountTypes, loadedPrincipals] = await Promise.all([
         marketDataService.getAllMarketData().catch(() => null),
         dataSync.loadPortfolioAssets(),
         dataSync.loadInvestmentLogs(),
@@ -70,7 +70,9 @@ const Dashboard = () => {
         dataSync.loadUserSetting('asset_account_data'),
         dataSync.loadUserSetting('asset_status_data', {}),
         dataSync.loadUserSetting('asset_income_categories', []),
-        dataSync.loadUserSetting('asset_expense_categories', [])
+        dataSync.loadUserSetting('asset_expense_categories', []),
+        dataSync.loadUserSetting('asset_account_types', []),
+        dataSync.loadAccountPrincipals().catch(() => ({}))
       ])
 
       const usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
@@ -90,13 +92,51 @@ const Dashboard = () => {
 
       const { totals, allocation, assetsMap, performance, accountBreakdown } = buildPortfolioSummary(assetsRaw, usdToKrw)
       setPortfolioSummary(totals)
-      setAccountSummary(accountBreakdown)
       setAllocationData(allocation)
+
+      // AssetStatus 계좌 데이터(asset_account_data)와 Portfolio 계좌 데이터 병합
+      const accountTypesArr = Array.isArray(accountTypes) ? accountTypes : []
+      const yearAccData = assetAccountData?.[currentYear] || {}
+      const principalData = loadedPrincipals || {}
+
+      // AssetStatus 계좌 데이터에서 계좌별 잔고 계산
+      const assetAccMap = {}
+      accountTypesArr.forEach(at => {
+        const cats = yearAccData[at.id] || {}
+        const totalVal = Object.values(cats).reduce((s, v) => s + Number(v || 0), 0)
+        if (totalVal > 0) {
+          assetAccMap[at.name] = { account: at.name, totalValueKRW: totalVal, profitKRW: 0, profitPercent: 0, source: 'status' }
+        }
+      })
+
+      // Portfolio 계좌를 원금 데이터로 정확한 차익 계산
+      const mergedAccounts = {}
+      accountBreakdown.forEach(acc => {
+        const pData = principalData[acc.account]
+        let profitKRW = acc.profitKRW
+        let profitPercent = acc.profitPercent
+        if (pData && Number(pData.principal) > 0) {
+          const principal = Number(pData.principal)
+          profitKRW = acc.totalValueKRW - principal
+          profitPercent = (profitKRW / principal) * 100
+        }
+        mergedAccounts[acc.account] = { ...acc, profitKRW, profitPercent, source: 'portfolio' }
+      })
+
+      // AssetStatus 계좌 중 Portfolio에 없는 계좌 추가 (한국투자증권 등)
+      Object.entries(assetAccMap).forEach(([name, data]) => {
+        if (!mergedAccounts[name]) {
+          mergedAccounts[name] = data
+        }
+      })
+
+      const allAccounts = Object.values(mergedAccounts).sort((a, b) => b.totalValueKRW - a.totalValueKRW)
+      setAccountSummary(allAccounts)
 
       const sorted = [...performance].sort((a, b) => b.profitPercent - a.profitPercent)
       setTopPerformers({
-        gainers: sorted.filter(p => p.profitPercent > 0).slice(0, 3),
-        losers: sorted.filter(p => p.profitPercent < 0).slice(-3).reverse()
+        gainers: sorted.filter(p => p.profitPercent > 0).slice(0, 5),
+        losers: sorted.filter(p => p.profitPercent < 0).slice(-5).reverse()
       })
 
       const dividendData = await dataSync.loadUserSetting('dividend_transactions')
@@ -325,8 +365,11 @@ const Dashboard = () => {
               <div className="space-y-2">
                 {topPerformers.gainers.length > 0 ? topPerformers.gainers.map(item => (
                   <div key={item.symbol} className="flex items-center justify-between text-sm">
-                    <span className="text-cyan-200">{item.symbol}</span>
-                    <span className="neon-text-green">+{item.profitPercent.toFixed(1)}%</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-cyan-200 font-medium">{item.symbol}</span>
+                      {item.name && item.name !== item.symbol && <span className="text-cyan-300/40 text-xs truncate">{item.name}</span>}
+                    </div>
+                    <span className="neon-text-green flex-shrink-0">+{item.profitPercent.toFixed(1)}%</span>
                   </div>
                 )) : <p className="text-cyan-300/40 text-xs">No gainers</p>}
               </div>
@@ -339,8 +382,11 @@ const Dashboard = () => {
               <div className="space-y-2">
                 {topPerformers.losers.length > 0 ? topPerformers.losers.map(item => (
                   <div key={item.symbol} className="flex items-center justify-between text-sm">
-                    <span className="text-cyan-200">{item.symbol}</span>
-                    <span className="neon-text-red">{item.profitPercent.toFixed(1)}%</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-cyan-200 font-medium">{item.symbol}</span>
+                      {item.name && item.name !== item.symbol && <span className="text-cyan-300/40 text-xs truncate">{item.name}</span>}
+                    </div>
+                    <span className="neon-text-red flex-shrink-0">{item.profitPercent.toFixed(1)}%</span>
                   </div>
                 )) : <p className="text-cyan-300/40 text-xs">No losers</p>}
               </div>
