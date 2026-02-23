@@ -257,18 +257,24 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {accountSummary.map(acc => (
-                    <tr key={acc.account}>
-                      <td className="text-cyan-200 truncate" title={acc.account}>{acc.account}</td>
-                      <td className="text-right text-white whitespace-nowrap">{formatCompact(acc.totalValueKRW)}</td>
-                      <td className={`text-right whitespace-nowrap ${acc.profitKRW >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
-                        {acc.profitKRW >= 0 ? '+' : ''}{formatCompact(acc.profitKRW)}
-                      </td>
-                      <td className={`text-right whitespace-nowrap ${acc.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
-                        {acc.profitPercent >= 0 ? '+' : ''}{acc.profitPercent.toFixed(1)}%
-                      </td>
-                    </tr>
-                  ))}
+                  {accountSummary.map(acc => {
+                    const isProfit = acc.profitKRW >= 0;
+                    const colorClass = isProfit
+                      ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] font-bold'
+                      : 'text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)] font-bold';
+                    return (
+                      <tr key={acc.account}>
+                        <td className="text-cyan-200 truncate" title={acc.account}>{acc.account}</td>
+                        <td className="text-right text-white whitespace-nowrap">{formatCompact(acc.totalValueKRW)}</td>
+                        <td className={`text-right whitespace-nowrap ${colorClass}`}>
+                          {isProfit ? '+' : ''}{formatCompact(acc.profitKRW)}
+                        </td>
+                        <td className={`text-right whitespace-nowrap ${colorClass}`}>
+                          {isProfit ? '+' : ''}{acc.profitPercent.toFixed(1)}%
+                        </td>
+                      </tr>
+                    )
+                  })}
                   {accountSummary.length === 0 && (
                     <tr><td colSpan={4} className="text-center text-cyan-300/40 py-4">포트폴리오에 자산을 추가하세요</td></tr>
                   )}
