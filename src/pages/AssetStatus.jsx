@@ -186,14 +186,14 @@ const AssetStatus = () => {
           loadedExpense,
           loadedAccountTypes,
           loadedPortfolioLinks,
-          loadedTransactionHistory
+          loadedTransactionHistory,
+          loadedDividends
         ] = await Promise.all([
           dataSync.loadUserSetting('asset_status_data', {}),
           dataSync.loadUserSetting('asset_account_data', {}),
           dataSync.loadUserSetting('asset_income_categories', DEFAULT_INCOME_CATEGORIES),
           dataSync.loadUserSetting('asset_expense_categories', DEFAULT_EXPENSE_CATEGORIES),
           dataSync.loadUserSetting('asset_account_types', DEFAULT_ACCOUNT_TYPES),
-          dataSync.loadUserSetting('asset_portfolio_links', {}),
           dataSync.loadUserSetting('asset_portfolio_links', {}),
           dataSync.loadUserSetting('transaction_history_v2', { vnd: [], usd: [], krw: [] }),
           dataSync.loadUserSetting('dividend_transactions', [])
@@ -2016,82 +2016,100 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="cyber-card relative max-w-2xl w-full max-h-[90vh] overflow-y-auto !bg-slate-900 !border-2 !border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)] cyber-scrollbar">
-        <div className="sticky top-0 bg-slate-900 z-10 border-b border-indigo-500/30 px-6 py-4">
+      <div className="cyber-card relative max-w-2xl w-full max-h-[90vh] flex flex-col !bg-slate-900 !border-2 !border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)]">
+        {/* Header - 고정 */}
+        <div className="flex-shrink-0 border-b border-indigo-500/30 px-6 py-4">
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
             <Edit className="w-5 h-5 text-indigo-400" />
             {year}년 {monthName} 데이터 수정
           </h3>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          {/* Income Section */}
-          <div>
-            <h4 className="font-bold text-emerald-400 mb-4 flex items-center gap-2 text-lg border-b border-emerald-500/30 pb-2">
-              <TrendingUp className="w-5 h-5" />
-              수입 항목
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {incomeCategories.map(cat => (
-                <div key={cat.id} className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 hover:border-emerald-500/50 transition-colors">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">{cat.name}</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={formData[cat.id] || ''}
-                      onChange={(e) => handleChange(cat.id, e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white placeholder-gray-600"
-                      placeholder="0"
-                    />
-                    <span className="absolute right-3 top-2 text-xs text-gray-500">KRW</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Scrollable Content */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 cyber-scrollbar">
+            {/* Income Section */}
+            <div>
+              <h4 className="font-bold text-emerald-400 mb-4 flex items-center gap-2 text-lg border-b border-emerald-500/30 pb-2">
+                <TrendingUp className="w-5 h-5" />
+                수입 항목
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {incomeCategories.map(cat => {
+                  // 배당금 자동 연동 항목 확인
+                  const isDividendLinked = (cat.id === 'dividend' || cat.name === '배당금' || cat.name === '배당/상여금')
 
-          {/* Expense Section */}
-          <div>
-            <h4 className="font-bold text-rose-400 mb-4 flex items-center gap-2 text-lg border-b border-rose-500/30 pb-2">
-              <TrendingDown className="w-5 h-5" />
-              지출 항목
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {expenseCategories.map(cat => {
-                // 입출금 이력 연동 항목 확인
-                const isLinked = (cat.id === 'loan' || cat.id === 'vnd')
-                const linkedLabel = cat.id === 'loan' ? 'KRW' : (cat.id === 'vnd' ? 'VND' : '')
-
-                return (
-                  <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-rose-500/50 transition-colors`}>
-                    <label className="block text-sm font-medium text-gray-400 mb-2 flex justify-between">
-                      {cat.name}
-                      {isLinked && (
-                        <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title={`입출금 이력 ${linkedLabel}과 자동 연동`}>
-                          🔗 자동 연동
-                        </span>
-                      )}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        value={formData[cat.id] || ''}
-                        onChange={(e) => handleChange(cat.id, e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-600 ${isLinked ? 'bg-indigo-900/20 border border-indigo-500/30 focus:ring-indigo-500 cursor-not-allowed text-indigo-200' : 'bg-slate-900 border border-slate-600 focus:ring-rose-500'}`}
-                        placeholder="0"
-                        readOnly={isLinked}
-                        title={isLinked ? `입출금 이력 페이지의 ${linkedLabel} 거래 내역과 자동 연동됩니다` : ''}
-                      />
-                      <span className="absolute right-3 top-2 text-xs text-gray-500">KRW</span>
+                  return (
+                    <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isDividendLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-emerald-500/50 transition-colors`}>
+                      <label className="block text-sm font-medium text-gray-400 mb-2 flex justify-between">
+                        {cat.name}
+                        {isDividendLinked && (
+                          <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title="입출금 이력 배당금과 자동 연동">
+                            🔗 자동 연동
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formData[cat.id] || ''}
+                          onChange={(e) => handleChange(cat.id, e.target.value)}
+                          className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-600 ${isDividendLinked ? 'bg-indigo-900/20 border border-indigo-500/30 focus:ring-indigo-500 cursor-not-allowed text-indigo-200' : 'bg-slate-900 border border-slate-600 focus:ring-emerald-500'}`}
+                          placeholder="0"
+                          readOnly={isDividendLinked}
+                          title={isDividendLinked ? '입출금 이력 페이지의 배당금 거래 내역과 자동 연동됩니다' : ''}
+                        />
+                        <span className="absolute right-3 top-2 text-xs text-gray-500">KRW</span>
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Expense Section */}
+            <div>
+              <h4 className="font-bold text-rose-400 mb-4 flex items-center gap-2 text-lg border-b border-rose-500/30 pb-2">
+                <TrendingDown className="w-5 h-5" />
+                지출 항목
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {expenseCategories.map(cat => {
+                  // 입출금 이력 연동 항목 확인
+                  const isLinked = (cat.id === 'loan' || cat.id === 'vnd')
+                  const linkedLabel = cat.id === 'loan' ? 'KRW' : (cat.id === 'vnd' ? 'VND' : '')
+
+                  return (
+                    <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-rose-500/50 transition-colors`}>
+                      <label className="block text-sm font-medium text-gray-400 mb-2 flex justify-between">
+                        {cat.name}
+                        {isLinked && (
+                          <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title={`입출금 이력 ${linkedLabel}과 자동 연동`}>
+                            🔗 자동 연동
+                          </span>
+                        )}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={formData[cat.id] || ''}
+                          onChange={(e) => handleChange(cat.id, e.target.value)}
+                          className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-600 ${isLinked ? 'bg-indigo-900/20 border border-indigo-500/30 focus:ring-indigo-500 cursor-not-allowed text-indigo-200' : 'bg-slate-900 border border-slate-600 focus:ring-rose-500'}`}
+                          placeholder="0"
+                          readOnly={isLinked}
+                          title={isLinked ? `입출금 이력 페이지의 ${linkedLabel} 거래 내역과 자동 연동됩니다` : ''}
+                        />
+                        <span className="absolute right-3 top-2 text-xs text-gray-500">KRW</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-slate-700 bg-slate-900 sticky bottom-0 z-10 pb-2">
+          {/* Buttons - 하단 고정 */}
+          <div className="flex-shrink-0 flex gap-3 px-6 py-4 border-t border-slate-700 bg-slate-900">
             <button type="submit" className="cyber-btn bg-emerald-600 hover:bg-emerald-500 text-white flex-1 py-3 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
               저장
             </button>
