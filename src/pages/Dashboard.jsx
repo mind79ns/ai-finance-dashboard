@@ -57,16 +57,20 @@ const Dashboard = () => {
   const [topPerformers, setTopPerformers] = useState({ gainers: [], losers: [] })
   const [recentActivities, setRecentActivities] = useState([])
   const [dividendTotal, setDividendTotal] = useState(0)
+  const [monthlyNetChanges, setMonthlyNetChanges] = useState([])
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
     try {
-      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData] = await Promise.all([
+      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
         marketDataService.getAllMarketData().catch(() => null),
         dataSync.loadPortfolioAssets(),
         dataSync.loadInvestmentLogs(),
         dataSync.loadGoals(),
-        dataSync.loadUserSetting('asset_account_data')
+        dataSync.loadUserSetting('asset_account_data'),
+        dataSync.loadUserSetting('asset_status_data', {}),
+        dataSync.loadUserSetting('asset_income_categories', []),
+        dataSync.loadUserSetting('asset_expense_categories', [])
       ])
 
       const usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
@@ -104,6 +108,24 @@ const Dashboard = () => {
 
       const history = buildPortfolioHistory(logsRaw, usdToKrw, assetsMap, totals.totalValueKRW)
       setPortfolioHistory(history)
+
+      // 월별 순변동 계산 (Asset Status 데이터 기반)
+      const currentYearStatus = (assetStatusData || {})[currentYear] || {}
+      const incomeCats = Array.isArray(incomeCategories) && incomeCategories.length > 0 ? incomeCategories : []
+      const expenseCats = Array.isArray(expenseCategories) && expenseCategories.length > 0 ? expenseCategories : []
+      const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+      const netChanges = []
+      for (let i = 0; i < 12; i++) {
+        const monthKey = i + 1
+        const mData = currentYearStatus[monthKey] || {}
+        const incomeTotal = incomeCats.reduce((sum, cat) => {
+          if (cat.isAccumulated) return sum
+          return sum + Number(mData[cat.id] || 0)
+        }, 0)
+        const expenseTotal = expenseCats.reduce((sum, cat) => sum + Number(mData[cat.id] || 0), 0)
+        netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal })
+      }
+      setMonthlyNetChanges(netChanges)
 
       setGoalSummary(summarizeGoals(goalsRaw))
       setRecentActivities(buildRecentActivities(logsRaw, dividendData || [], assetsMap, usdToKrw))
@@ -187,20 +209,24 @@ const Dashboard = () => {
               <Wallet className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Account Summary</h3>
             </div>
-            <div className="cyber-table overflow-hidden">
+            <div className="cyber-table overflow-hidden max-h-[280px] overflow-y-auto cyber-scrollbar">
               <table className="w-full text-xs">
                 <thead>
                   <tr>
                     <th className="text-left">Account</th>
                     <th className="text-right">Value</th>
+                    <th className="text-right">차익</th>
                     <th className="text-right">Return</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {accountSummary.slice(0, 5).map(acc => (
+                  {accountSummary.map(acc => (
                     <tr key={acc.account}>
                       <td className="text-cyan-200">{acc.account}</td>
                       <td className="text-right text-white">{formatCompact(acc.totalValueKRW)}</td>
+                      <td className={`text-right ${acc.profitKRW >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                        {acc.profitKRW >= 0 ? '+' : ''}{formatCompact(acc.profitKRW)}
+                      </td>
                       <td className={`text-right ${acc.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                         {acc.profitPercent >= 0 ? '+' : ''}{acc.profitPercent.toFixed(1)}%
                       </td>
@@ -393,6 +419,35 @@ const Dashboard = () => {
               )}
             </div>
           </div>
+
+          {/* Monthly Net Change Bar Chart */}
+          <div className="cyber-card cyber-card-glow p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">월 순변동</h3>
+            </div>
+            {monthlyNetChanges.some(d => d.value !== 0) ? (
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={monthlyNetChanges}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.1)" />
+                  <XAxis dataKey="month" stroke="#4a6d7c" fontSize={10} />
+                  <YAxis stroke="#4a6d7c" fontSize={10} tickFormatter={v => `${(v / 1e4).toFixed(0)}만`} />
+                  <Tooltip
+                    contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+                    labelStyle={{ color: '#00d4ff' }}
+                    formatter={(v) => [formatCurrency(v, 'KRW'), '순변동']}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {monthlyNetChanges.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.value >= 0 ? '#00ff88' : '#ff6b6b'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-cyan-300/40 text-xs text-center py-8">데이터 없음</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -411,8 +466,8 @@ const Dashboard = () => {
                 <div className="flex items-center gap-3">
                   <div className="cyber-icon-circle">
                     {act.type === 'buy' ? <Plus className="w-4 h-4 text-cyan-400" /> :
-                     act.type === 'sell' ? <DollarSign className="w-4 h-4 text-emerald-400" /> :
-                     <PiggyBank className="w-4 h-4 text-amber-400" />}
+                      act.type === 'sell' ? <DollarSign className="w-4 h-4 text-emerald-400" /> :
+                        <PiggyBank className="w-4 h-4 text-amber-400" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-cyan-200 text-sm font-medium truncate">{act.title}</p>
