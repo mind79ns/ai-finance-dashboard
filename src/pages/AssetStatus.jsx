@@ -565,11 +565,11 @@ const AssetStatus = () => {
         monthData['vnd'] = vndTotal // 'vnd' = VND 지출
       }
 
-      // 배당금 이력 연동: 배당금 자동 반영 (ID 'dividend' or Name '배당금')
+      // 배당금 이력 연동: 배당금 자동 반영 (이름 '배당금'으로만 매칭)
       const dividendTotal = getDividendMonthlyTotal(selectedYear, monthKey)
       if (dividendTotal > 0) {
-        // Find category ID for dividend
-        const dividendCat = incomeCategories.find(c => c.id === 'dividend' || c.name === '배당금' || c.name === '배당/상여금')
+        // Find category by name '배당금' only
+        const dividendCat = incomeCategories.find(c => c.name === '배당금')
         if (dividendCat) {
           monthData[dividendCat.id] = dividendTotal
         }
@@ -2036,8 +2036,8 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {incomeCategories.map(cat => {
-                  // 배당금 자동 연동 항목 확인
-                  const isDividendLinked = (cat.id === 'dividend' || cat.name === '배당금' || cat.name === '배당/상여금')
+                  // 배당금 자동 연동 항목 확인 (이름 '배당금'으로만 매칭)
+                  const isDividendLinked = (cat.name === '배당금')
 
                   return (
                     <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isDividendLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-emerald-500/50 transition-colors`}>
