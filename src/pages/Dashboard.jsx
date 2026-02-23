@@ -58,6 +58,7 @@ const Dashboard = () => {
   const [recentActivities, setRecentActivities] = useState([])
   const [dividendTotal, setDividendTotal] = useState(0)
   const [monthlyNetChanges, setMonthlyNetChanges] = useState([])
+  const [yearlyFlow, setYearlyFlow] = useState({ income: 0, expense: 0, net: 0 })
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
@@ -140,6 +141,8 @@ const Dashboard = () => {
       const expenseCats = Array.isArray(expenseCategories) && expenseCategories.length > 0 ? expenseCategories : []
       const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
       const netChanges = []
+      let totalYrIncome = 0
+      let totalYrExpense = 0
       for (let i = 0; i < 12; i++) {
         const monthKey = i + 1
         const mData = currentYearStatus[monthKey] || {}
@@ -148,9 +151,12 @@ const Dashboard = () => {
           return sum + Number(mData[cat.id] || 0)
         }, 0)
         const expenseTotal = expenseCats.reduce((sum, cat) => sum + Number(mData[cat.id] || 0), 0)
+        totalYrIncome += incomeTotal
+        totalYrExpense += expenseTotal
         netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal })
       }
       setMonthlyNetChanges(netChanges)
+      setYearlyFlow({ income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense })
 
       setGoalSummary(summarizeGoals(goalsRaw))
       setRecentActivities(buildRecentActivities(logsRaw, dividendData || [], assetsMap, usdToKrw))
@@ -200,9 +206,9 @@ const Dashboard = () => {
       {/* Main Grid */}
       <div className="grid grid-cols-12 gap-4 sm:gap-6">
         {/* Left Column - Charts */}
-        <div className="col-span-12 lg:col-span-3 space-y-4">
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-4">
           {/* Portfolio History Chart */}
-          <div className="cyber-card cyber-card-glow p-4">
+          <div className="cyber-card cyber-card-glow p-4 shrink-0">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Growth Rate</h3>
@@ -229,7 +235,7 @@ const Dashboard = () => {
           </div>
 
           {/* Account Summary Table */}
-          <div className="cyber-card cyber-card-glow p-4">
+          <div className="cyber-card cyber-card-glow p-4 shrink-0">
             <div className="flex items-center gap-2 mb-4">
               <Wallet className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Account Summary</h3>
@@ -268,6 +274,42 @@ const Dashboard = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Yearly Asset Flow - Fill remaining height */}
+          <div className="cyber-card cyber-card-glow p-4 flex-1 flex flex-col justify-center min-h-[200px]">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">연간 자산 현황 요약</h3>
+            </div>
+            <div className="space-y-5 flex-1 flex flex-col justify-around">
+              <div>
+                <p className="text-cyan-300/60 text-[11px] uppercase tracking-widest mb-1">연간 총 수입</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-emerald-400">
+                    +{formatCurrency(yearlyFlow.income, 'KRW')}
+                  </span>
+                </div>
+              </div>
+              <div className="h-px bg-cyan-500/10 w-full" />
+              <div>
+                <p className="text-cyan-300/60 text-[11px] uppercase tracking-widest mb-1">연간 총 지출</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-rose-400">
+                    -{formatCurrency(yearlyFlow.expense, 'KRW')}
+                  </span>
+                </div>
+              </div>
+              <div className="h-px bg-cyan-500/10 w-full" />
+              <div>
+                <p className="text-cyan-300/60 text-[11px] uppercase tracking-widest mb-1">연간 순변동</p>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-2xl font-bold drop-shadow-lg ${yearlyFlow.net >= 0 ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]' : 'text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.3)]'}`}>
+                    {yearlyFlow.net >= 0 ? '+' : ''}{formatCurrency(yearlyFlow.net, 'KRW')}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
