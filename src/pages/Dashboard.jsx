@@ -62,7 +62,7 @@ const Dashboard = () => {
   const loadDashboardData = useCallback(async () => {
     setLoading(true)
     try {
-      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories, accountTypes, loadedPrincipals] = await Promise.all([
+      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
         marketDataService.getAllMarketData().catch(() => null),
         dataSync.loadPortfolioAssets(),
         dataSync.loadInvestmentLogs(),
@@ -70,9 +70,7 @@ const Dashboard = () => {
         dataSync.loadUserSetting('asset_account_data'),
         dataSync.loadUserSetting('asset_status_data', {}),
         dataSync.loadUserSetting('asset_income_categories', []),
-        dataSync.loadUserSetting('asset_expense_categories', []),
-        dataSync.loadUserSetting('asset_account_types', []),
-        dataSync.loadAccountPrincipals().catch(() => ({}))
+        dataSync.loadUserSetting('asset_expense_categories', [])
       ])
 
       const usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
@@ -94,44 +92,31 @@ const Dashboard = () => {
       setPortfolioSummary(totals)
       setAllocationData(allocation)
 
-      // AssetStatus 계좌 데이터(asset_account_data)와 Portfolio 계좌 데이터 병합
-      const accountTypesArr = Array.isArray(accountTypes) ? accountTypes : []
-      const yearAccData = assetAccountData?.[currentYear] || {}
-      const principalData = loadedPrincipals || {}
+      // 포트폴리오 계좌별 현황만 사용 (AssetStatus 계좌 제외)
+      // Portfolio 탭과 동일한 방식: 각 계좌의 자산별 평가액/투자금/수익 계산
+      const portfolioAccounts = accountBreakdown.map(acc => {
+        // 계좌 내 자산별로 투자금(qty*avgPrice)과 평가액(qty*currentPrice) 합산
+        const investmentKRW = acc.assets.reduce((sum, a) => {
+          const invested = a.quantity * a.avgPrice
+          return sum + (a.currency === 'USD' ? invested * usdToKrw : invested)
+        }, 0)
+        const evaluationKRW = acc.assets.reduce((sum, a) => {
+          const value = a.quantity * (a.currentPrice || a.avgPrice)
+          return sum + (a.currency === 'USD' ? value * usdToKrw : value)
+        }, 0)
+        const profitKRW = evaluationKRW - investmentKRW
+        const profitPercent = investmentKRW > 0 ? (profitKRW / investmentKRW) * 100 : 0
 
-      // AssetStatus 계좌 데이터에서 계좌별 잔고 계산
-      const assetAccMap = {}
-      accountTypesArr.forEach(at => {
-        const cats = yearAccData[at.id] || {}
-        const totalVal = Object.values(cats).reduce((s, v) => s + Number(v || 0), 0)
-        if (totalVal > 0) {
-          assetAccMap[at.name] = { account: at.name, totalValueKRW: totalVal, profitKRW: 0, profitPercent: 0, source: 'status' }
+        return {
+          account: acc.account,
+          totalValueKRW: evaluationKRW,
+          profitKRW,
+          profitPercent,
+          assetCount: acc.assets.length
         }
-      })
+      }).sort((a, b) => b.totalValueKRW - a.totalValueKRW)
 
-      // Portfolio 계좌를 원금 데이터로 정확한 차익 계산
-      const mergedAccounts = {}
-      accountBreakdown.forEach(acc => {
-        const pData = principalData[acc.account]
-        let profitKRW = acc.profitKRW
-        let profitPercent = acc.profitPercent
-        if (pData && Number(pData.principal) > 0) {
-          const principal = Number(pData.principal)
-          profitKRW = acc.totalValueKRW - principal
-          profitPercent = (profitKRW / principal) * 100
-        }
-        mergedAccounts[acc.account] = { ...acc, profitKRW, profitPercent, source: 'portfolio' }
-      })
-
-      // AssetStatus 계좌 중 Portfolio에 없는 계좌 추가 (한국투자증권 등)
-      Object.entries(assetAccMap).forEach(([name, data]) => {
-        if (!mergedAccounts[name]) {
-          mergedAccounts[name] = data
-        }
-      })
-
-      const allAccounts = Object.values(mergedAccounts).sort((a, b) => b.totalValueKRW - a.totalValueKRW)
-      setAccountSummary(allAccounts)
+      setAccountSummary(portfolioAccounts)
 
       const sorted = [...performance].sort((a, b) => b.profitPercent - a.profitPercent)
       setTopPerformers({
@@ -249,29 +234,38 @@ const Dashboard = () => {
               <Wallet className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Account Summary</h3>
             </div>
-            <div className="cyber-table overflow-hidden max-h-[280px] overflow-y-auto cyber-scrollbar">
-              <table className="w-full text-xs">
+            <div className="cyber-table overflow-hidden max-h-[320px] overflow-y-auto cyber-scrollbar">
+              <table className="w-full text-[11px]" style={{ tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col style={{ width: '38%' }} />
+                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '18%' }} />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th className="text-left">Account</th>
-                    <th className="text-right">Value</th>
-                    <th className="text-right">차익</th>
-                    <th className="text-right">Return</th>
+                    <th className="text-left">계좌</th>
+                    <th className="text-right">평가액</th>
+                    <th className="text-right">수익금</th>
+                    <th className="text-right">수익률</th>
                   </tr>
                 </thead>
                 <tbody>
                   {accountSummary.map(acc => (
                     <tr key={acc.account}>
-                      <td className="text-cyan-200">{acc.account}</td>
-                      <td className="text-right text-white">{formatCompact(acc.totalValueKRW)}</td>
-                      <td className={`text-right ${acc.profitKRW >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                      <td className="text-cyan-200 truncate" title={acc.account}>{acc.account}</td>
+                      <td className="text-right text-white whitespace-nowrap">{formatCompact(acc.totalValueKRW)}</td>
+                      <td className={`text-right whitespace-nowrap ${acc.profitKRW >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                         {acc.profitKRW >= 0 ? '+' : ''}{formatCompact(acc.profitKRW)}
                       </td>
-                      <td className={`text-right ${acc.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                      <td className={`text-right whitespace-nowrap ${acc.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                         {acc.profitPercent >= 0 ? '+' : ''}{acc.profitPercent.toFixed(1)}%
                       </td>
                     </tr>
                   ))}
+                  {accountSummary.length === 0 && (
+                    <tr><td colSpan={4} className="text-center text-cyan-300/40 py-4">포트폴리오에 자산을 추가하세요</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -598,9 +592,14 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     totalValueUSD += valueUSD
 
     allocationMap[type] = (allocationMap[type] || 0) + valueKRW
-    if (!accountMap[account]) accountMap[account] = { account, totalValueKRW: 0, profitKRW: 0 }
+
+    // 계좌별 요약: assets 배열 포함 (포트폴리오 탭과 동일한 방식)
+    if (!accountMap[account]) {
+      accountMap[account] = { account, totalValueKRW: 0, profitKRW: 0, assets: [] }
+    }
     accountMap[account].totalValueKRW += valueKRW
     accountMap[account].profitKRW += profitKRW
+    accountMap[account].assets.push({ ...asset, qty, curPrice, avgPrice, currency, valueKRW, profitKRW, profitPercent })
 
     assetsMap[asset.symbol] = { ...asset, valueKRW, currency, profitKRW, profitPercent }
     performance.push({ symbol: asset.symbol, name: asset.name || asset.symbol, profitPercent: Number(profitPercent.toFixed(2)) })
