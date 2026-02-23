@@ -277,38 +277,33 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Yearly Asset Flow - Fill remaining height */}
-          <div className="cyber-card cyber-card-glow p-4 flex-1 flex flex-col justify-center min-h-[200px]">
-            <div className="flex items-center gap-2 mb-6">
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">연간 자산 현황 요약</h3>
+          {/* Yearly Asset Flow - Small 1x3 Card */}
+          <div className="cyber-card cyber-card-glow p-3 shrink-0">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-3 h-3 text-cyan-400" />
+              <h3 className="text-cyan-400 font-semibold text-xs uppercase tracking-wide">연간 요약</h3>
             </div>
-            <div className="space-y-5 flex-1 flex flex-col justify-around">
-              <div>
-                <p className="text-cyan-300/60 text-[11px] uppercase tracking-widest mb-1">연간 총 수입</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-emerald-400">
-                    +{formatCurrency(yearlyFlow.income, 'KRW')}
-                  </span>
-                </div>
+            <div className="grid grid-cols-3 divide-x divide-cyan-500/20">
+              <div className="text-center px-1">
+                <p className="text-cyan-300/60 text-[10px] mb-1">수입</p>
+                <p className="font-bold text-emerald-400 text-xs truncate" title={`+${yearlyFlow.income.toLocaleString()}원`}>
+                  +{formatCompact(yearlyFlow.income)}
+                </p>
               </div>
-              <div className="h-px bg-cyan-500/10 w-full" />
-              <div>
-                <p className="text-cyan-300/60 text-[11px] uppercase tracking-widest mb-1">연간 총 지출</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-rose-400">
-                    -{formatCurrency(yearlyFlow.expense, 'KRW')}
-                  </span>
-                </div>
+              <div className="text-center px-1">
+                <p className="text-cyan-300/60 text-[10px] mb-1">지출</p>
+                <p className="font-bold text-rose-400 text-xs truncate" title={`-${yearlyFlow.expense.toLocaleString()}원`}>
+                  -{formatCompact(yearlyFlow.expense)}
+                </p>
               </div>
-              <div className="h-px bg-cyan-500/10 w-full" />
-              <div>
-                <p className="text-cyan-300/60 text-[11px] uppercase tracking-widest mb-1">연간 순변동</p>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-2xl font-bold drop-shadow-lg ${yearlyFlow.net >= 0 ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]' : 'text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.3)]'}`}>
-                    {yearlyFlow.net >= 0 ? '+' : ''}{formatCurrency(yearlyFlow.net, 'KRW')}
-                  </span>
-                </div>
+              <div className="text-center px-1">
+                <p className="text-cyan-300/60 text-[10px] mb-1">순변동</p>
+                <p
+                  className={`font-bold text-xs truncate ${yearlyFlow.net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+                  title={`${yearlyFlow.net >= 0 ? '+' : ''}${yearlyFlow.net.toLocaleString()}원`}
+                >
+                  {yearlyFlow.net >= 0 ? '+' : ''}{formatCompact(yearlyFlow.net)}
+                </p>
               </div>
             </div>
           </div>
