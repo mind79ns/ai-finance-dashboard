@@ -475,6 +475,7 @@ const Dashboard = () => {
                   <Tooltip
                     contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
                     labelStyle={{ color: '#00d4ff' }}
+                    itemStyle={{ color: '#fff' }}
                     formatter={(v) => [formatCurrency(v, 'KRW'), '순변동']}
                   />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
