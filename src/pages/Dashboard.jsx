@@ -260,12 +260,12 @@ const Dashboard = () => {
                   {accountSummary.map(acc => {
                     const isProfit = acc.profitKRW >= 0;
                     const colorClass = isProfit
-                      ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] font-bold'
-                      : 'text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)] font-bold';
+                      ? '!text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] font-bold'
+                      : '!text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)] font-bold';
                     return (
                       <tr key={acc.account}>
                         <td className="text-cyan-200 truncate" title={acc.account}>{acc.account}</td>
-                        <td className="text-right text-white whitespace-nowrap">{formatCompact(acc.totalValueKRW)}</td>
+                        <td className="text-right !text-white whitespace-nowrap">{formatCompact(acc.totalValueKRW)}</td>
                         <td className={`text-right whitespace-nowrap ${colorClass}`}>
                           {isProfit ? '+' : ''}{formatCompact(acc.profitKRW)}
                         </td>
@@ -292,20 +292,20 @@ const Dashboard = () => {
             <div className="grid grid-cols-3 divide-x divide-cyan-500/20">
               <div className="text-center px-1">
                 <p className="text-cyan-300/60 text-[10px] mb-1">수입</p>
-                <p className="font-bold text-emerald-400 text-xs truncate" title={`+${yearlyFlow.income.toLocaleString()}원`}>
+                <p className="font-bold !text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] text-xs truncate" title={`+${yearlyFlow.income.toLocaleString()}원`}>
                   +{formatCompact(yearlyFlow.income)}
                 </p>
               </div>
               <div className="text-center px-1">
                 <p className="text-cyan-300/60 text-[10px] mb-1">지출</p>
-                <p className="font-bold text-rose-400 text-xs truncate" title={`-${yearlyFlow.expense.toLocaleString()}원`}>
+                <p className="font-bold !text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)] text-xs truncate" title={`-${yearlyFlow.expense.toLocaleString()}원`}>
                   -{formatCompact(yearlyFlow.expense)}
                 </p>
               </div>
               <div className="text-center px-1">
                 <p className="text-cyan-300/60 text-[10px] mb-1">순변동</p>
                 <p
-                  className={`font-bold text-xs truncate ${yearlyFlow.net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+                  className={`font-bold text-xs truncate ${yearlyFlow.net >= 0 ? '!text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]' : '!text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]'}`}
                   title={`${yearlyFlow.net >= 0 ? '+' : ''}${yearlyFlow.net.toLocaleString()}원`}
                 >
                   {yearlyFlow.net >= 0 ? '+' : ''}{formatCompact(yearlyFlow.net)}
