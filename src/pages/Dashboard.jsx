@@ -435,7 +435,7 @@ const Dashboard = () => {
             </div>
             {allocationData.length > 0 ? (
               <>
-                <ResponsiveContainer width="100%" height={150}>
+                <ResponsiveContainer width="100%" height={120}>
                   <PieChart>
                     <Pie
                       data={allocationData}
@@ -504,7 +504,7 @@ const Dashboard = () => {
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">월 순변동</h3>
             </div>
             {monthlyNetChanges.some(d => d.value !== 0) ? (
-              <ResponsiveContainer width="100%" height={180}>
+              <ResponsiveContainer width="100%" height={150}>
                 <BarChart data={monthlyNetChanges}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.1)" />
                   <XAxis dataKey="month" stroke="#4a6d7c" fontSize={10} />
