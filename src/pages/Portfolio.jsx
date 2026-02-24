@@ -7,6 +7,7 @@ import AssetDetailView from '../components/AssetDetailView'
 import marketDataService from '../services/marketDataService'
 import kisService from '../services/kisService'
 import dataSync from '../utils/dataSync'
+import { fetchAndUpdateAssetPrices } from '../utils/priceUpdater'
 
 const Portfolio = () => {
   const [assets, setAssets] = useState([])
@@ -167,104 +168,11 @@ const Portfolio = () => {
 
       try {
         setLoading(true)
-        const marketData = await marketDataService.getAllMarketData()
-
-        let nextExchangeRate = exchangeRate
-
-        // Update exchange rate
-        if (marketData?.currency?.usdKrw?.rate) {
-          nextExchangeRate = marketData.currency.usdKrw.rate
-          setExchangeRate(nextExchangeRate)
-        }
-
-        // Get list of USD stock/ETF symbols to fetch
-        const usdStockSymbols = assets
-          .filter(asset =>
-            (asset.type === '주식' || asset.type === 'ETF') &&
-            asset.currency === 'USD'
-          )
-          .map(asset => asset.symbol)
-
-        // Get list of KRW stock/ETF symbols to fetch
-        const krwStockSymbols = assets
-          .filter(asset =>
-            (asset.type === '주식' || asset.type === 'ETF') &&
-            asset.currency === 'KRW'
-          )
-          .map(asset => asset.symbol)
-
-        // Fetch USD stock prices from Finnhub
-        let usdStockPrices = {}
-        if (usdStockSymbols.length > 0) {
-          usdStockPrices = await marketDataService.getMultipleStockPrices(usdStockSymbols)
-        }
-
-        // Fetch KRW stock prices from 한국투자증권
-        let krwStockPrices = {}
-        if (krwStockSymbols.length > 0) {
-          krwStockPrices = await kisService.getMultiplePrices(krwStockSymbols)
-          console.log(`📊 KIS: Fetched ${Object.keys(krwStockPrices).length} KRW stock prices`)
-        }
-
-        // Update all asset prices
-        const updatedAssets = assets.map(asset => {
-          let currentPrice = asset.currentPrice
-          let dailyChangePercent = asset.dailyChangePercent || 0 // 당일 변동률
-
-          // Update USD stock/ETF prices from Finnhub
-          if ((asset.type === '주식' || asset.type === 'ETF') &&
-            asset.currency === 'USD' &&
-            usdStockPrices[asset.symbol]) {
-            currentPrice = usdStockPrices[asset.symbol].price
-            // Finnhub도 changePercent 제공하면 저장
-            if (usdStockPrices[asset.symbol].changePercent !== undefined) {
-              dailyChangePercent = usdStockPrices[asset.symbol].changePercent
-            }
-            console.log(`📊 Finnhub: ${asset.symbol} = $${currentPrice}`)
-          }
-          // Update KRW stock/ETF prices from 한국투자증권
-          else if ((asset.type === '주식' || asset.type === 'ETF') &&
-            asset.currency === 'KRW' &&
-            krwStockPrices[asset.symbol]) {
-            currentPrice = krwStockPrices[asset.symbol].price
-            dailyChangePercent = krwStockPrices[asset.symbol].changePercent || 0
-            console.log(`📊 KIS: ${asset.symbol} = ₩${currentPrice} (${dailyChangePercent > 0 ? '+' : ''}${dailyChangePercent.toFixed(2)}%)`)
-          }
-          // Update crypto prices from CoinGecko
-          else if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
-            currentPrice = marketData.crypto.bitcoin.price
-            dailyChangePercent = marketData.crypto.bitcoin.change24h || 0
-          }
-          else if (asset.symbol === 'ETH' && marketData.crypto?.ethereum) {
-            currentPrice = marketData.crypto.ethereum.price
-            dailyChangePercent = marketData.crypto.ethereum.change24h || 0
-          }
-          else if (asset.symbol === 'BNB' && marketData.crypto?.binancecoin) {
-            currentPrice = marketData.crypto.binancecoin.price
-            dailyChangePercent = marketData.crypto.binancecoin.change24h || 0
-          }
-          else if (asset.symbol === 'SOL' && marketData.crypto?.solana) {
-            currentPrice = marketData.crypto.solana.price
-            dailyChangePercent = marketData.crypto.solana.change24h || 0
-          }
-
-          // Recalculate values based on real-time current price
-          const totalValue = asset.quantity * currentPrice
-          const profit = totalValue - (asset.quantity * asset.avgPrice)
-          const profitPercent = ((currentPrice - asset.avgPrice) / asset.avgPrice) * 100
-
-          return {
-            ...asset,
-            currentPrice,
-            totalValue,
-            profit,
-            profitPercent,
-            dailyChangePercent // 당일 변동률 저장
-          }
-        })
+        const { updatedAssets, nextExchangeRate } = await fetchAndUpdateAssetPrices(assets, exchangeRate)
 
         if (!cancelled) {
           skipPriceUpdateRef.current = true
+          setExchangeRate(nextExchangeRate)
           setAssets(updatedAssets)
           // Sync price updates to localStorage + Supabase
           await dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: nextExchangeRate })

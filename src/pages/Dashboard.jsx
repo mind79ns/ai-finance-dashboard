@@ -36,6 +36,7 @@ import { format, startOfMonth, subMonths } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import marketDataService from '../services/marketDataService'
 import dataSync from '../utils/dataSync'
+import { fetchAndUpdateAssetPrices } from '../utils/priceUpdater'
 
 const DEFAULT_USD_KRW = 1340
 
@@ -60,7 +61,7 @@ const Dashboard = () => {
   const [monthlyNetChanges, setMonthlyNetChanges] = useState([])
   const [yearlyFlow, setYearlyFlow] = useState({ income: 0, expense: 0, net: 0 })
 
-  const loadDashboardData = useCallback(async () => {
+  const loadDashboardData = useCallback(async (forceRefresh = false) => {
     setLoading(true)
     try {
       const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
@@ -74,10 +75,24 @@ const Dashboard = () => {
         dataSync.loadUserSetting('asset_expense_categories', [])
       ])
 
-      const usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
+      let usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
       setMarketData(market)
 
-      const assetsRaw = Array.isArray(loadedAssets) ? loadedAssets : []
+      let assetsRaw = Array.isArray(loadedAssets) ? loadedAssets : []
+      if (forceRefresh && assetsRaw.length > 0) {
+        try {
+          const { updatedAssets, nextExchangeRate, marketData: freshMarket } = await fetchAndUpdateAssetPrices(assetsRaw, usdToKrw)
+          assetsRaw = updatedAssets
+          usdToKrw = nextExchangeRate
+          if (freshMarket) {
+            setMarketData(freshMarket)
+          }
+          await dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: usdToKrw })
+        } catch (e) {
+          console.error("Failed to force refresh prices:", e)
+        }
+      }
+
       const logsRaw = Array.isArray(loadedLogs) ? loadedLogs : []
       const goalsRaw = Array.isArray(loadedGoals) ? loadedGoals : []
 
@@ -197,7 +212,7 @@ const Dashboard = () => {
           <button onClick={() => navigate('/investment-log')} className="cyber-btn flex items-center gap-2">
             <FileText className="w-4 h-4" /> 거래기록
           </button>
-          <button onClick={loadDashboardData} className="cyber-btn flex items-center gap-2">
+          <button onClick={() => loadDashboardData(true)} className="cyber-btn flex items-center gap-2">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
