@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Area,
@@ -45,6 +45,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [marketData, setMarketData] = useState(null)
+  const marketDataRef = useRef(null)
   const [portfolioSummary, setPortfolioSummary] = useState({
     totalValueKRW: 0,
     totalProfitKRW: 0,
@@ -68,7 +69,8 @@ const Dashboard = () => {
     else setLoading(true)
     try {
       // 백그라운드 갱신(forceRefresh) 시 무거운 전체 시장조회(API)를 생략하여 10초 대기를 방지
-      let market = forceRefresh ? marketData : null
+      // [무한 깜빡임 방지] marketData 상태 의존성 없이 최신 값 참조를 위해 useRef 사용
+      let market = forceRefresh ? marketDataRef.current : null
 
       const [loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
         dataSync.loadPortfolioAssets(),
@@ -84,10 +86,12 @@ const Dashboard = () => {
       if (!market) {
         market = await marketDataService.getAllMarketData().catch(() => null)
         setMarketData(market)
+        marketDataRef.current = market
       }
 
       let usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
       setMarketData(market)
+      marketDataRef.current = market
 
       let assetsRaw = Array.isArray(loadedAssets) ? loadedAssets : []
       if (forceRefresh && assetsRaw.length > 0) {
@@ -97,6 +101,7 @@ const Dashboard = () => {
           usdToKrw = nextExchangeRate
           if (freshMarket) {
             setMarketData(freshMarket)
+            marketDataRef.current = freshMarket
           }
           // [병목 개선] UI 렌더링을 막지 않도록 서버 저장은 비동기로 백그라운드 던져둠
           dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: usdToKrw }).catch(console.error)
@@ -178,7 +183,7 @@ const Dashboard = () => {
       else setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketData])
+  }, [])
 
   useEffect(() => { loadDashboardData() }, [loadDashboardData])
 
