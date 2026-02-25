@@ -156,6 +156,27 @@ const Dashboard = () => {
       }, 0)
 
       const history = buildPortfolioHistory(logsRaw, usdToKrw, assetsMap, totals.totalValueKRW)
+
+      // 월별 순변동 계산 (Asset Status 데이터 기반)
+      const currentYearStatus = (assetStatusData || {})[currentYear] || {}
+      const incomeCats = Array.isArray(incomeCategories) && incomeCategories.length > 0 ? incomeCategories : []
+      const expenseCats = Array.isArray(expenseCategories) && expenseCategories.length > 0 ? expenseCategories : []
+      const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+      const netChanges = []
+      let totalYrIncome = 0
+      let totalYrExpense = 0
+      for (let i = 0; i < 12; i++) {
+        const monthKey = i + 1
+        const mData = currentYearStatus[monthKey] || {}
+        const incomeTotal = incomeCats.reduce((sum, cat) => {
+          if (cat.isAccumulated) return sum
+          return sum + Number(mData[cat.id] || 0)
+        }, 0)
+        const expenseTotal = expenseCats.reduce((sum, cat) => sum + Number(mData[cat.id] || 0), 0)
+        totalYrIncome += incomeTotal
+        totalYrExpense += expenseTotal
+        netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal })
+      }
       // --- [최적화] 상태 업데이트 전 값 변경 여부(JSON.stringify)를 확인하여 리렌더링 폭풍(깜빡임) 방지 ---
       const setIfChanged = (setter, currentValue, newValue) => {
         if (JSON.stringify(currentValue) !== JSON.stringify(newValue)) {
