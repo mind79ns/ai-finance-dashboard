@@ -32,18 +32,36 @@ export const fetchAndUpdateAssetPrices = async (assets, currentExchangeRate = 13
             }
         }
 
-        // 환율 업데이트 (DB 캐시에 있으면 캐시 우선, 없으면 갱신 없이 기존값 사용)
+        // 환율 업데이트 (DB 캐시에 있으면 캐시 우선, 단 너무 오래된 경우 갱신)
+        let isExchangeRateStale = true
+        const STALE_THRESHOLD = 2 * 60 * 1000 // 2분기록
+        const now = Date.now()
+
         if (dbPrices['USD/KRW']) {
-            nextExchangeRate = dbPrices['USD/KRW'].price
+            const updatedAt = new Date(dbPrices['USD/KRW'].updated_at).getTime()
+            if (now - updatedAt < STALE_THRESHOLD) {
+                nextExchangeRate = dbPrices['USD/KRW'].price
+                isExchangeRateStale = false
+            }
         }
 
-        // DB 캐시에 데이터가 없는 종목들만 외부 API로 호출하기 위해 분류
+        // DB 캐시에 데이터가 없거나 수명(2분)이 지난(Stale) 종목들만 외부 API로 추출
         const missingUsdStocks = []
         const missingKrwStocks = []
         let hasMissingCrypto = false
 
         assets.forEach(asset => {
-            if (!dbPrices[asset.symbol]) {
+            const dbAsset = dbPrices[asset.symbol]
+            let isStale = true
+
+            if (dbAsset && dbAsset.updated_at) {
+                const updatedAt = new Date(dbAsset.updated_at).getTime()
+                if (now - updatedAt < STALE_THRESHOLD) {
+                    isStale = false
+                }
+            }
+
+            if (!dbAsset || isStale) {
                 if ((asset.type === '주식' || asset.type === 'ETF')) {
                     if (asset.currency === 'USD') missingUsdStocks.push(asset.symbol)
                     else if (asset.currency === 'KRW') missingKrwStocks.push(asset.symbol)
@@ -56,10 +74,10 @@ export const fetchAndUpdateAssetPrices = async (assets, currentExchangeRate = 13
         // 2. 외부 API Fallback (캐시에 없는 데이터)
 
         // 코인 또는 환율 캐시 누락 시에만 전체 마켓 데이터 1회 호출
-        if (hasMissingCrypto || !dbPrices['USD/KRW']) {
+        if (hasMissingCrypto || isExchangeRateStale) {
             try {
                 marketData = await marketDataService.getAllMarketData()
-                if (!dbPrices['USD/KRW'] && marketData?.currency?.usdKrw?.rate) {
+                if (isExchangeRateStale && marketData?.currency?.usdKrw?.rate) {
                     nextExchangeRate = marketData.currency.usdKrw.rate
                 }
             } catch (err) {
@@ -82,13 +100,8 @@ export const fetchAndUpdateAssetPrices = async (assets, currentExchangeRate = 13
             let currentPrice = asset.currentPrice
             let dailyChangePercent = asset.dailyChangePercent || 0
 
-            // 1순위: DB 캐시 데이터
-            if (dbPrices[asset.symbol]) {
-                currentPrice = dbPrices[asset.symbol].price
-                dailyChangePercent = dbPrices[asset.symbol].change_percent
-            }
-            // 2순위: 외부 API Fallback 데이터 적용
-            else if ((asset.type === '주식' || asset.type === 'ETF') && asset.currency === 'USD' && fallbackUsdPrices[asset.symbol]) {
+            // 1순위: 외부 API Fallback 데이터 검사 (방금 새로 받아온 거면 가장 최신임)
+            if ((asset.type === '주식' || asset.type === 'ETF') && asset.currency === 'USD' && fallbackUsdPrices[asset.symbol]) {
                 currentPrice = fallbackUsdPrices[asset.symbol].price
                 if (fallbackUsdPrices[asset.symbol].changePercent !== undefined) {
                     dailyChangePercent = fallbackUsdPrices[asset.symbol].changePercent
@@ -96,18 +109,23 @@ export const fetchAndUpdateAssetPrices = async (assets, currentExchangeRate = 13
             } else if ((asset.type === '주식' || asset.type === 'ETF') && asset.currency === 'KRW' && fallbackKrwPrices[asset.symbol]) {
                 currentPrice = fallbackKrwPrices[asset.symbol].price
                 dailyChangePercent = fallbackKrwPrices[asset.symbol].changePercent || 0
-            } else if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
+            } else if (asset.symbol === 'BTC' && hasMissingCrypto && marketData?.crypto?.bitcoin) {
                 currentPrice = marketData.crypto.bitcoin.price
                 dailyChangePercent = marketData.crypto.bitcoin.change24h || 0
-            } else if (asset.symbol === 'ETH' && marketData.crypto?.ethereum) {
+            } else if (asset.symbol === 'ETH' && hasMissingCrypto && marketData?.crypto?.ethereum) {
                 currentPrice = marketData.crypto.ethereum.price
                 dailyChangePercent = marketData.crypto.ethereum.change24h || 0
-            } else if (asset.symbol === 'BNB' && marketData.crypto?.binancecoin) {
+            } else if (asset.symbol === 'BNB' && hasMissingCrypto && marketData?.crypto?.binancecoin) {
                 currentPrice = marketData.crypto.binancecoin.price
                 dailyChangePercent = marketData.crypto.binancecoin.change24h || 0
-            } else if (asset.symbol === 'SOL' && marketData.crypto?.solana) {
+            } else if (asset.symbol === 'SOL' && hasMissingCrypto && marketData?.crypto?.solana) {
                 currentPrice = marketData.crypto.solana.price
                 dailyChangePercent = marketData.crypto.solana.change24h || 0
+            }
+            // 2순위: 외부 API에서 못 가져왔거나 굳이 안 가져와도 되는 경우(Stale 조건 통과) 캐시 사용
+            else if (dbPrices[asset.symbol]) {
+                currentPrice = dbPrices[asset.symbol].price
+                dailyChangePercent = dbPrices[asset.symbol].change_percent
             }
 
             const totalValue = asset.quantity * currentPrice
