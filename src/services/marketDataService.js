@@ -282,8 +282,8 @@ class MarketDataService {
       }
 
       // FRED API: series_id=FEDFUNDS (Fed Rate), DGS10 (10Y Treasury)
-      // CORS 에러 방지를 위해 public proxy 사용
-      const proxyUrl = 'https://corsproxy.io/?'
+      // CORS 에러 방지를 위해 public proxy 사용 (corsproxy 는 종종 차단되므로 allorigins 등 활용)
+      const proxyUrl = 'https://api.allorigins.win/raw?url='
       const getFredUrl = (seriesId) => {
         return `${proxyUrl}${encodeURIComponent(`${this.fredBaseURL}?series_id=${seriesId}&api_key=${API_CONFIG.FRED_API_KEY}&file_type=json&limit=1&sort_order=desc`)}`
       }
