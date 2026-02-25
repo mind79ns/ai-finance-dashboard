@@ -25,7 +25,7 @@ const Portfolio = () => {
     customAccountName: '',
     category: '해외주식'
   })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(null)
   const [exchangeRate, setExchangeRate] = useState(1340) // USD/KRW rate
   const [searchQuery, setSearchQuery] = useState('')
@@ -124,24 +124,34 @@ const Portfolio = () => {
 
   // Load portfolio assets and account principals on mount (with Supabase sync)
   useEffect(() => {
+    let mounted = true
     const loadData = async () => {
       try {
         // Load portfolio assets (Supabase → localStorage fallback)
         const loadedAssets = await dataSync.loadPortfolioAssets()
-        setAssets(loadedAssets)
+        if (mounted) setAssets(loadedAssets)
 
         // Load account principals (Supabase → localStorage fallback)
         const loadedPrincipals = await dataSync.loadAccountPrincipals()
-        setAccountPrincipals(loadedPrincipals)
+        if (mounted) setAccountPrincipals(loadedPrincipals)
+
+        // If no assets were loaded, just end loading state
+        if (mounted && (!loadedAssets || loadedAssets.length === 0)) {
+          setLoading(false)
+        }
       } catch (error) {
         console.error('Failed to load data:', error)
-        // Fallback to empty state - app still works
-        setAssets([])
-        setAccountPrincipals({})
+        if (mounted) {
+          // Fallback to empty state - app still works
+          setAssets([])
+          setAccountPrincipals({})
+          setLoading(false)
+        }
       }
     }
 
     loadData()
+    return () => mounted = false
   }, [])
 
 
@@ -168,8 +178,7 @@ const Portfolio = () => {
 
       try {
         // [병목 개선] 백그라운드 폴링 시 전체 화면 Loading 스피너를 띄우지 않음
-        // setLoading(true) 
-
+        // 단, 앱 진입(첫 로드) 시 로딩 상태가 유지되고 있으므로 이후 스피너를 해제합니다.
         const { updatedAssets, nextExchangeRate } = await fetchAndUpdateAssetPrices(assets, exchangeRate)
 
         if (!cancelled) {
@@ -182,6 +191,10 @@ const Portfolio = () => {
         }
       } catch (error) {
         console.error('Price update error:', error)
+      } finally {
+        if (!cancelled) {
+          setLoading(false) // 최초 1회 실시간 갱신 완료 후 로딩바 영구 제거
+        }
       }
     }
 
