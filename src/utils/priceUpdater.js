@@ -14,8 +14,8 @@ export const fetchAndUpdateAssetPrices = async (assets, currentExchangeRate = 13
     }
 
     try {
-        const marketData = await marketDataService.getAllMarketData()
         let nextExchangeRate = currentExchangeRate
+        let marketData = null
 
         // 1. Supabase 캐시 테이블에서 데이터 조회 시도
         let dbPrices = {}
@@ -32,27 +32,41 @@ export const fetchAndUpdateAssetPrices = async (assets, currentExchangeRate = 13
             }
         }
 
-        // 환율 업데이트 (DB 캐시에 있으면 캐시 우선)
+        // 환율 업데이트 (DB 캐시에 있으면 캐시 우선, 없으면 갱신 없이 기존값 사용)
         if (dbPrices['USD/KRW']) {
             nextExchangeRate = dbPrices['USD/KRW'].price
-        } else if (marketData?.currency?.usdKrw?.rate) {
-            nextExchangeRate = marketData.currency.usdKrw.rate
         }
 
         // DB 캐시에 데이터가 없는 종목들만 외부 API로 호출하기 위해 분류
         const missingUsdStocks = []
         const missingKrwStocks = []
+        let hasMissingCrypto = false
 
         assets.forEach(asset => {
-            if (asset.type === '주식' || asset.type === 'ETF') {
-                if (!dbPrices[asset.symbol]) {
+            if (!dbPrices[asset.symbol]) {
+                if ((asset.type === '주식' || asset.type === 'ETF')) {
                     if (asset.currency === 'USD') missingUsdStocks.push(asset.symbol)
                     else if (asset.currency === 'KRW') missingKrwStocks.push(asset.symbol)
+                } else if (asset.type === '크립토' || asset.type === '암호화폐') {
+                    hasMissingCrypto = true
                 }
             }
         })
 
         // 2. 외부 API Fallback (캐시에 없는 데이터)
+
+        // 코인 또는 환율 캐시 누락 시에만 전체 마켓 데이터 1회 호출
+        if (hasMissingCrypto || !dbPrices['USD/KRW']) {
+            try {
+                marketData = await marketDataService.getAllMarketData()
+                if (!dbPrices['USD/KRW'] && marketData?.currency?.usdKrw?.rate) {
+                    nextExchangeRate = marketData.currency.usdKrw.rate
+                }
+            } catch (err) {
+                console.warn('Failed to fetch fallback market data:', err)
+            }
+        }
+
         let fallbackUsdPrices = {}
         if (missingUsdStocks.length > 0) {
             fallbackUsdPrices = await marketDataService.getMultipleStockPrices(missingUsdStocks).catch(() => ({}))
