@@ -36,8 +36,6 @@ import { format, startOfMonth, subMonths } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import marketDataService from '../services/marketDataService'
 import dataSync from '../utils/dataSync'
-import { fetchAndUpdateAssetPrices } from '../utils/priceUpdater'
-
 const DEFAULT_USD_KRW = 1340
 
 const Dashboard = () => {
@@ -95,19 +93,9 @@ const Dashboard = () => {
 
       let assetsRaw = Array.isArray(loadedAssets) ? loadedAssets : []
       if (forceRefresh && assetsRaw.length > 0) {
-        try {
-          const { updatedAssets, nextExchangeRate, marketData: freshMarket } = await fetchAndUpdateAssetPrices(assetsRaw, usdToKrw)
-          assetsRaw = updatedAssets
-          usdToKrw = nextExchangeRate
-          if (freshMarket) {
-            setMarketData(freshMarket)
-            marketDataRef.current = freshMarket
-          }
-          // [병목 개선] UI 렌더링을 막지 않도록 서버 저장은 비동기로 백그라운드 던져둠
-          dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: usdToKrw }).catch(console.error)
-        } catch (e) {
-          console.error("Failed to force refresh prices:", e)
-        }
+        // 기존 아키텍처 원복: 대시보드는 API를 직접 쏘거나 저장소를 덮어쓰지 않고, 
+        // 오직 포트폴리오 탭이나 백그라운드 크론이 갱신해둔 데이터(loadedAssets)를 순수하게 읽어오기만 합니다.
+        // 강제 갱신(새로고침) 시에는 캐시된 DB값을 다시 한번 화면에 뿌려주는 역할만 수행합니다.
       }
 
       const logsRaw = Array.isArray(loadedLogs) ? loadedLogs : []
