@@ -64,8 +64,10 @@ const Dashboard = () => {
   const loadDashboardData = useCallback(async (forceRefresh = false) => {
     setLoading(true)
     try {
-      const [market, loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
-        marketDataService.getAllMarketData().catch(() => null),
+      // 백그라운드 갱신(forceRefresh) 시 무거운 전체 시장조회(API)를 생략하여 10초 대기를 방지
+      let market = forceRefresh ? marketData : null
+
+      const [loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
         dataSync.loadPortfolioAssets(),
         dataSync.loadInvestmentLogs(),
         dataSync.loadGoals(),
@@ -74,6 +76,12 @@ const Dashboard = () => {
         dataSync.loadUserSetting('asset_income_categories', []),
         dataSync.loadUserSetting('asset_expense_categories', [])
       ])
+
+      // 첫 로드 시에만 시장 데이터 초기화
+      if (!market) {
+        market = await marketDataService.getAllMarketData().catch(() => null)
+        setMarketData(market)
+      }
 
       let usdToKrw = market?.currency?.usdKrw?.rate || DEFAULT_USD_KRW
       setMarketData(market)
