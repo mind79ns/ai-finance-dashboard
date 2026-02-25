@@ -62,7 +62,8 @@ const Dashboard = () => {
   const [yearlyFlow, setYearlyFlow] = useState({ income: 0, expense: 0, net: 0 })
 
   const loadDashboardData = useCallback(async (forceRefresh = false) => {
-    setLoading(true)
+    // 백그라운드 자동 갱신인 경우 화면을 멈추거나 로딩바를 띄우지 않음
+    if (!forceRefresh) setLoading(true)
     try {
       // 백그라운드 갱신(forceRefresh) 시 무거운 전체 시장조회(API)를 생략하여 10초 대기를 방지
       let market = forceRefresh ? marketData : null
@@ -95,7 +96,8 @@ const Dashboard = () => {
           if (freshMarket) {
             setMarketData(freshMarket)
           }
-          await dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: usdToKrw })
+          // [병목 개선] UI 렌더링을 막지 않도록 서버 저장은 비동기로 백그라운드 던져둠
+          dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: usdToKrw }).catch(console.error)
         } catch (e) {
           console.error("Failed to force refresh prices:", e)
         }
@@ -186,9 +188,9 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Dashboard load error:', err)
     } finally {
-      setLoading(false)
+      if (!forceRefresh) setLoading(false)
     }
-  }, [])
+  }, [marketData])
 
   useEffect(() => { loadDashboardData() }, [loadDashboardData])
 

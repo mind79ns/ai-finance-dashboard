@@ -167,21 +167,21 @@ const Portfolio = () => {
       }
 
       try {
-        setLoading(true)
+        // [병목 개선] 백그라운드 폴링 시 전체 화면 Loading 스피너를 띄우지 않음
+        // setLoading(true) 
+
         const { updatedAssets, nextExchangeRate } = await fetchAndUpdateAssetPrices(assets, exchangeRate)
 
         if (!cancelled) {
           skipPriceUpdateRef.current = true
           setExchangeRate(nextExchangeRate)
           setAssets(updatedAssets)
-          // Sync price updates to localStorage + Supabase
-          await dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: nextExchangeRate })
+          // [병목 개선] UI 렌더링을 막지 않도록 서버 저장은 비동기로 처리 (await 제거)
+          dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: nextExchangeRate }).catch(console.error)
           setLastUpdate(new Date())
         }
       } catch (error) {
         console.error('Price update error:', error)
-      } finally {
-        setLoading(false)
       }
     }
 
