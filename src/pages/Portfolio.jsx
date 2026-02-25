@@ -186,8 +186,8 @@ const Portfolio = () => {
     }
 
     updatePrices()
-    // Auto-refresh every 2 minutes
-    const interval = setInterval(updatePrices, 120000)
+    // Auto-refresh every 1 minute
+    const interval = setInterval(updatePrices, 60000)
     return () => {
       cancelled = true
       clearInterval(interval)

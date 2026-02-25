@@ -184,6 +184,14 @@ const Dashboard = () => {
 
   useEffect(() => { loadDashboardData() }, [loadDashboardData])
 
+  // 실시간 캐시 자동 갱신 (1분 주기)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadDashboardData(true)
+    }, 60000) // 1분 주기로 백그라운드 갱신
+    return () => clearInterval(interval)
+  }, [loadDashboardData])
+
   const marketHighlights = useMemo(() => buildMarketHighlights(marketData), [marketData])
 
   if (loading) {
