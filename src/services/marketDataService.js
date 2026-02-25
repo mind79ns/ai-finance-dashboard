@@ -282,26 +282,15 @@ class MarketDataService {
       }
 
       // FRED API: series_id=FEDFUNDS (Fed Rate), DGS10 (10Y Treasury)
-      // sort_order=desc to get latest
+      // CORS 에러 방지를 위해 public proxy 사용
+      const proxyUrl = 'https://corsproxy.io/?'
+      const getFredUrl = (seriesId) => {
+        return `${proxyUrl}${encodeURIComponent(`${this.fredBaseURL}?series_id=${seriesId}&api_key=${API_CONFIG.FRED_API_KEY}&file_type=json&limit=1&sort_order=desc`)}`
+      }
+
       const responses = await Promise.all([
-        axios.get(this.fredBaseURL, {
-          params: {
-            series_id: 'FEDFUNDS',
-            api_key: API_CONFIG.FRED_API_KEY,
-            file_type: 'json',
-            limit: 1,
-            sort_order: 'desc'
-          }
-        }),
-        axios.get(this.fredBaseURL, {
-          params: {
-            series_id: 'DGS10',
-            api_key: API_CONFIG.FRED_API_KEY,
-            file_type: 'json',
-            limit: 1,
-            sort_order: 'desc'
-          }
-        })
+        axios.get(getFredUrl('FEDFUNDS')),
+        axios.get(getFredUrl('DGS10'))
       ])
 
       const fedFunds = responses[0].data.observations[0]
