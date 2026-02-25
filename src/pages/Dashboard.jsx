@@ -43,6 +43,7 @@ const DEFAULT_USD_KRW = 1340
 const Dashboard = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [marketData, setMarketData] = useState(null)
   const [portfolioSummary, setPortfolioSummary] = useState({
     totalValueKRW: 0,
@@ -63,7 +64,8 @@ const Dashboard = () => {
 
   const loadDashboardData = useCallback(async (forceRefresh = false) => {
     // 백그라운드 자동 갱신인 경우 화면을 멈추거나 로딩바를 띄우지 않음
-    if (!forceRefresh) setLoading(true)
+    if (forceRefresh) setIsRefreshing(true)
+    else setLoading(true)
     try {
       // 백그라운드 갱신(forceRefresh) 시 무거운 전체 시장조회(API)를 생략하여 10초 대기를 방지
       let market = forceRefresh ? marketData : null
@@ -115,8 +117,6 @@ const Dashboard = () => {
       setAssetStatusTotal(assetTotalValue)
 
       const { totals, allocation, assetsMap, performance, accountBreakdown } = buildPortfolioSummary(assetsRaw, usdToKrw)
-      setPortfolioSummary(totals)
-      setAllocationData(allocation)
 
       // 포트폴리오 계좌별 현황만 사용 (AssetStatus 계좌 제외)
       // Portfolio 탭과 동일한 방식: 각 계좌의 자산별 평가액/투자금/수익 계산
@@ -142,54 +142,42 @@ const Dashboard = () => {
         }
       }).sort((a, b) => b.totalValueKRW - a.totalValueKRW)
 
-      setAccountSummary(portfolioAccounts)
-
       const sorted = [...performance].sort((a, b) => b.profitPercent - a.profitPercent)
-      setTopPerformers({
-        gainers: sorted.filter(p => p.profitPercent > 0).slice(0, 5),
-        losers: sorted.filter(p => p.profitPercent < 0).slice(-5).reverse()
-      })
 
       const dividendData = await dataSync.loadUserSetting('dividend_transactions')
       const yearlyDividends = (dividendData || []).filter(d => new Date(d.date).getFullYear() === currentYear)
       const totalDividend = yearlyDividends.reduce((sum, d) => {
         return sum + (d.currency === 'USD' ? d.amount * usdToKrw : d.amount)
       }, 0)
-      setDividendTotal(totalDividend)
 
       const history = buildPortfolioHistory(logsRaw, usdToKrw, assetsMap, totals.totalValueKRW)
-      setPortfolioHistory(history)
-
-      // 월별 순변동 계산 (Asset Status 데이터 기반)
-      const currentYearStatus = (assetStatusData || {})[currentYear] || {}
-      const incomeCats = Array.isArray(incomeCategories) && incomeCategories.length > 0 ? incomeCategories : []
-      const expenseCats = Array.isArray(expenseCategories) && expenseCategories.length > 0 ? expenseCategories : []
-      const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
-      const netChanges = []
-      let totalYrIncome = 0
-      let totalYrExpense = 0
-      for (let i = 0; i < 12; i++) {
-        const monthKey = i + 1
-        const mData = currentYearStatus[monthKey] || {}
-        const incomeTotal = incomeCats.reduce((sum, cat) => {
-          if (cat.isAccumulated) return sum
-          return sum + Number(mData[cat.id] || 0)
-        }, 0)
-        const expenseTotal = expenseCats.reduce((sum, cat) => sum + Number(mData[cat.id] || 0), 0)
-        totalYrIncome += incomeTotal
-        totalYrExpense += expenseTotal
-        netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal })
+      // --- [최적화] 상태 업데이트 전 값 변경 여부(JSON.stringify)를 확인하여 리렌더링 폭풍(깜빡임) 방지 ---
+      const setIfChanged = (setter, currentValue, newValue) => {
+        if (JSON.stringify(currentValue) !== JSON.stringify(newValue)) {
+          setter(newValue)
+        }
       }
-      setMonthlyNetChanges(netChanges)
-      setYearlyFlow({ income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense })
 
-      setGoalSummary(summarizeGoals(goalsRaw))
-      setRecentActivities(buildRecentActivities(logsRaw, dividendData || [], assetsMap, usdToKrw))
+      setIfChanged(setPortfolioSummary, portfolioSummary, totals)
+      setIfChanged(setAllocationData, allocationData, allocation)
+      setIfChanged(setAccountSummary, accountSummary, portfolioAccounts)
+      setIfChanged(setTopPerformers, topPerformers, {
+        gainers: sorted.filter(p => p.profitPercent > 0).slice(0, 5),
+        losers: sorted.filter(p => p.profitPercent < 0).slice(-5).reverse()
+      })
+      setIfChanged(setDividendTotal, dividendTotal, totalDividend)
+      setIfChanged(setPortfolioHistory, portfolioHistory, history)
+      setIfChanged(setMonthlyNetChanges, monthlyNetChanges, netChanges)
+      setIfChanged(setYearlyFlow, yearlyFlow, { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense })
+      setIfChanged(setGoalSummary, goalSummary, summarizeGoals(goalsRaw))
+      setIfChanged(setRecentActivities, recentActivities, buildRecentActivities(logsRaw, dividendData || [], assetsMap, usdToKrw))
     } catch (err) {
       console.error('Dashboard load error:', err)
     } finally {
-      if (!forceRefresh) setLoading(false)
+      if (forceRefresh) setIsRefreshing(false)
+      else setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [marketData])
 
   useEffect(() => { loadDashboardData() }, [loadDashboardData])
@@ -204,7 +192,8 @@ const Dashboard = () => {
 
   const marketHighlights = useMemo(() => buildMarketHighlights(marketData), [marketData])
 
-  if (loading) {
+  // 최초 로딩 시에만 풀스크린 로딩 (백그라운드 갱신 시에는 기존 화면 유지)
+  if (loading && !isRefreshing) {
     return (
       <div className="cyber-dashboard min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -230,8 +219,8 @@ const Dashboard = () => {
           <button onClick={() => navigate('/investment-log')} className="cyber-btn flex items-center gap-2">
             <FileText className="w-4 h-4" /> 거래기록
           </button>
-          <button onClick={() => loadDashboardData(true)} className="cyber-btn flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" />
+          <button onClick={() => loadDashboardData(true)} className="cyber-btn flex items-center gap-2" disabled={isRefreshing}>
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-500' : ''}`} />
           </button>
         </div>
       </div>
