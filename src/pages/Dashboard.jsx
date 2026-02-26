@@ -682,7 +682,7 @@ const StatBox = ({ icon: Icon, label, value, sub, positive, color = 'default', t
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-cyan-300/60 text-xs sm:text-sm uppercase tracking-wide truncate">{label}</p>
-          <p className={`text-xl lg:text-2xl xl:text-3xl font-bold truncate ${colorClass}`}>{value}</p>
+          <p className={`text-lg lg:text-xl xl:text-2xl font-bold truncate ${colorClass}`}>{value}</p>
           {sub && <p className="text-cyan-300/40 text-[11px] truncate">{sub}</p>}
         </div>
       </div>
@@ -712,8 +712,8 @@ const CYBER_COLORS = ['#00d4ff', '#00ff88', '#ffd700', '#ff6b6b', '#a855f7', '#0
 // Utility Functions
 const formatCurrency = (value, currency = 'KRW') => {
   if (!Number.isFinite(value)) return '-'
-  if (currency === 'USD') return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-  return `${value.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원`
+  if (currency === 'USD') return `$${Math.round(value).toLocaleString('en-US')}`
+  return `${Math.round(value).toLocaleString('ko-KR')}원`
 }
 
 const formatCompact = (value) => {
