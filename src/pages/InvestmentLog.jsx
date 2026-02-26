@@ -6,6 +6,24 @@ import ChartCard from '../components/ChartCard'
 import dataSync from '../utils/dataSync'
 
 const InvestmentLog = () => {
+  // 통화별 금액 포맷 헬퍼
+  const formatCurrency = (value, currency) => {
+    if (currency === 'KRW') {
+      return `₩${Number(value).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`
+    }
+    return `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+  }
+
+  // 로그의 통화를 결정하는 헬퍼 (기존 로그에 currency가 없는 경우 포트폴리오에서 추론)
+  const getLogCurrency = (log) => {
+    if (log.currency) return log.currency
+    // 포트폴리오에서 해당 자산의 통화 추론
+    const asset = portfolioAssets.find(a => a.symbol === log.asset)
+    if (asset) return asset.currency || 'USD'
+    // 6자리 숫자 심볼이면 KRW 종목으로 추정
+    if (/^\d{5,6}$/.test(log.asset)) return 'KRW'
+    return 'USD'
+  }
   const [logs, setLogs] = useState([])
   const [portfolioAssets, setPortfolioAssets] = useState([])
 
@@ -129,11 +147,23 @@ const InvestmentLog = () => {
     return true
   })
 
-  const monthlyStats = {
-    totalBuy: logs.filter(l => l.type === 'buy').reduce((sum, l) => sum + l.total, 0),
-    totalSell: logs.filter(l => l.type === 'sell').reduce((sum, l) => sum + l.total, 0),
-    transactions: logs.length
-  }
+  const monthlyStats = useMemo(() => {
+    const buyLogs = logs.filter(l => l.type === 'buy')
+    const sellLogs = logs.filter(l => l.type === 'sell')
+
+    const totalBuyUSD = buyLogs.filter(l => getLogCurrency(l) === 'USD').reduce((sum, l) => sum + l.total, 0)
+    const totalBuyKRW = buyLogs.filter(l => getLogCurrency(l) === 'KRW').reduce((sum, l) => sum + l.total, 0)
+    const totalSellUSD = sellLogs.filter(l => getLogCurrency(l) === 'USD').reduce((sum, l) => sum + l.total, 0)
+    const totalSellKRW = sellLogs.filter(l => getLogCurrency(l) === 'KRW').reduce((sum, l) => sum + l.total, 0)
+
+    return {
+      totalBuyUSD,
+      totalBuyKRW,
+      totalSellUSD,
+      totalSellKRW,
+      transactions: logs.length
+    }
+  }, [logs, portfolioAssets])
 
   const handleAddTransaction = () => {
     setEditId(null)
@@ -249,6 +279,11 @@ const InvestmentLog = () => {
       }
       : null
 
+    // 통화 결정: 기존 자산이면 해당 자산의 currency, 신규 자산이면 formData의 customAssetCurrency
+    const logCurrency = existingAsset
+      ? (existingAsset.currency || 'USD')
+      : (formData.customAssetCurrency || 'USD').toUpperCase()
+
     const newLog = {
       id: editId || Date.now(), // 수정 시 ID 유지
       date: formData.date,
@@ -257,6 +292,7 @@ const InvestmentLog = () => {
       quantity,
       price,
       total,
+      currency: logCurrency,
       note: formData.note
     }
 
@@ -629,7 +665,10 @@ const InvestmentLog = () => {
           <div>
             <p className="text-sm font-medium text-cyan-300/60 mb-1">총 매수금액</p>
             <p className="text-2xl font-bold text-rose-400 drop-shadow-sm">
-              ${monthlyStats.totalBuy.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {monthlyStats.totalBuyUSD > 0 && `$${monthlyStats.totalBuyUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+              {monthlyStats.totalBuyUSD > 0 && monthlyStats.totalBuyKRW > 0 && <br />}
+              {monthlyStats.totalBuyKRW > 0 && `₩${monthlyStats.totalBuyKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`}
+              {monthlyStats.totalBuyUSD === 0 && monthlyStats.totalBuyKRW === 0 && '$0.00'}
             </p>
           </div>
           <div className="h-1 w-full bg-slate-800 rounded-full mt-3 overflow-hidden">
@@ -643,7 +682,10 @@ const InvestmentLog = () => {
           <div>
             <p className="text-sm font-medium text-cyan-300/60 mb-1">총 매도금액</p>
             <p className="text-2xl font-bold text-emerald-400 drop-shadow-sm">
-              ${monthlyStats.totalSell.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {monthlyStats.totalSellUSD > 0 && `$${monthlyStats.totalSellUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+              {monthlyStats.totalSellUSD > 0 && monthlyStats.totalSellKRW > 0 && <br />}
+              {monthlyStats.totalSellKRW > 0 && `₩${monthlyStats.totalSellKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`}
+              {monthlyStats.totalSellUSD === 0 && monthlyStats.totalSellKRW === 0 && '$0.00'}
             </p>
           </div>
           <div className="h-1 w-full bg-slate-800 rounded-full mt-3 overflow-hidden">
@@ -787,7 +829,7 @@ const InvestmentLog = () => {
                     <div className="text-right">
                       <span className="text-cyan-300/60 block mb-1">가격</span>
                       <p className="font-medium text-slate-200">
-                        ${log.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {formatCurrency(log.price, getLogCurrency(log))}
                       </p>
                     </div>
                   </div>
@@ -796,7 +838,7 @@ const InvestmentLog = () => {
                   <div className="flex items-center justify-between pt-2 border-t border-cyan-500/20 mt-1">
                     <span className="text-xs text-cyan-300/60">총액</span>
                     <span className="text-sm font-bold text-cyan-300 shadow-cyan-500/20 drop-shadow-sm">
-                      ${log.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {formatCurrency(log.total, getLogCurrency(log))}
                     </span>
                   </div>
 
@@ -872,10 +914,10 @@ const InvestmentLog = () => {
                       {log.quantity}
                     </td>
                     <td className="py-4 px-4 text-right text-sm text-slate-300">
-                      ${log.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {formatCurrency(log.price, getLogCurrency(log))}
                     </td>
                     <td className="py-4 px-4 text-right text-sm font-medium text-slate-200">
-                      ${log.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {formatCurrency(log.total, getLogCurrency(log))}
                     </td>
                     <td className="py-4 px-4 text-sm text-slate-400">
                       {log.note}
@@ -1009,12 +1051,12 @@ const InvestmentLog = () => {
                       </div>
                       <div className="flex justify-between">
                         <span>가격</span>
-                        <span className="text-slate-200">${log.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-slate-200">{formatCurrency(log.price, getLogCurrency(log))}</span>
                       </div>
                       <div className="flex justify-between pt-1 border-t border-slate-700 mt-1">
                         <span className="font-medium text-cyan-300/80">총액</span>
                         <span className="font-bold text-cyan-300">
-                          ${log.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          {formatCurrency(log.total, getLogCurrency(log))}
                         </span>
                       </div>
                       {log.note && (
@@ -1230,8 +1272,8 @@ const InvestmentLog = () => {
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, customAssetCurrency: 'USD' }))}
                           className={`px-2 py-1 text-[10px] rounded-md transition-all ${formData.customAssetCurrency !== 'KRW'
-                              ? 'bg-cyan-500/20 text-cyan-400 font-bold shadow-sm'
-                              : 'text-slate-500 hover:text-slate-300'
+                            ? 'bg-cyan-500/20 text-cyan-400 font-bold shadow-sm'
+                            : 'text-slate-500 hover:text-slate-300'
                             }`}
                         >
                           USD
@@ -1240,8 +1282,8 @@ const InvestmentLog = () => {
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, customAssetCurrency: 'KRW' }))}
                           className={`px-2 py-1 text-[10px] rounded-md transition-all ${formData.customAssetCurrency === 'KRW'
-                              ? 'bg-cyan-500/20 text-cyan-400 font-bold shadow-sm'
-                              : 'text-slate-500 hover:text-slate-300'
+                            ? 'bg-cyan-500/20 text-cyan-400 font-bold shadow-sm'
+                            : 'text-slate-500 hover:text-slate-300'
                             }`}
                         >
                           KRW
