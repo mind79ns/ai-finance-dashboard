@@ -790,7 +790,7 @@ const TransactionHistory = () => {
 
     return (
       <div className="cyber-card">
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-cyan-500/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-3 border-b border-cyan-500/20 gap-2">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-cyan-400" />
             <h3 className="text-lg font-bold text-cyan-300">{label}</h3>
@@ -817,7 +817,7 @@ const TransactionHistory = () => {
         </div>
 
         {/* 상단 통계 카드 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           {/* 당월 지출 */}
           <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4">
             <p className="text-sm font-medium text-cyan-400 mb-2">당월 지출</p>
@@ -1090,198 +1090,201 @@ const TransactionHistory = () => {
         </div>
       </div>
 
-      {/* VND Section */}
-      <CurrencySection
-        currency="VND"
-        label="금액입력 (VND)"
-        transactions={vndTransactions}
-      />
+      {/* 통화 섹션 + 배당금 섹션: 2열 그리드 배치 (모바일은 1열) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* VND Section */}
+        <CurrencySection
+          currency="VND"
+          label="금액입력 (VND)"
+          transactions={vndTransactions}
+        />
 
-      {/* USD Section */}
-      <CurrencySection
-        currency="USD"
-        label="금액입력 (USD)"
-        transactions={usdTransactions}
-      />
+        {/* USD Section */}
+        <CurrencySection
+          currency="USD"
+          label="금액입력 (USD)"
+          transactions={usdTransactions}
+        />
 
-      {/* KRW Section */}
-      <CurrencySection
-        currency="KRW"
-        label="금액입력 (KRW)"
-        transactions={krwTransactions}
-      />
+        {/* KRW Section */}
+        <CurrencySection
+          currency="KRW"
+          label="금액입력 (KRW)"
+          transactions={krwTransactions}
+        />
 
-      {/* Dividend Section */}
-      <div className="cyber-card">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-3 border-b border-emerald-500/30 gap-3">
-          <div className="flex items-center gap-2">
-            <PiggyBank className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-lg font-bold text-emerald-300">배당금 입력</h3>
-            <span className="text-xs text-emerald-400/70 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
-              실제 배당금 기록
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-slate-800/80 border border-emerald-500/30 rounded-lg px-2 py-1">
+        {/* Dividend Section */}
+        <div className="cyber-card">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-3 border-b border-emerald-500/30 gap-3">
+            <div className="flex items-center gap-2">
+              <PiggyBank className="w-5 h-5 text-emerald-400" />
+              <h3 className="text-lg font-bold text-emerald-300">배당금 입력</h3>
+              <span className="text-xs text-emerald-400/70 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
+                실제 배당금 기록
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-slate-800/80 border border-emerald-500/30 rounded-lg px-2 py-1">
+                <button
+                  onClick={handleDividendPreviousMonth}
+                  className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
+                  title="이전 달"
+                >
+                  <ChevronLeft className="w-4 h-4 text-emerald-400" />
+                </button>
+                <select
+                  value={dividendSelectedYear}
+                  onChange={(e) => setDividendSelectedYear(Number(e.target.value))}
+                  className="text-sm font-semibold text-emerald-300 bg-transparent focus:outline-none cursor-pointer"
+                >
+                  {dividendAvailableYears.map(year => (
+                    <option key={year} value={year} className="bg-slate-900 text-emerald-300">{year}년</option>
+                  ))}
+                </select>
+                <select
+                  value={dividendSelectedMonth}
+                  onChange={(e) => setDividendSelectedMonth(Number(e.target.value))}
+                  className="text-sm font-semibold text-emerald-300 bg-transparent focus:outline-none cursor-pointer"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
+                    <option key={month} value={month} className="bg-slate-900 text-emerald-300">{month}월</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleDividendNextMonth}
+                  className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
+                  title="다음 달"
+                >
+                  <ChevronRight className="w-4 h-4 text-emerald-400" />
+                </button>
+              </div>
               <button
-                onClick={handleDividendPreviousMonth}
-                className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
-                title="이전 달"
+                onClick={handleOpenDividendModal}
+                className="flex items-center gap-2 text-sm px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-400 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/25"
               >
-                <ChevronLeft className="w-4 h-4 text-emerald-400" />
-              </button>
-              <select
-                value={dividendSelectedYear}
-                onChange={(e) => setDividendSelectedYear(Number(e.target.value))}
-                className="text-sm font-semibold text-emerald-300 bg-transparent focus:outline-none cursor-pointer"
-              >
-                {dividendAvailableYears.map(year => (
-                  <option key={year} value={year} className="bg-slate-900 text-emerald-300">{year}년</option>
-                ))}
-              </select>
-              <select
-                value={dividendSelectedMonth}
-                onChange={(e) => setDividendSelectedMonth(Number(e.target.value))}
-                className="text-sm font-semibold text-emerald-300 bg-transparent focus:outline-none cursor-pointer"
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
-                  <option key={month} value={month} className="bg-slate-900 text-emerald-300">{month}월</option>
-                ))}
-              </select>
-              <button
-                onClick={handleDividendNextMonth}
-                className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
-                title="다음 달"
-              >
-                <ChevronRight className="w-4 h-4 text-emerald-400" />
+                <Plus className="w-4 h-4" />
+                배당금 추가
               </button>
             </div>
+          </div>
+
+          {/* 상단 통계 카드 - 클릭 시 상세 내역 모달 */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            {/* 선택월 배당금 */}
             <button
-              onClick={handleOpenDividendModal}
-              className="flex items-center gap-2 text-sm px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-400 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/25"
+              onClick={() => { setDividendDetailType('monthly'); setShowDividendDetailModal(true); }}
+              className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-left hover:border-emerald-400/50 hover:bg-emerald-500/15 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              배당금 추가
+              <p className="text-sm font-medium text-emerald-400 mb-2">{dividendSelectedMonth}월 배당금</p>
+              <p className="text-2xl font-bold text-emerald-300" style={{ textShadow: '0 0 8px rgba(16, 185, 129, 0.4)' }}>
+                {formatCurrency(dividendStats.monthlyTotal, 'KRW')}
+              </p>
+              <p className="text-xs text-emerald-500/70 mt-1 flex items-center gap-1">
+                {dividendSelectedYear}년 {dividendSelectedMonth}월
+                <Eye className="w-3 h-3 ml-auto" />
+              </p>
+            </button>
+
+            {/* 연간 배당금 */}
+            <button
+              onClick={() => { setDividendDetailType('yearly'); setShowDividendDetailModal(true); }}
+              className="bg-teal-500/10 border border-teal-500/30 rounded-xl p-4 text-left hover:border-teal-400/50 hover:bg-teal-500/15 transition-all cursor-pointer"
+            >
+              <p className="text-sm font-medium text-teal-400 mb-2">{dividendSelectedYear}년 배당금</p>
+              <p className="text-2xl font-bold text-teal-300" style={{ textShadow: '0 0 8px rgba(20, 184, 166, 0.4)' }}>
+                {formatCurrency(dividendStats.yearlyTotal, 'KRW')}
+              </p>
+              <p className="text-xs text-teal-500/70 mt-1 flex items-center gap-1">
+                {dividendSelectedYear}년 • {dividendStats.yearlyCount}건
+                <Eye className="w-3 h-3 ml-auto" />
+              </p>
+            </button>
+
+            {/* 종목별 배당금 */}
+            <button
+              onClick={() => { setDividendDetailType('bySymbol'); setShowDividendDetailModal(true); }}
+              className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 text-left hover:border-cyan-400/50 hover:bg-cyan-500/15 transition-all cursor-pointer"
+            >
+              <p className="text-sm font-medium text-cyan-400 mb-2">{dividendSelectedYear}년 종목별</p>
+              <p className="text-2xl font-bold text-cyan-300" style={{ textShadow: '0 0 8px rgba(6, 182, 212, 0.4)' }}>
+                {dividendStats.bySymbol.length}종목
+              </p>
+              <p className="text-xs text-cyan-500/70 mt-1 flex items-center gap-1">
+                월평궪 {formatCurrency(dividendStats.monthlyAvg, 'KRW')}
+                <Eye className="w-3 h-3 ml-auto" />
+              </p>
             </button>
           </div>
-        </div>
 
-        {/* 상단 통계 카드 - 클릭 시 상세 내역 모달 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          {/* 선택월 배당금 */}
-          <button
-            onClick={() => { setDividendDetailType('monthly'); setShowDividendDetailModal(true); }}
-            className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-left hover:border-emerald-400/50 hover:bg-emerald-500/15 transition-all cursor-pointer"
-          >
-            <p className="text-sm font-medium text-emerald-400 mb-2">{dividendSelectedMonth}월 배당금</p>
-            <p className="text-2xl font-bold text-emerald-300" style={{ textShadow: '0 0 8px rgba(16, 185, 129, 0.4)' }}>
-              {formatCurrency(dividendStats.monthlyTotal, 'KRW')}
-            </p>
-            <p className="text-xs text-emerald-500/70 mt-1 flex items-center gap-1">
-              {dividendSelectedYear}년 {dividendSelectedMonth}월
-              <Eye className="w-3 h-3 ml-auto" />
-            </p>
-          </button>
-
-          {/* 연간 배당금 */}
-          <button
-            onClick={() => { setDividendDetailType('yearly'); setShowDividendDetailModal(true); }}
-            className="bg-teal-500/10 border border-teal-500/30 rounded-xl p-4 text-left hover:border-teal-400/50 hover:bg-teal-500/15 transition-all cursor-pointer"
-          >
-            <p className="text-sm font-medium text-teal-400 mb-2">{dividendSelectedYear}년 배당금</p>
-            <p className="text-2xl font-bold text-teal-300" style={{ textShadow: '0 0 8px rgba(20, 184, 166, 0.4)' }}>
-              {formatCurrency(dividendStats.yearlyTotal, 'KRW')}
-            </p>
-            <p className="text-xs text-teal-500/70 mt-1 flex items-center gap-1">
-              {dividendSelectedYear}년 • {dividendStats.yearlyCount}건
-              <Eye className="w-3 h-3 ml-auto" />
-            </p>
-          </button>
-
-          {/* 종목별 배당금 */}
-          <button
-            onClick={() => { setDividendDetailType('bySymbol'); setShowDividendDetailModal(true); }}
-            className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 text-left hover:border-cyan-400/50 hover:bg-cyan-500/15 transition-all cursor-pointer"
-          >
-            <p className="text-sm font-medium text-cyan-400 mb-2">{dividendSelectedYear}년 종목별</p>
-            <p className="text-2xl font-bold text-cyan-300" style={{ textShadow: '0 0 8px rgba(6, 182, 212, 0.4)' }}>
-              {dividendStats.bySymbol.length}종목
-            </p>
-            <p className="text-xs text-cyan-500/70 mt-1 flex items-center gap-1">
-              월평궪 {formatCurrency(dividendStats.monthlyAvg, 'KRW')}
-              <Eye className="w-3 h-3 ml-auto" />
-            </p>
-          </button>
-        </div>
-
-        {/* 월별 배당금 차트 */}
-        <div className="bg-slate-800/60 rounded-xl p-4 border border-emerald-500/20">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-5 h-5 text-emerald-400" />
-            <p className="text-sm font-semibold text-emerald-300/80">{dividendSelectedYear}년 월별 배당금</p>
-            <span className="text-xs text-emerald-400/70 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              {dividendSelectedMonth}월 선택중
-            </span>
+          {/* 월별 배당금 차트 */}
+          <div className="bg-slate-800/60 rounded-xl p-4 border border-emerald-500/20">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-5 h-5 text-emerald-400" />
+              <p className="text-sm font-semibold text-emerald-300/80">{dividendSelectedYear}년 월별 배당금</p>
+              <span className="text-xs text-emerald-400/70 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                {dividendSelectedMonth}월 선택중
+              </span>
+            </div>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dividendStats.monthlyChartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#334155' }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#334155' }}
+                    tickFormatter={(value) => value >= 10000 ? `${(value / 10000).toFixed(0)}만` : value.toLocaleString()}
+                  />
+                  <Tooltip
+                    formatter={(value) => [`₩${value.toLocaleString()}`, '배당금']}
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#e2e8f0' }}
+                  />
+                  <Bar
+                    dataKey="amount"
+                    radius={[4, 4, 0, 0]}
+                    fill="#10b981"
+                    shape={(props) => {
+                      const { x, y, width, height, payload } = props
+                      const isSelected = payload.monthNum === dividendSelectedMonth
+                      return (
+                        <rect
+                          x={x}
+                          y={y}
+                          width={width}
+                          height={height}
+                          fill={isSelected ? '#34d399' : '#10b981'}
+                          rx={4}
+                          ry={4}
+                          stroke={isSelected ? '#6ee7b7' : 'none'}
+                          strokeWidth={isSelected ? 2 : 0}
+                        />
+                      )
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            {dividendStats.yearlyCount === 0 && (
+              <p className="text-center text-slate-500 text-sm mt-2">{dividendSelectedYear}년 배당금 내역이 없습니다</p>
+            )}
           </div>
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dividendStats.monthlyChartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#334155' }}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
-                  tickLine={false}
-                  axisLine={{ stroke: '#334155' }}
-                  tickFormatter={(value) => value >= 10000 ? `${(value / 10000).toFixed(0)}만` : value.toLocaleString()}
-                />
-                <Tooltip
-                  formatter={(value) => [`₩${value.toLocaleString()}`, '배당금']}
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#e2e8f0' }}
-                />
-                <Bar
-                  dataKey="amount"
-                  radius={[4, 4, 0, 0]}
-                  fill="#10b981"
-                  shape={(props) => {
-                    const { x, y, width, height, payload } = props
-                    const isSelected = payload.monthNum === dividendSelectedMonth
-                    return (
-                      <rect
-                        x={x}
-                        y={y}
-                        width={width}
-                        height={height}
-                        fill={isSelected ? '#34d399' : '#10b981'}
-                        rx={4}
-                        ry={4}
-                        stroke={isSelected ? '#6ee7b7' : 'none'}
-                        strokeWidth={isSelected ? 2 : 0}
-                      />
-                    )
-                  }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          {dividendStats.yearlyCount === 0 && (
-            <p className="text-center text-slate-500 text-sm mt-2">{dividendSelectedYear}년 배당금 내역이 없습니다</p>
+
+          {/* 보유 종목이 없을 때 안내 */}
+          {portfolioAssets.length === 0 && (
+            <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+              <p className="text-sm text-amber-300">
+                💡 포트폴리오에 자산을 먼저 추가하면 드롭다운에서 종목을 선택할 수 있습니다.
+              </p>
+            </div>
           )}
         </div>
-
-        {/* 보유 종목이 없을 때 안내 */}
-        {portfolioAssets.length === 0 && (
-          <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-            <p className="text-sm text-amber-300">
-              💡 포트폴리오에 자산을 먼저 추가하면 드롭다운에서 종목을 선택할 수 있습니다.
-            </p>
-          </div>
-        )}
-      </div>
+      </div> {/* 2열 그리드 닫기 */}
 
       {/* 배당금 상세 내역 모달 */}
       {showDividendDetailModal && (
