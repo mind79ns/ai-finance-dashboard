@@ -60,6 +60,10 @@ const Dashboard = () => {
   const [recentActivities, setRecentActivities] = useState([])
   const [dividendTotal, setDividendTotal] = useState(0)
   const [monthlyNetChanges, setMonthlyNetChanges] = useState([])
+  const [trendPortfolio, setTrendPortfolio] = useState([])
+  const [trendAsset, setTrendAsset] = useState([])
+  const [profitTrend, setProfitTrend] = useState([])
+  const [trendDividend, setTrendDividend] = useState([])
   const [yearlyFlow, setYearlyFlow] = useState({ income: 0, expense: 0, net: 0 })
 
   const loadDashboardData = useCallback(async (forceRefresh = false) => {
@@ -150,12 +154,14 @@ const Dashboard = () => {
       let snapshots = await dataSync.loadUserSetting(snapshotKey, [])
       if (!Array.isArray(snapshots)) snapshots = []
 
-      // 현재 월 스냅샷 갱신 (TOTAL PORTFOLIO + ASSET STATUS TOTAL)
+      // 현재 월 스냅샷 갱신 (TOTAL PORTFOLIO + ASSET STATUS TOTAL + TOTAL PROFIT + 배당금)
       const existingIdx = snapshots.findIndex(s => s.date === currentMonthKey)
       const currentSnapshot = {
         date: currentMonthKey,
         portfolioTotal: Math.round(totals.totalValueKRW),
-        assetStatusTotal: Math.round(assetTotalValue)
+        assetStatusTotal: Math.round(assetTotalValue),
+        totalProfit: Math.round(totals.totalProfitKRW),
+        dividendTotal: Math.round(totalDividend || 0)
       }
       if (existingIdx >= 0) {
         snapshots[existingIdx] = currentSnapshot
@@ -166,8 +172,14 @@ const Dashboard = () => {
       // 비동기 저장 (UI 블로킹 방지)
       dataSync.saveUserSetting(snapshotKey, snapshots).catch(console.error)
 
-      // 차트용 데이터: 최근 6개월 스냅샷
+      // 차트용 데이터: 최근 6개월 스냅샷 (Growth Rate)
       const history = buildSnapshotHistory(snapshots)
+
+      // 연간 추이: 해당년도 1월~12월
+      const tPortfolio = buildYearlyTrend(snapshots, currentYear, 'portfolioTotal')
+      const tAsset = buildYearlyTrend(snapshots, currentYear, 'assetStatusTotal')
+      const tProfit = buildYearlyTrend(snapshots, currentYear, 'totalProfit')
+      const tDividend = buildYearlyTrend(snapshots, currentYear, 'dividendTotal')
 
       // 월별 순변동 계산 (Asset Status 데이터 기반)
       const currentYearStatus = (assetStatusData || {})[currentYear] || {}
@@ -189,6 +201,7 @@ const Dashboard = () => {
         totalYrExpense += expenseTotal
         netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal })
       }
+
       // --- [최적화] 상태 업데이트 전 값 변경 여부(JSON.stringify)를 확인하여 리렌더링 폭풍(깜빡임) 방지 ---
       const setIfChanged = (setter, currentValue, newValue) => {
         if (JSON.stringify(currentValue) !== JSON.stringify(newValue)) {
@@ -205,6 +218,10 @@ const Dashboard = () => {
       })
       setIfChanged(setDividendTotal, dividendTotal, totalDividend)
       setIfChanged(setPortfolioHistory, portfolioHistory, history)
+      setIfChanged(setTrendPortfolio, trendPortfolio, tPortfolio)
+      setIfChanged(setTrendAsset, trendAsset, tAsset)
+      setIfChanged(setProfitTrend, profitTrend, tProfit)
+      setIfChanged(setTrendDividend, trendDividend, tDividend)
       setIfChanged(setMonthlyNetChanges, monthlyNetChanges, netChanges)
       setIfChanged(setYearlyFlow, yearlyFlow, { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense })
       setIfChanged(setGoalSummary, goalSummary, summarizeGoals(goalsRaw))
@@ -388,45 +405,53 @@ const Dashboard = () => {
         <div className="col-span-12 lg:col-span-6">
           {/* Center Hub */}
           <div className="cyber-card cyber-card-glow p-6 mb-4">
-            <div className="flex flex-col lg:flex-row items-center gap-6">
+            <div className="flex flex-col lg:flex-row items-stretch gap-6 lg:h-[260px]">
               {/* Left Stats */}
-              <div className="flex-1 space-y-3 w-full lg:w-auto">
+              <div className="flex-1 flex flex-col gap-3 w-full lg:w-auto h-full justify-between min-w-0">
                 <StatBox
                   icon={Wallet}
                   label="Total Portfolio"
                   value={formatCurrency(portfolioSummary.totalValueKRW, 'KRW')}
                   sub={`USD ${formatCurrency(portfolioSummary.totalValueUSD, 'USD')}`}
                   color="cyan"
+                  trendData={trendPortfolio}
+                  trendColor="#00d4ff"
                 />
                 <StatBox
                   icon={BarChart3}
                   label="Asset Status TOTAL"
                   value={formatCurrency(assetStatusTotal, 'KRW')}
                   color="cyan"
+                  trendData={trendAsset}
+                  trendColor="#a855f7"
                 />
               </div>
 
               {/* Center Ring */}
-              <div className="cyber-hub flex-shrink-0">
-                <div className="cyber-hub-ring cyber-hub-ring-outer" />
-                <div className="cyber-hub-ring cyber-hub-ring-middle" />
-                <div className="cyber-hub-ring cyber-hub-ring-inner" />
-                <div className="cyber-hub-center">
-                  <span className="text-cyan-400 text-xs uppercase tracking-wider mb-1">Portfolio</span>
-                  <span className={`text-2xl font-bold ${portfolioSummary.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
-                    {portfolioSummary.profitPercent >= 0 ? '+' : ''}{portfolioSummary.profitPercent.toFixed(2)}%
-                  </span>
-                  <span className="text-cyan-300/60 text-xs mt-1">Total Return</span>
+              <div className="cyber-hub flex-shrink-0 flex flex-col justify-center items-center h-full">
+                <div className="relative flex justify-center items-center" style={{ width: '220px', height: '220px' }}>
+                  <div className="cyber-hub-ring cyber-hub-ring-outer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+                  <div className="cyber-hub-ring cyber-hub-ring-middle" style={{ position: 'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }} />
+                  <div className="cyber-hub-ring cyber-hub-ring-inner" style={{ position: 'absolute', top: '20%', left: '20%', width: '60%', height: '60%' }} />
+                  <div className="cyber-hub-center relative z-10 flex flex-col justify-center items-center">
+                    <span className="text-cyan-400 text-xs uppercase tracking-wider mb-1">Portfolio</span>
+                    <span className={`text-2xl font-bold ${portfolioSummary.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                      {portfolioSummary.profitPercent >= 0 ? '+' : ''}{portfolioSummary.profitPercent.toFixed(2)}%
+                    </span>
+                    <span className="text-cyan-300/60 text-xs mt-1">Total Return</span>
+                  </div>
                 </div>
               </div>
 
               {/* Right Stats */}
-              <div className="flex-1 space-y-3 w-full lg:w-auto">
+              <div className="flex-1 flex flex-col gap-3 w-full lg:w-auto h-full justify-between min-w-0">
                 <StatBox
                   icon={TrendingUp}
                   label="Total Profit"
                   value={formatCurrency(portfolioSummary.totalProfitKRW, 'KRW')}
                   positive={portfolioSummary.totalProfitKRW >= 0}
+                  trendData={profitTrend}
+                  trendColor="#10b981"
                 />
                 <StatBox
                   icon={PiggyBank}
@@ -434,6 +459,8 @@ const Dashboard = () => {
                   value={formatCurrency(dividendTotal, 'KRW')}
                   sub={`Monthly ${formatCurrency(dividendTotal / 12, 'KRW')}`}
                   color="gold"
+                  trendData={trendDividend}
+                  trendColor="#ffd700"
                 />
               </div>
             </div>
@@ -643,22 +670,38 @@ const Dashboard = () => {
 }
 
 // Stat Box Component
-const StatBox = ({ icon: Icon, label, value, sub, positive, color = 'default' }) => {
+const StatBox = ({ icon: Icon, label, value, sub, positive, color = 'default', trendData, trendColor = '#00d4ff' }) => {
   const colorClass = color === 'gold' ? 'neon-text-gold' : color === 'cyan' ? 'neon-text-cyan' :
     (positive !== undefined ? (positive ? 'neon-text-green' : 'neon-text-red') : 'text-white')
 
   return (
-    <div className="cyber-stat-item">
-      <div className="flex items-center gap-3">
-        <div className="cyber-icon-circle">
-          <Icon className="w-4 h-4 text-cyan-400" />
+    <div className="cyber-stat-item relative overflow-hidden flex-1 flex flex-col justify-center min-h-[110px]">
+      <div className="flex items-center gap-3 relative z-10 w-full px-2">
+        <div className="cyber-icon-circle shrink-0">
+          <Icon className="w-5 h-5 text-cyan-400" />
         </div>
-        <div>
-          <p className="text-cyan-300/60 text-xs uppercase tracking-wide">{label}</p>
-          <p className={`text-lg font-bold ${colorClass}`}>{value}</p>
-          {sub && <p className="text-cyan-300/40 text-xs">{sub}</p>}
+        <div className="flex-1 min-w-0">
+          <p className="text-cyan-300/60 text-xs sm:text-sm uppercase tracking-wide truncate">{label}</p>
+          <p className={`text-xl lg:text-2xl xl:text-3xl font-bold truncate ${colorClass}`}>{value}</p>
+          {sub && <p className="text-cyan-300/40 text-[11px] truncate">{sub}</p>}
         </div>
       </div>
+      {/* Background sparkline */}
+      {trendData && trendData.length > 0 && (
+        <div className="absolute inset-x-0 bottom-0 h-3/4 z-0 opacity-40 pointer-events-none">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={trendData} margin={{ top: 5, right: 0, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id={`grad-${label.replace(/\s+/g, '')}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={trendColor} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={trendColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area type="monotone" dataKey="value" stroke={trendColor} strokeWidth={2} fill={`url(#grad-${label.replace(/\s+/g, '')})`} dot={{ r: 2, fill: trendColor, strokeWidth: 0 }} connectNulls />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   )
 }
@@ -748,6 +791,26 @@ const buildSnapshotHistory = (snapshots) => {
     }
   })
 }
+
+// 연간 공통 트렌드 (1월~12월)
+const buildYearlyTrend = (snapshots, year, dataKey) => {
+  const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+  const currentMonthIdx = new Date().getMonth()
+  return MONTH_LABELS.map((label, i) => {
+    const key = `${year}-${String(i + 1).padStart(2, '0')}`
+    const snap = snapshots.find(s => s.date === key)
+    let val = snap?.[dataKey] ?? null
+    // 과거 달~현재 달인데 데이터가 없으면 선을 그리기 위해 0으로 채움
+    if (val === null && i <= currentMonthIdx) {
+      val = 0
+    }
+    return {
+      month: label,
+      value: val
+    }
+  })
+}
+
 
 const summarizeGoals = (goals) => {
   if (!goals.length) return { goals: [] }

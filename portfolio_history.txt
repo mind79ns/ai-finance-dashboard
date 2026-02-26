@@ -1,0 +1,248 @@
+commit 5ab5393e7ba3a3697c3b185cdddb1f7e1cf21fe7
+Author: Mr Kim <mind79ns@github.com>
+Date:   Wed Feb 25 12:57:39 2026 +0700
+
+    fix(UI): prevent Loading spinner freeze & save async on auto polling
+
+diff --git a/src/pages/Portfolio.jsx b/src/pages/Portfolio.jsx
+index c051e12..f4c36fb 100644
+--- a/src/pages/Portfolio.jsx
++++ b/src/pages/Portfolio.jsx
+@@ -167,21 +167,21 @@ const Portfolio = () => {
+       }
+ 
+       try {
+-        setLoading(true)
++        // [??? ???] ??????????? ????? ??? Loading ?????? ????? ???
++        // setLoading(true) 
++
+         const { updatedAssets, nextExchangeRate } = await fetchAndUpdateAssetPrices(assets, exchangeRate)
+ 
+         if (!cancelled) {
+           skipPriceUpdateRef.current = true
+           setExchangeRate(nextExchangeRate)
+           setAssets(updatedAssets)
+-          // Sync price updates to localStorage + Supabase
+-          await dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: nextExchangeRate })
++          // [??? ???] UI ?????? ??? ???????? ????? ?????? ??? (await ???)
++          dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: nextExchangeRate }).catch(console.error)
+           setLastUpdate(new Date())
+         }
+       } catch (error) {
+         console.error('Price update error:', error)
+-      } finally {
+-        setLoading(false)
+       }
+     }
+ 
+
+commit 7bfdd903faaf59418b086b5d50947b373043db62
+Author: Mr Kim <mind79ns@github.com>
+Date:   Wed Feb 25 12:35:00 2026 +0700
+
+    feat(UI): auto-refresh dashboard & portfolio prices every 1 min
+
+diff --git a/src/pages/Portfolio.jsx b/src/pages/Portfolio.jsx
+index f1e6c78..c051e12 100644
+--- a/src/pages/Portfolio.jsx
++++ b/src/pages/Portfolio.jsx
+@@ -186,8 +186,8 @@ const Portfolio = () => {
+     }
+ 
+     updatePrices()
+-    // Auto-refresh every 2 minutes
+-    const interval = setInterval(updatePrices, 120000)
++    // Auto-refresh every 1 minute
++    const interval = setInterval(updatePrices, 60000)
+     return () => {
+       cancelled = true
+       clearInterval(interval)
+
+commit f930ccd54bfe596988356af6a0024d21df6856ef
+Author: Mr Kim <mind79ns@github.com>
+Date:   Tue Feb 24 10:00:21 2026 +0700
+
+    feat(Dashboard): add real-time price fetch to refresh button via priceUpdater
+
+diff --git a/src/pages/Portfolio.jsx b/src/pages/Portfolio.jsx
+index 2780823..f1e6c78 100644
+--- a/src/pages/Portfolio.jsx
++++ b/src/pages/Portfolio.jsx
+@@ -7,6 +7,7 @@ import AssetDetailView from '../components/AssetDetailView'
+ import marketDataService from '../services/marketDataService'
+ import kisService from '../services/kisService'
+ import dataSync from '../utils/dataSync'
++import { fetchAndUpdateAssetPrices } from '../utils/priceUpdater'
+ 
+ const Portfolio = () => {
+   const [assets, setAssets] = useState([])
+@@ -167,104 +168,11 @@ const Portfolio = () => {
+ 
+       try {
+         setLoading(true)
+-        const marketData = await marketDataService.getAllMarketData()
+-
+-        let nextExchangeRate = exchangeRate
+-
+-        // Update exchange rate
+-        if (marketData?.currency?.usdKrw?.rate) {
+-          nextExchangeRate = marketData.currency.usdKrw.rate
+-          setExchangeRate(nextExchangeRate)
+-        }
+-
+-        // Get list of USD stock/ETF symbols to fetch
+-        const usdStockSymbols = assets
+-          .filter(asset =>
+-            (asset.type === '???' || asset.type === 'ETF') &&
+-            asset.currency === 'USD'
+-          )
+-          .map(asset => asset.symbol)
+-
+-        // Get list of KRW stock/ETF symbols to fetch
+-        const krwStockSymbols = assets
+-          .filter(asset =>
+-            (asset.type === '???' || asset.type === 'ETF') &&
+-            asset.currency === 'KRW'
+-          )
+-          .map(asset => asset.symbol)
+-
+-        // Fetch USD stock prices from Finnhub
+-        let usdStockPrices = {}
+-        if (usdStockSymbols.length > 0) {
+-          usdStockPrices = await marketDataService.getMultipleStockPrices(usdStockSymbols)
+-        }
+-
+-        // Fetch KRW stock prices from ?????????
+-        let krwStockPrices = {}
+-        if (krwStockSymbols.length > 0) {
+-          krwStockPrices = await kisService.getMultiplePrices(krwStockSymbols)
+-          console.log(`?? KIS: Fetched ${Object.keys(krwStockPrices).length} KRW stock prices`)
+-        }
+-
+-        // Update all asset prices
+-        const updatedAssets = assets.map(asset => {
+-          let currentPrice = asset.currentPrice
+-          let dailyChangePercent = asset.dailyChangePercent || 0 // ??? ?????
+-
+-          // Update USD stock/ETF prices from Finnhub
+-          if ((asset.type === '???' || asset.type === 'ETF') &&
+-            asset.currency === 'USD' &&
+-            usdStockPrices[asset.symbol]) {
+-            currentPrice = usdStockPrices[asset.symbol].price
+-            // Finnhub??changePercent ?????? ????-            if (usdStockPrices[asset.symbol].changePercent !== undefined) {
+-              dailyChangePercent = usdStockPrices[asset.symbol].changePercent
+-            }
+-            console.log(`?? Finnhub: ${asset.symbol} = $${currentPrice}`)
+-          }
+-          // Update KRW stock/ETF prices from ?????????
+-          else if ((asset.type === '???' || asset.type === 'ETF') &&
+-            asset.currency === 'KRW' &&
+-            krwStockPrices[asset.symbol]) {
+-            currentPrice = krwStockPrices[asset.symbol].price
+-            dailyChangePercent = krwStockPrices[asset.symbol].changePercent || 0
+-            console.log(`?? KIS: ${asset.symbol} = ??{currentPrice} (${dailyChangePercent > 0 ? '+' : ''}${dailyChangePercent.toFixed(2)}%)`)
+-          }
+-          // Update crypto prices from CoinGecko
+-          else if (asset.symbol === 'BTC' && marketData.crypto?.bitcoin) {
+-            currentPrice = marketData.crypto.bitcoin.price
+-            dailyChangePercent = marketData.crypto.bitcoin.change24h || 0
+-          }
+-          else if (asset.symbol === 'ETH' && marketData.crypto?.ethereum) {
+-            currentPrice = marketData.crypto.ethereum.price
+-            dailyChangePercent = marketData.crypto.ethereum.change24h || 0
+-          }
+-          else if (asset.symbol === 'BNB' && marketData.crypto?.binancecoin) {
+-            currentPrice = marketData.crypto.binancecoin.price
+-            dailyChangePercent = marketData.crypto.binancecoin.change24h || 0
+-          }
+-          else if (asset.symbol === 'SOL' && marketData.crypto?.solana) {
+-            currentPrice = marketData.crypto.solana.price
+-            dailyChangePercent = marketData.crypto.solana.change24h || 0
+-          }
+-
+-          // Recalculate values based on real-time current price
+-          const totalValue = asset.quantity * currentPrice
+-          const profit = totalValue - (asset.quantity * asset.avgPrice)
+-          const profitPercent = ((currentPrice - asset.avgPrice) / asset.avgPrice) * 100
+-
+-          return {
+-            ...asset,
+-            currentPrice,
+-            totalValue,
+-            profit,
+-            profitPercent,
+-            dailyChangePercent // ??? ????? ????-          }
+-        })
++        const { updatedAssets, nextExchangeRate } = await fetchAndUpdateAssetPrices(assets, exchangeRate)
+ 
+         if (!cancelled) {
+           skipPriceUpdateRef.current = true
++          setExchangeRate(nextExchangeRate)
+           setAssets(updatedAssets)
+           // Sync price updates to localStorage + Supabase
+           await dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: nextExchangeRate })
+
+commit 9c06359db6b2ea9034f5c5dfebd29b264869ec21
+Author: Mr Kim <mind79ns@github.com>
+Date:   Thu Feb 12 15:41:12 2026 +0700
+
+    fix(Portfolio): Add missing state variable setEditingAccount
+
+diff --git a/src/pages/Portfolio.jsx b/src/pages/Portfolio.jsx
+index 7785c7c..2780823 100644
+--- a/src/pages/Portfolio.jsx
++++ b/src/pages/Portfolio.jsx
+@@ -37,6 +37,7 @@ const Portfolio = () => {
+   // Investment Management - Account-based principal/deposit tracking
+   const [accountPrincipals, setAccountPrincipals] = useState({}) // { accountName: { principal, remaining, note } }
+   const [showPrincipalModal, setShowPrincipalModal] = useState(false)
++  const [editingAccount, setEditingAccount] = useState(null)
+   const [editingAsset, setEditingAsset] = useState(null)
+   const [editFormData, setEditFormData] = useState({
+     quantity: '',
+
+commit 61005098b1f3489d9321622d08796cb248fe975e
+Author: Mr Kim <mind79ns@github.com>
+Date:   Thu Feb 12 11:52:01 2026 +0700
+
+    fix: Portfolio Management table persistence issues
+
+diff --git a/src/pages/Portfolio.jsx b/src/pages/Portfolio.jsx
+index e009964..7785c7c 100644
+--- a/src/pages/Portfolio.jsx
++++ b/src/pages/Portfolio.jsx
+@@ -142,16 +142,7 @@ const Portfolio = () => {
+     loadData()
+   }, [])
+ 
+-  // Save account principals to localStorage + Supabase
+-  useEffect(() => {
+-    // Only sync if we have data (avoid syncing on initial empty state)
+-    if (Object.keys(accountPrincipals).length === 0) return
+ 
+-    // Sync each account principal to localStorage + Supabase
+-    Object.entries(accountPrincipals).forEach(async ([accountName, principalData]) => {
+-      await dataSync.saveAccountPrincipal(accountName, principalData)
+-    })
+-  }, [accountPrincipals])
+ 
+   // Fetch real-time prices for ALL assets (stocks, ETFs, crypto)
+   useEffect(() => {
+@@ -2058,11 +2049,16 @@ BTC,Bitcoin,???,0.1,67234,USD`}
+         <AccountPrincipalModal
+           accountName={editingAccount}
+           principalData={accountPrincipals[editingAccount] || { principal: 0, remaining: 0, note: '' }}
+-          onSave={(data) => {
++          onSave={async (data) => {
++            // Optimistic UI update
+             setAccountPrincipals(prev => ({
+               ...prev,
+               [editingAccount]: data
+             }))
++
++            // Persist to storage
++            await dataSync.saveAccountPrincipal(editingAccount, data)
++
+             setShowPrincipalModal(false)
+             setEditingAccount(null)
+           }}
