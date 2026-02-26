@@ -675,15 +675,15 @@ const StatBox = ({ icon: Icon, label, value, sub, positive, color = 'default', t
     (positive !== undefined ? (positive ? 'neon-text-green' : 'neon-text-red') : 'text-white')
 
   return (
-    <div className="cyber-stat-item relative overflow-hidden flex-1 flex flex-col justify-center min-h-[110px]">
-      <div className="flex items-center gap-3 relative z-10 w-full px-2">
-        <div className="cyber-icon-circle shrink-0">
-          <Icon className="w-5 h-5 text-cyan-400" />
+    <div className="cyber-stat-item relative overflow-hidden flex-1 flex flex-col justify-center min-h-[100px]">
+      <div className="flex items-center gap-2 relative z-10 w-full px-1">
+        <div className="cyber-icon-circle shrink-0 w-8 h-8 flex items-center justify-center">
+          <Icon className="w-4 h-4 text-cyan-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-cyan-300/60 text-xs sm:text-sm uppercase tracking-wide truncate">{label}</p>
-          <p className={`text-lg lg:text-xl xl:text-2xl font-bold truncate ${colorClass}`}>{value}</p>
-          {sub && <p className="text-cyan-300/40 text-[11px] truncate">{sub}</p>}
+          <p className="text-cyan-300/60 text-[10px] sm:text-xs uppercase tracking-wide truncate">{label}</p>
+          <p className={`text-base md:text-lg lg:text-xl font-bold truncate ${colorClass}`}>{value}</p>
+          {sub && <p className="text-cyan-300/40 text-[10px] truncate">{sub}</p>}
         </div>
       </div>
       {/* Background sparkline */}
