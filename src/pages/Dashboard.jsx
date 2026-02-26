@@ -7,6 +7,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -143,7 +144,30 @@ const Dashboard = () => {
         return sum + (d.currency === 'USD' ? d.amount * usdToKrw : d.amount)
       }, 0)
 
-      const history = buildPortfolioHistory(logsRaw, usdToKrw, assetsMap, totals.totalValueKRW)
+      // --- 월별 스냅샷: 현재 월 데이터 저장 ---
+      const snapshotKey = 'portfolio_monthly_snapshots'
+      const currentMonthKey = format(startOfMonth(new Date()), 'yyyy-MM')
+      let snapshots = await dataSync.loadUserSetting(snapshotKey, [])
+      if (!Array.isArray(snapshots)) snapshots = []
+
+      // 현재 월 스냅샷 갱신 (TOTAL PORTFOLIO + ASSET STATUS TOTAL)
+      const existingIdx = snapshots.findIndex(s => s.date === currentMonthKey)
+      const currentSnapshot = {
+        date: currentMonthKey,
+        portfolioTotal: Math.round(totals.totalValueKRW),
+        assetStatusTotal: Math.round(assetTotalValue)
+      }
+      if (existingIdx >= 0) {
+        snapshots[existingIdx] = currentSnapshot
+      } else {
+        snapshots.push(currentSnapshot)
+        snapshots.sort((a, b) => a.date.localeCompare(b.date))
+      }
+      // 비동기 저장 (UI 블로킹 방지)
+      dataSync.saveUserSetting(snapshotKey, snapshots).catch(console.error)
+
+      // 차트용 데이터: 최근 6개월 스냅샷
+      const history = buildSnapshotHistory(snapshots)
 
       // 월별 순변동 계산 (Asset Status 데이터 기반)
       const currentYearStatus = (assetStatusData || {})[currentYear] || {}
@@ -252,9 +276,13 @@ const Dashboard = () => {
             <ResponsiveContainer width="100%" height={150}>
               <AreaChart data={portfolioHistory}>
                 <defs>
-                  <linearGradient id="cyberGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.4} />
+                  <linearGradient id="gradPortfolio" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gradAssetStatus" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.1)" />
@@ -263,9 +291,14 @@ const Dashboard = () => {
                 <Tooltip
                   contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
                   labelStyle={{ color: '#00d4ff' }}
-                  formatter={(v) => [formatCurrency(v, 'KRW'), 'Value']}
+                  formatter={(v, name) => [formatCurrency(v, 'KRW'), name === 'portfolio' ? 'Portfolio' : 'Asset Status']}
                 />
-                <Area type="monotone" dataKey="value" stroke="#00d4ff" strokeWidth={2} fill="url(#cyberGradient)" />
+                <Legend
+                  wrapperStyle={{ fontSize: '10px', color: '#94a3b8' }}
+                  formatter={(value) => value === 'portfolio' ? 'Portfolio' : 'Asset Status'}
+                />
+                <Area type="monotone" dataKey="portfolio" stroke="#00d4ff" strokeWidth={2} fill="url(#gradPortfolio)" dot={false} connectNulls />
+                <Area type="monotone" dataKey="assetStatus" stroke="#a855f7" strokeWidth={2} fill="url(#gradAssetStatus)" dot={false} connectNulls />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -697,7 +730,8 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
   return { totals: { totalValueKRW, totalValueUSD, totalProfitKRW, profitPercent }, allocation, assetsMap, performance, accountBreakdown }
 }
 
-const buildPortfolioHistory = (logs, usdToKrw, assetsMap, currentTotal) => {
+// 월별 스냅샷 기반 차트 데이터 생성 (최근 6개월)
+const buildSnapshotHistory = (snapshots) => {
   const months = []
   const now = new Date()
   for (let i = 5; i >= 0; i--) {
@@ -705,23 +739,14 @@ const buildPortfolioHistory = (logs, usdToKrw, assetsMap, currentTotal) => {
     months.push({ key: format(date, 'yyyy-MM'), label: format(date, 'M월', { locale: ko }) })
   }
 
-  const logsWithKRW = logs.map(log => {
-    const asset = assetsMap[log.asset]
-    const total = Number(log.total || Number(log.quantity || 0) * Number(log.price || 0))
-    const currency = asset?.currency || log.currency || 'USD'
-    return { ...log, totalKRW: currency === 'USD' ? total * usdToKrw : total }
+  return months.map(m => {
+    const snap = snapshots.find(s => s.date === m.key)
+    return {
+      month: m.label,
+      portfolio: snap?.portfolioTotal || null,
+      assetStatus: snap?.assetStatusTotal || null
+    }
   })
-
-  let cum = 0
-  const trend = months.map(m => {
-    const net = logsWithKRW.filter(l => l.date && format(new Date(l.date), 'yyyy-MM') === m.key)
-      .reduce((s, l) => s + (l.type === 'buy' ? l.totalKRW : -l.totalKRW), 0)
-    cum += net
-    return { month: m.label, cumulative: cum }
-  })
-
-  const scale = trend.length && trend[trend.length - 1].cumulative ? currentTotal / trend[trend.length - 1].cumulative : 1
-  return trend.map(t => ({ month: t.month, value: Math.max(t.cumulative * scale, 0) }))
 }
 
 const summarizeGoals = (goals) => {
