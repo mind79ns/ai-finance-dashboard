@@ -1055,22 +1055,21 @@ const AssetStatus = () => {
           </select>
         </div>
 
-        {/* Monthly Visual Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Monthly Visual Cards - Glassmorphism Style */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Income Breakdown Card */}
-          <div className="cyber-card relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <TrendingUp className="w-32 h-32 text-emerald-500" />
-            </div>
-            <div className="relative z-10">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 backdrop-blur-xl border border-emerald-400/15 shadow-xl transition-all duration-300 hover:border-emerald-400/30 hover:shadow-emerald-500/10">
+            {/* Subtle gradient glow */}
+            <div className="absolute -top-20 -right-20 w-48 h-48 bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <div className="p-1.5 bg-emerald-500/20 rounded-lg">
-                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/15 rounded-xl border border-emerald-400/20 backdrop-blur-sm">
+                    <TrendingUp className="w-5 h-5 text-emerald-400" />
                   </div>
-                  수입 현황
-                </h3>
-                <span className="text-xl font-bold text-emerald-400">
+                  <h3 className="text-base font-semibold text-slate-200 tracking-wide">수입 현황</h3>
+                </div>
+                <span className="text-3xl font-bold text-emerald-400 tracking-tight" style={{ fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif" }}>
                   {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.income || 0))}
                 </span>
               </div>
@@ -1084,15 +1083,20 @@ const AssetStatus = () => {
                     const percentage = maxIncome > 0 ? (value / maxIncome) * 100 : 0
 
                     return (
-                      <div key={category.id} className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-400 truncate">{category.name}</span>
-                          <span className="font-semibold text-gray-200 ml-1">{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}</span>
+                      <div key={category.id} className="space-y-2">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-sm text-slate-400 truncate">{category.name}</span>
+                          <span className="text-base font-semibold text-slate-200 ml-2 tabular-nums" style={{ fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif" }}>
+                            {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}
+                          </span>
                         </div>
-                        <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                        <div className="h-2 bg-slate-700/40 rounded-full overflow-hidden backdrop-blur-sm">
                           <div
-                            className="h-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] rounded-full transition-all duration-500"
-                            style={{ width: `${percentage}%` }}
+                            className="h-full rounded-full transition-all duration-700 ease-out"
+                            style={{
+                              width: `${percentage}%`,
+                              background: 'linear-gradient(90deg, rgba(16,185,129,0.7), rgba(52,211,153,0.9))'
+                            }}
                           />
                         </div>
                       </div>
@@ -1103,19 +1107,18 @@ const AssetStatus = () => {
           </div>
 
           {/* Expense Breakdown Card */}
-          <div className="cyber-card relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <TrendingDown className="w-32 h-32 text-rose-500" />
-            </div>
-            <div className="relative z-10">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 backdrop-blur-xl border border-rose-400/15 shadow-xl transition-all duration-300 hover:border-rose-400/30 hover:shadow-rose-500/10">
+            {/* Subtle gradient glow */}
+            <div className="absolute -top-20 -right-20 w-48 h-48 bg-rose-500/8 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <div className="p-1.5 bg-rose-500/20 rounded-lg">
-                    <TrendingDown className="w-4 h-4 text-rose-400" />
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-rose-500/15 rounded-xl border border-rose-400/20 backdrop-blur-sm">
+                    <TrendingDown className="w-5 h-5 text-rose-400" />
                   </div>
-                  지출 현황
-                </h3>
-                <span className="text-xl font-bold text-rose-400">
+                  <h3 className="text-base font-semibold text-slate-200 tracking-wide">지출 현황</h3>
+                </div>
+                <span className="text-3xl font-bold text-rose-400 tracking-tight" style={{ fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif" }}>
                   {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.expense || 0))}
                 </span>
               </div>
@@ -1126,15 +1129,20 @@ const AssetStatus = () => {
                   const percentage = maxExpense > 0 ? (value / maxExpense) * 100 : 0
 
                   return (
-                    <div key={category.id} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-gray-400 truncate">{category.name}</span>
-                        <span className="font-semibold text-gray-200 ml-1">{new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}</span>
+                    <div key={category.id} className="space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-sm text-slate-400 truncate">{category.name}</span>
+                        <span className="text-base font-semibold text-slate-200 ml-2 tabular-nums" style={{ fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif" }}>
+                          {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(value || 0))}
+                        </span>
                       </div>
-                      <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                      <div className="h-2 bg-slate-700/40 rounded-full overflow-hidden backdrop-blur-sm">
                         <div
-                          className="h-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)] rounded-full transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
+                          className="h-full rounded-full transition-all duration-700 ease-out"
+                          style={{
+                            width: `${percentage}%`,
+                            background: 'linear-gradient(90deg, rgba(244,63,94,0.7), rgba(251,113,133,0.9))'
+                          }}
                         />
                       </div>
                     </div>
@@ -1145,82 +1153,77 @@ const AssetStatus = () => {
           </div>
 
           {/* Combined Summary Card */}
-          <div className="cyber-card relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Wallet className="w-32 h-32 text-blue-500" />
-            </div>
-            <div className="relative z-10 h-full flex flex-col">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 backdrop-blur-xl border border-violet-400/15 shadow-xl transition-all duration-300 hover:border-violet-400/30 hover:shadow-violet-500/10">
+            {/* Subtle gradient glow */}
+            <div className="absolute -top-20 -right-20 w-48 h-48 bg-violet-500/8 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 p-4 h-full flex flex-col">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-500/20 rounded-lg">
-                    <Wallet className="w-4 h-4 text-blue-400" />
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-violet-500/15 rounded-xl border border-violet-400/20 backdrop-blur-sm">
+                    <Wallet className="w-5 h-5 text-violet-400" />
                   </div>
-                  종합 현황
-                </h3>
-                <span className={`text-xl font-bold ${calculateMonthlyData[selectedMonthView]?.netChange >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>
+                  <h3 className="text-base font-semibold text-slate-200 tracking-wide">종합 현황</h3>
+                </div>
+                <span className={`text-3xl font-bold tracking-tight ${calculateMonthlyData[selectedMonthView]?.netChange >= 0 ? 'text-cyan-400' : 'text-rose-400'}`} style={{ fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif" }}>
                   {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Math.round(calculateMonthlyData[selectedMonthView]?.netChange || 0))}
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 flex-1 items-end pb-2">
+              <div className="grid grid-cols-3 gap-3 flex-1 items-end pb-1">
                 {/* Income Bar */}
-                <div className="space-y-2 flex flex-col items-center h-full justify-end">
-                  <div className="relative w-full h-32 bg-slate-700/50 rounded-xl overflow-hidden ring-1 ring-slate-600/50">
+                <div className="flex flex-col items-center gap-2 h-full justify-end">
+                  <div className="relative w-full flex-1 bg-slate-700/30 rounded-2xl overflow-hidden border border-slate-600/20">
                     <div
-                      className="absolute bottom-0 w-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all duration-500 flex items-end justify-center pb-2"
+                      className="absolute bottom-0 w-full rounded-t-xl transition-all duration-700 ease-out flex items-end justify-center pb-3"
                       style={{
-                        height: `${Math.min((calculateMonthlyData[selectedMonthView]?.income || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
+                        height: `${Math.min((calculateMonthlyData[selectedMonthView]?.income || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`,
+                        background: 'linear-gradient(180deg, rgba(16,185,129,0.8), rgba(16,185,129,0.4))'
                       }}
                     >
-                      <span className="text-[10px] font-bold text-white drop-shadow-md">
+                      <span className="text-sm font-bold text-white drop-shadow-md" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
                         {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0, notation: "compact" }).format(Math.round(calculateMonthlyData[selectedMonthView]?.income || 0))}
                       </span>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <span className="text-xs font-medium text-emerald-400">수입</span>
-                  </div>
+                  <span className="text-xs font-medium text-emerald-400/80">수입</span>
                 </div>
 
                 {/* Expense Bar */}
-                <div className="space-y-2 flex flex-col items-center h-full justify-end">
-                  <div className="relative w-full h-32 bg-slate-700/50 rounded-xl overflow-hidden ring-1 ring-slate-600/50">
+                <div className="flex flex-col items-center gap-2 h-full justify-end">
+                  <div className="relative w-full flex-1 bg-slate-700/30 rounded-2xl overflow-hidden border border-slate-600/20">
                     <div
-                      className="absolute bottom-0 w-full bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all duration-500 flex items-end justify-center pb-2"
+                      className="absolute bottom-0 w-full rounded-t-xl transition-all duration-700 ease-out flex items-end justify-center pb-3"
                       style={{
-                        height: `${Math.min((calculateMonthlyData[selectedMonthView]?.expense || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
+                        height: `${Math.min((calculateMonthlyData[selectedMonthView]?.expense || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`,
+                        background: 'linear-gradient(180deg, rgba(244,63,94,0.8), rgba(244,63,94,0.4))'
                       }}
                     >
-                      <span className="text-[10px] font-bold text-white drop-shadow-md">
+                      <span className="text-sm font-bold text-white drop-shadow-md" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
                         {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0, notation: "compact" }).format(Math.round(calculateMonthlyData[selectedMonthView]?.expense || 0))}
                       </span>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <span className="text-xs font-medium text-rose-400">지출</span>
-                  </div>
+                  <span className="text-xs font-medium text-rose-400/80">지출</span>
                 </div>
 
                 {/* Net Change Bar */}
-                <div className="space-y-2 flex flex-col items-center h-full justify-end">
-                  <div className="relative w-full h-32 bg-slate-700/50 rounded-xl overflow-hidden ring-1 ring-slate-600/50">
+                <div className="flex flex-col items-center gap-2 h-full justify-end">
+                  <div className="relative w-full flex-1 bg-slate-700/30 rounded-2xl overflow-hidden border border-slate-600/20">
                     <div
-                      className={`absolute bottom-0 w-full shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all duration-500 flex items-end justify-center pb-2 ${(calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0
-                        ? 'bg-blue-500'
-                        : 'bg-orange-500'
-                        }`}
+                      className={`absolute bottom-0 w-full rounded-t-xl transition-all duration-700 ease-out flex items-end justify-center pb-3`}
                       style={{
-                        height: `${Math.min(Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`
+                        height: `${Math.min(Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 0) / Math.max(calculateMonthlyData[selectedMonthView]?.income || 1, calculateMonthlyData[selectedMonthView]?.expense || 1, Math.abs(calculateMonthlyData[selectedMonthView]?.netChange || 1)) * 100, 100)}%`,
+                        background: (calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0
+                          ? 'linear-gradient(180deg, rgba(6,182,212,0.8), rgba(6,182,212,0.4))'
+                          : 'linear-gradient(180deg, rgba(249,115,22,0.8), rgba(249,115,22,0.4))'
                       }}
                     >
-                      <span className="text-[10px] font-bold text-white drop-shadow-md">
+                      <span className="text-sm font-bold text-white drop-shadow-md" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
                         {new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0, notation: "compact" }).format(Math.round(calculateMonthlyData[selectedMonthView]?.netChange || 0))}
                       </span>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <span className={`text-xs font-medium ${(calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>월총합</span>
-                  </div>
+                  <span className={`text-xs font-medium ${(calculateMonthlyData[selectedMonthView]?.netChange || 0) >= 0 ? 'text-cyan-400/80' : 'text-orange-400/80'}`}>월총합</span>
                 </div>
               </div>
             </div>
