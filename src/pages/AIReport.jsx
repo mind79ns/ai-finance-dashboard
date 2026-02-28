@@ -1108,12 +1108,18 @@ ${buildStockInfo(compareStock, quote2, profile2, metrics2)}
           symbol: a.symbol,
           name: a.name || a.type,
           currentPrice: a.currentPrice,
+          avgPrice: a.avgPrice,
+          quantity: a.quantity,
           profitPercent: a.profitPercent
         }))
       }
 
       const assetsList = analysisAssets
-        .map(a => `${a.symbol} (${a.name || ''}): 현재가 ${a.currentPrice?.toLocaleString() || 'N/A'}, 수익률 ${a.profitPercent?.toFixed?.(1) || 'N/A'}% `)
+        .map(a => {
+          const avgPriceStr = a.avgPrice ? `, 평단가 ${a.avgPrice.toLocaleString()}` : ''
+          const qtyStr = a.quantity ? `, 보유수량 ${a.quantity}` : ''
+          return `${a.symbol} (${a.name || ''}): 현재가 ${a.currentPrice?.toLocaleString() || 'N/A'}${avgPriceStr}${qtyStr}, 수익률 ${a.profitPercent?.toFixed?.(1) || 'N/A'}%`
+        })
         .join('\n')
 
       const marketContext = marketData ? `
@@ -1166,7 +1172,7 @@ ${assetsList}
 ---
 
 ### 작성 원칙
-- ⚠️ **중요**: 2025년 12월 현재의 시장 데이터와 차트 패턴을 시뮬레이션하여 분석하세요.
+- ⚠️ **중요**: ${currentDate} 현재의 시장 데이터와 차트 패턴을 시뮬레이션하여 분석하세요.
 - 데이터가 부족한 경우, 일반적인 기술적 패턴과 종목의 특성(배타계수, 변동성)을 기반으로 합리적인 추정을 제공하세요.
 - 결과는 가독성 좋은 **Markdown** 형식으로 작성하고, 중요한 숫자는 굵게 표시하세요.
 - 투자 조언이 아닌 참고용 자료임을 명시하세요.`
@@ -1283,13 +1289,13 @@ ${assetsList}
 
       const prompt = `[현재 날짜: ${currentDate}]
 
-당신은 금융 뉴스 분석 전문가입니다.다음 보유 종목들에 대한 2025년 12월 기준 최신 동향과 뉴스 분석을 제공해주세요.
+당신은 금융 뉴스 분석 전문가입니다.다음 보유 종목들에 대한 ${currentDate} 기준 최신 동향과 뉴스 분석을 제공해주세요.
 
 보유 종목: ${symbols}
 
 다음 내용을 포함해 분석해주세요:
 
-## 📰 종목별 주요 동향(2025년 기준)
+## 📰 종목별 주요 동향(${currentDate} 기준)
 각 종목에 대해:
 - 2025년 주요 뉴스 / 이벤트(실적발표, 신제품, M & A 등)
   - 업계 동향
@@ -1297,7 +1303,7 @@ ${assetsList}
 
 ## 🔍 섹터별 분석
   - 관련 섹터 전반적인 흐름
-    - 2025년 규제 / 정책 영향
+    - 최근 규제 / 정책 영향
 
 ## ⚠️ 리스크 요인
   - 주의해야 할 뉴스 / 이슈
@@ -1306,7 +1312,7 @@ ${assetsList}
 ## 💡 투자 시사점
   - 종합적인 뉴스 기반 투자 시사점
 
-⚠️ 중요: 2025년 12월 현재 시점을 기준으로 분석해주세요.실시간 뉴스 접근이 불가하므로, 각 종목의 일반적인 특성과 2025년 트렌드를 기반으로 분석해주세요.`
+⚠️ 중요: ${currentDate} 현재 시점을 기준으로 분석해주세요.실시간 뉴스 접근이 불가하므로, 각 종목의 일반적인 특성과 최근 트렌드를 기반으로 분석해주세요.`
 
       const summary = await aiService.routeAIRequest(
         prompt,
@@ -1777,7 +1783,7 @@ ${assetsList}
           <div className="cyber-card">
             <h4 className="text-sm font-medium text-gray-300 mb-3">📊 보유 종목에서 선택</h4>
             {portfolioData && portfolioData.assets && portfolioData.assets.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                 {portfolioData.assets.map((asset) => (
                   <button
                     key={asset.symbol}
@@ -1786,15 +1792,15 @@ ${assetsList}
                       setCustomStockCode('')
                       setCustomStockName('')
                     }}
-                    className={`p - 3 rounded - lg border transition - all text - left ${selectedStock?.symbol === asset.symbol
+                    className={`p-2 rounded-lg border transition-all text-left ${selectedStock?.symbol === asset.symbol
                       ? 'border-teal-500 bg-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.2)]'
                       : 'border-slate-700 bg-slate-800 hover:border-teal-500/50 hover:bg-slate-700'
-                      } `}
+                      }`}
                   >
                     <p className="font-semibold text-sm text-white">{asset.symbol}</p>
-                    <p className="text-xs text-gray-400 mt-1 truncate">{asset.name}</p>
-                    <p className={`text - xs mt - 1 font - medium ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                      } `}>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">{asset.name}</p>
+                    <p className={`text-[10px] mt-0.5 font-medium ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                      }`}>
                       {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(1)}%
                     </p>
                   </button>
@@ -2791,7 +2797,7 @@ ${assetsList}
               {portfolioData?.assets?.length > 0 && (
                 <div className="mb-6">
                   <p className="text-xs text-gray-500 mb-3">보유 종목에서 선택:</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
                     {portfolioData.assets.map(asset => {
                       const isSelected = selectedStocksForAI.some(s => s.symbol === asset.symbol)
                       return (
@@ -2822,7 +2828,7 @@ ${assetsList}
                               <h5 className={`font-bold text-sm ${isSelected ? 'text-purple-300' : 'text-gray-200'}`}>
                                 {asset.symbol}
                               </h5>
-                              <p className="text-[10px] text-gray-500 truncate max-w-[80px]">
+                              <p className="text-[10px] text-gray-500 truncate">
                                 {asset.name}
                               </p>
                             </div>
