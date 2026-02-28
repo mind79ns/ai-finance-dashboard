@@ -804,7 +804,8 @@ ${insights.map(i => '- ' + i).join('\n')}
 
     const userMessage = chatInput
     setChatInput('')
-    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    const updatedMessages = [...chatMessages, { role: 'user', content: userMessage }]
+    setChatMessages(updatedMessages)
 
     setLoading(true)
     try {
@@ -819,8 +820,16 @@ ${insights.map(i => '- ' + i).join('\n')}
         cashflow: cashflowInsights
       }
 
+      // 최근 대화 히스토리를 프롬프트에 포함 (최대 10개)
+      const recentHistory = updatedMessages.slice(-10)
+      const historyText = recentHistory.length > 1
+        ? '\n\n[이전 대화 내역]\n' + recentHistory.slice(0, -1).map(m =>
+          m.role === 'user' ? `사용자: ${m.content}` : `AI: ${m.content.substring(0, 500)}${m.content.length > 500 ? '...' : ''}`
+        ).join('\n') + '\n\n[현재 질문]\n' + userMessage
+        : userMessage
+
       const prompt = buildChatPrompt({
-        userMessage,
+        userMessage: historyText,
         context,
         marketInsights,
         portfolioInsights
@@ -828,14 +837,14 @@ ${insights.map(i => '- ' + i).join('\n')}
       const response = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
-        '당신은 투자 전문가입니다. 사용자의 질문에 전문적이고 실용적인 답변을 제공합니다.',
+        '당신은 최고급 투자 전문가 AI 어시스턴트입니다. 사용자의 포트폴리오와 시장 데이터를 바탕으로 전문적이고 실용적인 답변을 마크다운 형식으로 제공합니다. 이전 대화 맥락을 반드시 고려하여 답변하세요.',
         selectedAI
       )
       setChatMessages(prev => [...prev, { role: 'assistant', content: response }])
     } catch (error) {
       setChatMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'AI API가 설정되지 않았습니다. .env 파일에 API 키를 설정해주세요.'
+        content: '⚠️ AI API 연결에 실패했습니다. `.env` 파일에 API 키가 올바르게 설정되어 있는지 확인해주세요.'
       }])
     } finally {
       setLoading(false)
@@ -3130,15 +3139,29 @@ ${assetsList}
         )
       }
 
-      {/* AI Chat Tab */}
+      {/* AI Chat Tab - Smart Investment Assistant */}
       {
         activeTab === 'chat' && (
           <div className="space-y-6">
-            <div className="bg-slate-800/50 border border-emerald-500/20 rounded-lg p-4">
-              <p className="text-sm text-emerald-200">
-                <strong className="text-emerald-400">🧠 GPT-5 사용:</strong> 투자 전문가 수준의 맞춤형 상담을 제공합니다
-              </p>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-900/30 to-cyan-900/30 border border-emerald-500/20 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-emerald-500/20 rounded-lg border border-emerald-500/30">
+                  <Sparkles className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">🧠 스마트 투자 어시스턴트</h3>
+                  <p className="text-xs text-emerald-300/70">포트폴리오 · 시장 · 목표 데이터를 실시간 연동하여 맞춤형 상담을 제공합니다</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className="px-2 py-0.5 text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-full">💬 대화 맥락 기억</span>
+                <span className="px-2 py-0.5 text-[10px] bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 rounded-full">📊 포트폴리오 연동</span>
+                <span className="px-2 py-0.5 text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-full">🔮 시장 데이터 반영</span>
+              </div>
             </div>
+
+            {/* Cashflow Summary (existing) */}
             {cashflowInsights && (
               <div className="cyber-card border border-emerald-500/30 bg-emerald-900/20">
                 <h4 className="text-sm font-semibold text-emerald-300 mb-2">자산 현황 요약</h4>
@@ -3170,56 +3193,243 @@ ${assetsList}
                 )}
               </div>
             )}
-            <div className="cyber-card h-[700px] flex flex-col p-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto space-y-4 p-4 custom-scrollbar">
+
+            {/* Chat Container */}
+            <div className="cyber-card flex flex-col p-0 overflow-hidden" style={{ height: chatMessages.length > 0 ? '700px' : 'auto' }}>
+              {/* Chat Header Bar */}
+              {chatMessages.length > 0 && (
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-800/50">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-xs text-gray-400">대화 중 · {chatMessages.filter(m => m.role === 'user').length}개 질문</span>
+                  </div>
+                  <button
+                    onClick={() => setChatMessages([])}
+                    className="px-3 py-1 text-xs text-gray-400 border border-slate-600 rounded-lg hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    새 대화
+                  </button>
+                </div>
+              )}
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto space-y-4 p-5 custom-scrollbar">
                 {chatMessages.length === 0 ? (
-                  <div className="text-center py-20">
-                    <Sparkles className="w-16 h-16 text-gray-600 mx-auto mb-6" />
-                    <p className="text-gray-300 text-lg font-medium">AI에게 투자 관련 질문을 해보세요</p>
-                    <p className="text-sm text-gray-500 mt-2">예: &quot;지금 S&amp;P 500에 투자하는 것이 좋을까요?&quot;</p>
+                  <div className="py-6">
+                    {/* Welcome Message */}
+                    <div className="text-center mb-8">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-2xl border border-emerald-500/30 flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-emerald-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2">무엇이든 물어보세요!</h3>
+                      <p className="text-sm text-gray-400">포트폴리오와 시장 데이터를 분석하여 전문가 수준의 답변을 드립니다</p>
+                    </div>
+
+                    {/* Quick Action Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[
+                        {
+                          icon: '📊',
+                          title: '포트폴리오 전체 진단',
+                          desc: '보유 종목의 수익률, 리스크, 분산 정도를 종합 분석',
+                          prompt: '내 포트폴리오를 전체적으로 진단해줘. 수익률, 리스크, 분산 투자 현황을 분석하고 개선점을 제안해줘.',
+                          color: 'emerald'
+                        },
+                        {
+                          icon: '📉',
+                          title: portfolioData?.assets?.length ? `부진 종목 분석 (${(() => { const w = portfolioData.assets.reduce((min, a) => a.profitPercent < min.profitPercent ? a : min, portfolioData.assets[0]); return w?.symbol || '?'; })()})` : '부진 종목 분석',
+                          desc: '가장 수익률이 낮은 종목의 문제점과 대응 전략',
+                          prompt: portfolioData?.assets?.length
+                            ? `내 포트폴리오에서 가장 수익률이 낮은 종목을 분석해줘. 계속 보유해야 할지, 손절해야 할지 판단 근거를 제시해줘.`
+                            : '내 투자에서 부진한 항목이 있다면 분석하고 대응 방안을 제안해줘.',
+                          color: 'rose'
+                        },
+                        {
+                          icon: '🌍',
+                          title: '시장 대비 전략 점검',
+                          desc: '현재 시장 상황에서 내 투자 방향이 올바른지 진단',
+                          prompt: '현재 글로벌 시장 상황과 내 포트폴리오를 비교 분석해줘. 시장 대비 내 투자 전략이 적절한지 평가하고, 조정이 필요한 부분을 알려줘.',
+                          color: 'blue'
+                        },
+                        {
+                          icon: '💱',
+                          title: '환율 리스크 분석',
+                          desc: '원/달러 환율 변동이 내 자산에 미치는 영향',
+                          prompt: '원/달러 환율 변동이 내 포트폴리오에 미치는 영향을 분석해줘. 환 헤지가 필요한지, 어떤 전략으로 환율 리스크를 관리하면 좋을지 조언해줘.',
+                          color: 'amber'
+                        },
+                        {
+                          icon: '💰',
+                          title: '배당 포트폴리오 최적화',
+                          desc: '안정적인 배당 수익을 위한 종목 구성 제안',
+                          prompt: '내 현재 포트폴리오를 배당 투자 관점에서 분석해줘. 배당 수익률을 높이면서도 안정적인 포트폴리오를 구성하려면 어떤 조정이 필요할까?',
+                          color: 'purple'
+                        },
+                        {
+                          icon: '🏦',
+                          title: '세금 절약 전략',
+                          desc: '양도세, 배당세 등 절세 방안 종합 가이드',
+                          prompt: '한국 투자자 관점에서 내 포트폴리오의 세금 최적화 전략을 제안해줘. 해외주식 양도소득세, 배당소득세 절약을 위해 어떤 전략을 쓸 수 있을까?',
+                          color: 'cyan'
+                        },
+                        {
+                          icon: '🔍',
+                          title: '신규 투자 종목 추천',
+                          desc: '현재 포트폴리오와 시너지가 높은 종목 발굴',
+                          prompt: '내 현재 포트폴리오 구성을 고려했을 때, 분산 투자와 성장성 측면에서 추가로 매수하면 좋을 종목을 5개 추천하고 각각의 근거를 설명해줘.',
+                          color: 'teal'
+                        },
+                        {
+                          icon: '🏖️',
+                          title: '은퇴 자금 플래닝',
+                          desc: '목표 은퇴 시점까지의 자산 증식 로드맵',
+                          prompt: '현재 내 자산 규모와 투자 성과를 기반으로, 20년 후 은퇴를 목표로 한 자산 증식 플랜을 수립해줘. 월 투자 금액, 목표 수익률, 추천 포트폴리오 구성을 제안해줘.',
+                          color: 'indigo'
+                        }
+                      ].map((card, idx) => {
+                        const colorMap = {
+                          emerald: 'border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/5',
+                          rose: 'border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/5',
+                          blue: 'border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-500/5',
+                          amber: 'border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/5',
+                          purple: 'border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/5',
+                          cyan: 'border-cyan-500/30 hover:border-cyan-500/60 hover:bg-cyan-500/5',
+                          teal: 'border-teal-500/30 hover:border-teal-500/60 hover:bg-teal-500/5',
+                          indigo: 'border-indigo-500/30 hover:border-indigo-500/60 hover:bg-indigo-500/5'
+                        }
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setChatInput(card.prompt)
+                              setTimeout(() => {
+                                const fakeEvent = { preventDefault: () => { } }
+                                setChatInput('')
+                                setChatMessages(prev => [...prev, { role: 'user', content: card.prompt }])
+                                setLoading(true)
+
+                                const context = {
+                                  portfolio: portfolioData,
+                                  market: marketData,
+                                  latestMarketReport: marketReport,
+                                  latestPortfolioAnalysis: portfolioAnalysis,
+                                  latestRebalancing: rebalancingSuggestion,
+                                  riskAnalysis,
+                                  goalsSummary,
+                                  cashflow: cashflowInsights
+                                }
+
+                                const prompt = buildChatPrompt({
+                                  userMessage: card.prompt,
+                                  context,
+                                  marketInsights,
+                                  portfolioInsights
+                                })
+
+                                aiService.routeAIRequest(
+                                  prompt,
+                                  aiService.TASK_LEVEL.ADVANCED,
+                                  '당신은 최고급 투자 전문가 AI 어시스턴트입니다. 사용자의 포트폴리오와 시장 데이터를 바탕으로 전문적이고 실용적인 답변을 마크다운 형식으로 제공합니다.',
+                                  selectedAI
+                                ).then(response => {
+                                  setChatMessages(prev => [...prev, { role: 'assistant', content: response }])
+                                }).catch(() => {
+                                  setChatMessages(prev => [...prev, { role: 'assistant', content: '⚠️ AI API 연결에 실패했습니다.' }])
+                                }).finally(() => {
+                                  setLoading(false)
+                                })
+                              }, 50)
+                            }}
+                            className={`p-4 rounded-xl border bg-slate-800/30 transition-all duration-200 text-left group ${colorMap[card.color] || colorMap.emerald}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="text-2xl flex-shrink-0">{card.icon}</span>
+                              <div>
+                                <p className="font-semibold text-sm text-white group-hover:text-cyan-300 transition-colors">{card.title}</p>
+                                <p className="text-xs text-gray-500 mt-1">{card.desc}</p>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 ) : (
                   chatMessages.map((msg, idx) => (
                     <div
                       key={idx}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} `}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div
-                        className={`max - w - [85 %] rounded - 2xl px - 5 py - 4 shadow - md ${msg.role === 'user'
-                          ? 'bg-indigo-600 text-white rounded-br-none'
-                          : 'bg-slate-700 text-gray-100 rounded-bl-none'
-                          } `}
-                      >
-                        <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
-                          {msg.content}
-                        </pre>
+                      <div className={`max-w-[85%] ${msg.role === 'user' ? '' : 'w-full max-w-[85%]'}`}>
+                        <div
+                          className={`rounded-2xl px-5 py-4 shadow-md ${msg.role === 'user'
+                            ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-br-sm'
+                            : 'bg-slate-800/80 border border-slate-700 text-gray-100 rounded-bl-sm'
+                            }`}
+                        >
+                          {msg.role === 'user' ? (
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                          ) : (
+                            <div className="prose-sm max-w-none">
+                              <ReactMarkdown
+                                className="prose max-w-none leading-relaxed"
+                                remarkPlugins={[remarkGfm]}
+                                components={darkMarkdownComponents}
+                              >
+                                {msg.content}
+                              </ReactMarkdown>
+                            </div>
+                          )}
+                        </div>
+                        {/* Action buttons for AI responses */}
+                        {msg.role === 'assistant' && (
+                          <div className="flex gap-2 mt-1.5 ml-1">
+                            <button
+                              onClick={() => copyToClipboard(msg.content)}
+                              className="px-2 py-1 text-[10px] text-gray-500 hover:text-cyan-400 border border-transparent hover:border-slate-600 rounded-md transition-colors flex items-center gap-1"
+                            >
+                              📋 복사
+                            </button>
+                            <button
+                              onClick={() => downloadReport(`ai_chat_${idx}`, msg.content)}
+                              className="px-2 py-1 text-[10px] text-gray-500 hover:text-cyan-400 border border-transparent hover:border-slate-600 rounded-md transition-colors flex items-center gap-1"
+                            >
+                              💾 저장
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
                 )}
                 {loading && (
                   <div className="flex justify-start">
-                    <div className="bg-slate-700 rounded-2xl rounded-bl-none px-5 py-4 shadow-md">
-                      <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
+                    <div className="bg-slate-800/80 border border-slate-700 rounded-2xl rounded-bl-sm px-5 py-4 shadow-md">
+                      <div className="flex items-center gap-3">
+                        <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                        <span className="text-sm text-gray-400">AI가 분석 중입니다...</span>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="p-4 bg-slate-800 border-t border-slate-700">
+              {/* Input Area */}
+              <div className="p-4 bg-slate-800/80 border-t border-slate-700">
                 <form onSubmit={handleChatSubmit} className="flex gap-3">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="질문을 입력하세요..."
-                    className="flex-1 px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-gray-500"
+                    placeholder="투자에 대해 무엇이든 물어보세요..."
+                    className="flex-1 px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 text-white placeholder-gray-500 text-sm"
                     disabled={loading}
                   />
                   <button
                     type="submit"
                     disabled={loading || !chatInput.trim()}
-                    className="cyber-btn px-6 py-3 rounded-xl"
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     전송
                   </button>
