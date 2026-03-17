@@ -56,6 +56,7 @@ const CATEGORIES = [
   { id: 'leisure', name: '여가/문화', icon: Gamepad2, color: '#06b6d4', bgColor: 'bg-cyan-500/20' },
   { id: 'utilities', name: '공과금', icon: Zap, color: '#6366f1', bgColor: 'bg-indigo-500/20' },
   { id: 'savings', name: '저축/투자', icon: Wallet, color: '#10b981', bgColor: 'bg-emerald-500/20' },
+  { id: 'salary', name: '월급여', icon: DollarSign, color: '#3b82f6', bgColor: 'bg-blue-500/20' },
   { id: 'tech_income', name: '재테크', icon: TrendingUp, color: '#f59e0b', bgColor: 'bg-amber-500/20' },
   { id: 'other', name: '기타', icon: MoreHorizontal, color: '#6b7280', bgColor: 'bg-gray-500/20' }
 ]
@@ -677,7 +678,7 @@ const TransactionHistory = () => {
       
       let expenseAmt = 0
 
-      if (catId === 'tech_income') {
+      if (catId === 'tech_income' || catId === 'salary') {
         if (amount > 0) {
           totalIncome += amount
         } else {
@@ -690,8 +691,8 @@ const TransactionHistory = () => {
       }
 
       if (categoryTotals[catId]) {
-        // UI 리스트용으로 합계 누적 (tech_income은 총액(+,- 혼합) 그대로 표출)
-        if (catId === 'tech_income') {
+        // UI 리스트용으로 합계 누적 (tech_income, salary는 총액(+,- 혼합) 그대로 표출)
+        if (catId === 'tech_income' || catId === 'salary') {
           categoryTotals[catId].total += amount
         } else {
           categoryTotals[catId].total += expenseAmt
@@ -717,7 +718,7 @@ const TransactionHistory = () => {
     // 차트용 데이터 (수익이 아닌 지출 항목만)
     const chartData = Object.values(categoryTotals)
       .filter(c => {
-        if (c.id === 'tech_income') return c.total < 0
+        if (c.id === 'tech_income' || c.id === 'salary') return c.total < 0
         return c.total > 0
       })
       .map(c => {
@@ -1965,7 +1966,7 @@ const TransactionHistory = () => {
                       <div className="space-y-3">
                         {stats.categories.map(cat => {
                           const IconComponent = cat.icon
-                          const isIncomeItem = cat.id === 'tech_income' && cat.total > 0;
+                          const isIncomeItem = (cat.id === 'tech_income' || cat.id === 'salary') && cat.total > 0;
                           const displayTotal = Math.abs(cat.total);
 
                           let percent = 0;

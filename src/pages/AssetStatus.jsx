@@ -517,9 +517,11 @@ const AssetStatus = () => {
         
         if (filterType === 'tech_income') {
           return tx.category === 'tech_income'
+        } else if (filterType === 'salary') {
+          return tx.category === 'salary'
         } else if (filterType === 'expense') {
-          // tech_income이 아닌 것들은 지출로 취급 (기존 로직 유지)
-          return tx.category !== 'tech_income'
+          // tech_income과 salary 둘 다 지출에서 제외
+          return tx.category !== 'tech_income' && tx.category !== 'salary'
         }
         return true
       })
@@ -588,6 +590,24 @@ const AssetStatus = () => {
         const techCat = incomeCategories.find(c => c.name === '재테크' || c.name === '재테크 수입' || c.id === 'other')
         if (techCat) {
           monthData[techCat.id] = techTotal
+        }
+      }
+
+      // 입출금 이력 연동: 월급여 (KRW: 월 급여, VND: 주재급여 환산, USD: 무시 또는 합산)
+      const krwSalary = getTransactionMonthlyTotal(selectedYear, monthKey, 'krw', 'salary')
+      const vndSalaryKrwConverted = getTransactionMonthlyTotal(selectedYear, monthKey, 'vnd', 'salary') // 함수 내부에서 VND -> KRW 변환 이미 됨
+
+      if (krwSalary > 0) {
+        const krwSalaryCat = incomeCategories.find(c => c.name === '월 급여' || c.id === 'freelance')
+        if (krwSalaryCat) {
+          monthData[krwSalaryCat.id] = krwSalary
+        }
+      }
+
+      if (vndSalaryKrwConverted > 0) {
+        const vndSalaryCat = incomeCategories.find(c => c.name === '주재급여' || c.name === '해외급여')
+        if (vndSalaryCat) {
+          monthData[vndSalaryCat.id] = vndSalaryKrwConverted
         }
       }
 
@@ -2065,17 +2085,25 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {incomeCategories.map(cat => {
-                  // 배당금 또는 재테크 수입 연동 항목 확인
+                  // 배당금 또는 재테크, 월급여 수입 연동 항목 확인
                   const isDividendLinked = (cat.name === '배당금')
                   const isTechIncomeLinked = (cat.name === '재테크' || cat.name === '재테크 수입' || cat.id === 'other')
-                  const isLinked = isDividendLinked || isTechIncomeLinked
+                  const isKrwSalaryLinked = (cat.name === '월 급여' || cat.id === 'freelance')
+                  const isVndSalaryLinked = (cat.name === '주재급여' || cat.name === '해외급여')
+                  const isLinked = isDividendLinked || isTechIncomeLinked || isKrwSalaryLinked || isVndSalaryLinked
+                  
+                  let linkedLabel = ''
+                  if (isDividendLinked) linkedLabel = '배당금'
+                  else if (isTechIncomeLinked) linkedLabel = '재테크'
+                  else if (isKrwSalaryLinked) linkedLabel = '월 급여 (KRW)'
+                  else if (isVndSalaryLinked) linkedLabel = '주재급여 (VND)'
 
                   return (
                     <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-emerald-500/50 transition-colors`}>
                       <label className="block text-sm font-medium text-gray-400 mb-2 flex justify-between">
                         {cat.name}
                         {isLinked && (
-                          <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title={`입출금 이력 ${isDividendLinked ? '배당금' : '재테크'} 거래 내역과 자동 연동`}>
+                          <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title={`입출금 이력 ${linkedLabel} 거래 내역과 자동 연동`}>
                             🔗 자동 연동
                           </span>
                         )}
@@ -2088,7 +2116,7 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
                           className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-600 ${isLinked ? 'bg-indigo-900/20 border border-indigo-500/30 focus:ring-indigo-500 cursor-not-allowed text-indigo-200' : 'bg-slate-900 border border-slate-600 focus:ring-emerald-500'}`}
                           placeholder="0"
                           readOnly={isLinked}
-                          title={isLinked ? `입출금 이력 페이지의 ${isDividendLinked ? '배당금' : '재테크'} 거래 내역과 자동 연동됩니다` : ''}
+                          title={isLinked ? `입출금 이력 페이지의 ${linkedLabel} 거래 내역과 자동 연동됩니다` : ''}
                         />
                         <span className="absolute right-3 top-2 text-xs text-gray-500">KRW</span>
                       </div>
