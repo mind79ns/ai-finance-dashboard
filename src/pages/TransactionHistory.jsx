@@ -750,7 +750,20 @@ const TransactionHistory = () => {
         return txDate.getFullYear() === loopYear && (txDate.getMonth() + 1) === loopMonth
       })
 
-      const monthTotal = monthTx.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+      const monthTotal = monthTx.reduce((sum, tx) => {
+        const catId = tx.category || 'other'
+        const amount = Number(tx.amount || 0)
+        
+        let expenseAmt = 0
+        if (catId === 'tech_income' || catId === 'salary') {
+          if (amount < 0) {
+            expenseAmt = Math.abs(amount)
+          }
+        } else {
+          expenseAmt = amount
+        }
+        return sum + expenseAmt
+      }, 0)
 
       monthlyChartData.push({
         month: `${loopMonth}월`,
