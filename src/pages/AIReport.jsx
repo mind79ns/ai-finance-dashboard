@@ -1528,7 +1528,7 @@ ${assetsList}
                     <TrendingUp className={`w-5 h-5 ${selectedAI === 'gemini' ? 'text-blue-400' : 'text-gray-400 group-hover:text-blue-400'}`} />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-white group-hover:text-blue-300 transition-colors">⚡ Gemini 1.5 Pro</p>
+                    <p className="font-semibold text-sm text-white group-hover:text-blue-300 transition-colors">⚡ Gemini 2.5 Pro</p>
                     <p className="text-xs text-gray-400 mt-1">
                       High Context (Long Token)
                     </p>
@@ -1541,7 +1541,7 @@ ${assetsList}
                 <strong className="text-cyan-400">현재 선택:</strong> {
                   selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
                     selectedAI === 'gpt' ? '🧠 GPT-4.1 (핵심 분석 엔진)' :
-                      '⚡ Gemini 1.5 Pro (High Context)'
+                      '⚡ Gemini 2.5 Pro (High Context)'
                 }
               </div>
             </div>

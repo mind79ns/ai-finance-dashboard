@@ -3,16 +3,16 @@ import { API_CONFIG } from '../config/constants'
 
 /**
  * AI Service with Dual Strategy:
- * - Gemini 1.5 Flash: 기본 데이터 수집/요약용 (무료/저비용/고속)
- * - GPT-4o / Gemini 1.5 Pro: 핵심 투자전략·분석엔진용 (고급 추론/긴 문맥)
+ * - Gemini 2.5 Flash: 기본 데이터 수집/요약용 (무료/저비용/고속)
+ * - GPT-4o / Gemini 2.5 Pro: 핵심 투자전략·분석엔진용 (고급 추론/긴 문맥)
  */
 class AIService {
   constructor() {
     this.provider = API_CONFIG.AI_PROVIDER
     // Task complexity levels
     this.TASK_LEVEL = {
-      BASIC: 'basic',      // Gemini 1.5 Flash
-      ADVANCED: 'advanced' // GPT-4o / Gemini 1.5 Pro
+      BASIC: 'basic',      // Gemini 2.5 Flash
+      ADVANCED: 'advanced' // GPT-4o / Gemini 2.5 Pro
     }
   }
 
@@ -36,7 +36,7 @@ class AIService {
         if (!API_CONFIG.GEMINI_API_KEY) {
           throw new Error('Gemini API key not configured')
         }
-        console.log('⚡ Using Gemini 1.5 Pro (High Context)')
+        console.log('⚡ Using Gemini 2.5 Pro (High Context)')
         return await this.callGemini(prompt, systemPrompt)
       }
 
@@ -49,7 +49,7 @@ class AIService {
 
       // Basic tasks -> Gemini
       if (API_CONFIG.GEMINI_API_KEY) {
-        console.log('⚡ Using Gemini 1.5 Flash for basic task')
+        console.log('⚡ Using Gemini 2.5 Flash for basic task')
         return await this.callGemini(prompt, systemPrompt)
       }
 
@@ -312,8 +312,8 @@ ${JSON.stringify(context, null, 2)}
 
 ---
 **💡 AI 분석 활성화 방법:**
-- Gemini 1.5 Flash (무료/고속): 기본 요약 및 데이터 수집용
-- GPT-4o / Gemini 1.5 Pro (유료/고성능): 고급 투자 분석 및 전략 수립용
+- Gemini 2.5 Flash (무료/고속): 기본 요약 및 데이터 수집용
+- GPT-4o / Gemini 2.5 Pro (유료/고성능): 고급 투자 분석 및 전략 수립용
 
 .env 파일에 API 키를 설정하세요.
     `
@@ -338,7 +338,7 @@ ${JSON.stringify(context, null, 2)}
 
 ---
 **💡 이중 AI 전략:**
-- Gemini 1.5 Flash: 빠른 포트폴리오 체크
+- Gemini 2.5 Flash: 빠른 포트폴리오 체크
 - GPT-4o: 심층 포트폴리오 분석 및 최적화
 
 .env 파일에 API 키를 설정하세요.
