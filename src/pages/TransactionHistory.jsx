@@ -320,7 +320,13 @@ const TransactionHistory = () => {
       .filter(d => new Date(d.date).getFullYear() === targetYear)
       .forEach(d => {
         if (!bySymbol[d.symbol]) {
-          bySymbol[d.symbol] = { symbol: d.symbol, total: 0, count: 0 }
+          const matchedAsset = portfolioAssets.find(a => a.symbol === d.symbol)
+          bySymbol[d.symbol] = { 
+            symbol: d.symbol, 
+            name: matchedAsset ? matchedAsset.name : '',
+            total: 0, 
+            count: 0 
+          }
         }
         const amount = d.currency === 'USD' ? d.amount * exchangeRates.usdToKrw : d.amount
         bySymbol[d.symbol].total += amount
@@ -363,7 +369,7 @@ const TransactionHistory = () => {
       targetYear,
       targetMonth
     }
-  }, [dividendTransactions, exchangeRates, dividendSelectedYear, dividendSelectedMonth])
+  }, [dividendTransactions, portfolioAssets, exchangeRates, dividendSelectedYear, dividendSelectedMonth])
 
   // 배당금 데이터가 있는 연도 목록
   const dividendAvailableYears = useMemo(() => {
@@ -1401,6 +1407,7 @@ const TransactionHistory = () => {
                       <div key={item.symbol} className="flex items-center justify-between bg-slate-800/60 rounded-lg px-4 py-3 border border-slate-700/50">
                         <div>
                           <span className="font-semibold text-gray-200">{item.symbol}</span>
+                          {item.name && <span className="text-sm text-gray-400 ml-2">{item.name}</span>}
                           <span className="text-xs text-slate-500 ml-2">{item.count}건</span>
                         </div>
                         <span className="text-emerald-400 font-bold">{formatCurrency(item.total, 'KRW')}</span>
