@@ -356,6 +356,12 @@ class MarketDataService {
           target: 'GBP',
           rate: rates.GBP,
           name: 'US Dollar to British Pound'
+        },
+        vndKrw: {
+          base: 'VND',
+          target: 'KRW',
+          rate: (rates.VND && rates.KRW) ? (rates.KRW / rates.VND) : 0.055,
+          name: 'Vietnamese Dong to Korean Won'
         }
       }
 

@@ -130,8 +130,12 @@ const TransactionHistory = () => {
             usdToKrw: marketData.currency.usdKrw.rate
           }))
         }
-        // VND to KRW rate (approximate: 1 VND ≈ 0.055 KRW)
-        // You can fetch from another API if needed
+        if (marketData.currency?.vndKrw?.rate) {
+          setExchangeRates(prev => ({
+            ...prev,
+            vndToKrw: marketData.currency.vndKrw.rate
+          }))
+        }
       } catch (error) {
         console.error('Failed to fetch exchange rates:', error)
       }

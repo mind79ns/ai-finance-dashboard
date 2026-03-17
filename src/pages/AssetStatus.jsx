@@ -234,11 +234,15 @@ const AssetStatus = () => {
   useEffect(() => {
     const fetchExchangeRate = async () => {
       try {
-        // VND to KRW rate is approximately 0.055 (1 VND ≈ 0.055 KRW)
-        // You can update this to fetch from an API if needed
-        setVndToKrwRate(0.055)
+        const marketData = await marketDataService.getAllMarketData()
+        if (marketData?.currency?.vndKrw?.rate) {
+          setVndToKrwRate(marketData.currency.vndKrw.rate)
+        } else {
+          setVndToKrwRate(0.055)
+        }
       } catch (error) {
         console.error('Failed to fetch VND exchange rate:', error)
+        setVndToKrwRate(0.055)
       }
     }
 
