@@ -668,34 +668,72 @@ const TransactionHistory = () => {
       categoryTotals[cat.id] = { ...cat, total: 0, count: 0 }
     })
 
+    let totalIncome = 0
+    let totalExpense = 0
+
     monthlyTx.forEach(tx => {
       const catId = tx.category || 'other'
+      const amount = Number(tx.amount || 0)
+      
+      let expenseAmt = 0
+
+      if (catId === 'tech_income') {
+        if (amount > 0) {
+          totalIncome += amount
+        } else {
+          totalExpense += Math.abs(amount)
+          expenseAmt = Math.abs(amount)
+        }
+      } else {
+        totalExpense += amount
+        expenseAmt = amount
+      }
+
       if (categoryTotals[catId]) {
-        categoryTotals[catId].total += Number(tx.amount || 0)
+        // UI 리스트용으로 합계 누적 (tech_income은 총액(+,- 혼합) 그대로 표출)
+        if (catId === 'tech_income') {
+          categoryTotals[catId].total += amount
+        } else {
+          categoryTotals[catId].total += expenseAmt
+        }
         categoryTotals[catId].count += 1
       }
     })
 
-    const totalAmount = monthlyTx.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+    const totalAmount = totalExpense // 하위 호환성 (지출 차트용)
 
     // 원화 환산
-    let totalKRW = totalAmount
+    let totalKRW = totalExpense
+    let totalIncomeKRW = totalIncome
+
     if (currency === 'VND') {
-      totalKRW = totalAmount * exchangeRates.vndToKrw
+      totalKRW = totalExpense * exchangeRates.vndToKrw
+      totalIncomeKRW = totalIncome * exchangeRates.vndToKrw
     } else if (currency === 'USD') {
-      totalKRW = totalAmount * exchangeRates.usdToKrw
+      totalKRW = totalExpense * exchangeRates.usdToKrw
+      totalIncomeKRW = totalIncome * exchangeRates.usdToKrw
     }
 
-    // 차트용 데이터 (금액 > 0인 카테고리만)
+    // 차트용 데이터 (수익이 아닌 지출 항목만)
     const chartData = Object.values(categoryTotals)
-      .filter(c => c.total > 0)
-      .sort((a, b) => b.total - a.total)
-      .map(c => ({
-        name: c.name,
-        value: c.total,
-        color: c.color,
-        percent: totalAmount > 0 ? ((c.total / totalAmount) * 100).toFixed(1) : 0
-      }))
+      .filter(c => {
+        if (c.id === 'tech_income') return c.total < 0
+        return c.total > 0
+      })
+      .map(c => {
+        const value = Math.abs(c.total)
+        return {
+          name: c.name,
+          value,
+          color: c.color,
+          percent: totalAmount > 0 ? ((value / totalAmount) * 100).toFixed(1) : 0
+        }
+      })
+      .sort((a, b) => b.value - a.value)
+
+    const displayCategories = Object.values(categoryTotals)
+      .filter(c => c.total !== 0) // 금액이 있는 모든 카테고리
+      .sort((a, b) => Math.abs(b.total) - Math.abs(a.total))
 
     // 월별 차트 데이터 (최근 6개월)
     const monthlyChartData = []
@@ -719,9 +757,11 @@ const TransactionHistory = () => {
     }
 
     return {
-      categories: Object.values(categoryTotals).sort((a, b) => b.total - a.total),
+      categories: displayCategories,
       totalAmount,
+      totalIncome,
       totalKRW,
+      totalIncomeKRW,
       count: monthlyTx.length,
       chartData,
       monthlyChartData
@@ -818,14 +858,23 @@ const TransactionHistory = () => {
         </div>
 
         {/* 상단 통계 카드 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          {/* 당월 수입 */}
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
+            <p className="text-sm font-medium text-emerald-400 mb-2">당월 수입</p>
+            <p className="text-2xl font-bold text-emerald-300" style={{ textShadow: '0 0 8px rgba(16, 185, 129, 0.4)' }}>
+              {formatCurrency(stats.totalIncome, currency)}
+            </p>
+            <p className="text-xs text-emerald-500/70 mt-1">{currentYearMonth}</p>
+          </div>
+
           {/* 당월 지출 */}
-          <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4">
-            <p className="text-sm font-medium text-cyan-400 mb-2">당월 지출</p>
-            <p className="text-2xl font-bold text-cyan-300" style={{ textShadow: '0 0 8px rgba(6, 182, 212, 0.4)' }}>
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4">
+            <p className="text-sm font-medium text-rose-400 mb-2">당월 지출</p>
+            <p className="text-2xl font-bold text-rose-300" style={{ textShadow: '0 0 8px rgba(244, 63, 94, 0.4)' }}>
               {formatCurrency(stats.totalAmount, currency)}
             </p>
-            <p className="text-xs text-cyan-500/70 mt-1">{currentYearMonth} • {stats.count}건</p>
+            <p className="text-xs text-rose-500/70 mt-1">{stats.count}건 (전체)</p>
           </div>
 
           {/* 원화 환산 (외화일 경우) / 이력보기 (원화일 경우) */}
@@ -894,7 +943,16 @@ const TransactionHistory = () => {
             <div className="space-y-2">
               {topCategories.map(cat => {
                 const IconComponent = cat.icon
-                const percent = stats.totalAmount > 0 ? (cat.total / stats.totalAmount) * 100 : 0
+                const isIncomeItem = cat.id === 'tech_income' && cat.total > 0;
+                const displayTotal = Math.abs(cat.total);
+                
+                let percent = 0;
+                if (isIncomeItem) {
+                  percent = stats.totalIncome > 0 ? (displayTotal / stats.totalIncome) * 100 : 0;
+                } else {
+                  percent = stats.totalAmount > 0 ? (displayTotal / stats.totalAmount) * 100 : 0;
+                }
+
                 return (
                   <div key={cat.id} className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg ${cat.bgColor} flex items-center justify-center`}>
@@ -902,15 +960,18 @@ const TransactionHistory = () => {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-300">{cat.name}</span>
-                        <span className="text-sm font-bold text-gray-200">
-                          {formatCurrency(cat.total, currency)}
+                        <span className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                          {cat.name}
+                          {isIncomeItem && <span className="text-[10px] text-emerald-400 bg-emerald-900/40 px-1 py-0.5 rounded">수익</span>}
+                        </span>
+                        <span className={`text-sm font-bold ${isIncomeItem ? 'text-emerald-400' : 'text-gray-200'}`}>
+                          {isIncomeItem ? '+' : ''}{formatCurrency(cat.total, currency)}
                         </span>
                       </div>
                       <div className="w-full bg-slate-700/50 rounded-full h-1.5">
                         <div
                           className="h-1.5 rounded-full transition-all duration-500"
-                          style={{ width: `${percent}%`, backgroundColor: cat.color }}
+                          style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: isIncomeItem ? '#10b981' : cat.color }}
                         />
                       </div>
                     </div>
