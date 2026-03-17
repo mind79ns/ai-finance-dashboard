@@ -523,9 +523,11 @@ const AssetStatus = () => {
           return tx.category === 'tech_income'
         } else if (filterType === 'salary') {
           return tx.category === 'salary'
+        } else if (filterType === 'card') {
+          return tx.category === 'card'
         } else if (filterType === 'expense') {
-          // tech_income과 salary 둘 다 지출에서 제외
-          return tx.category !== 'tech_income' && tx.category !== 'salary'
+          // tech_income, salary, card는 일반 지출에서 제외 (별도 항목으로 연동)
+          return tx.category !== 'tech_income' && tx.category !== 'salary' && tx.category !== 'card'
         }
         return true
       })
@@ -581,6 +583,15 @@ const AssetStatus = () => {
       const vndTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'vnd', 'expense')
       if (vndTotal > 0) {
         monthData['vnd'] = vndTotal // 'vnd' = VND 지출
+      }
+
+      // 입출금 이력 연동: 카드 지출 (KRW) 자동 반영
+      const krwCardTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'krw', 'card')
+      if (krwCardTotal > 0) {
+        const cardCat = expenseCategories.find(c => c.name === '카드 지출' || c.id === 'card')
+        if (cardCat) {
+          monthData[cardCat.id] = krwCardTotal
+        }
       }
 
       // 입출금 이력 연동: 재테크 수입 자동 반영 (krw, vnd, usd 합산)
@@ -2139,15 +2150,15 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {expenseCategories.map(cat => {
                   // 입출금 이력 연동 항목 확인
-                  const isLinked = (cat.id === 'loan' || cat.id === 'vnd')
-                  const linkedLabel = cat.id === 'loan' ? 'KRW' : (cat.id === 'vnd' ? 'VND' : '')
+                  const isLinked = (cat.id === 'loan' || cat.id === 'vnd' || cat.name === '카드 지출' || cat.id === 'card')
+                  const linkedLabel = cat.id === 'loan' ? 'KRW' : (cat.id === 'vnd' ? 'VND' : '카드 지출 (KRW)')
 
                   return (
                     <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-rose-500/50 transition-colors`}>
                       <label className="block text-sm font-medium text-gray-400 mb-2 flex justify-between">
                         {cat.name}
                         {isLinked && (
-                          <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title={`입출금 이력 ${linkedLabel}과 자동 연동`}>
+                          <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title={`입출금 이력 ${linkedLabel}과(와) 자동 연동`}>
                             🔗 자동 연동
                           </span>
                         )}

@@ -26,6 +26,7 @@ import {
   Gamepad2,
   Zap,
   Wallet,
+  CreditCard,
   MoreHorizontal,
   PieChart
 } from 'lucide-react'
@@ -58,6 +59,7 @@ const CATEGORIES = [
   { id: 'savings', name: '저축/투자', icon: Wallet, color: '#10b981', bgColor: 'bg-emerald-500/20' },
   { id: 'salary', name: '월급여', icon: DollarSign, color: '#3b82f6', bgColor: 'bg-blue-500/20' },
   { id: 'tech_income', name: '재테크', icon: TrendingUp, color: '#f59e0b', bgColor: 'bg-amber-500/20' },
+  { id: 'card', name: '카드 지출', icon: CreditCard, color: '#ec4899', bgColor: 'bg-pink-500/20' },
   { id: 'other', name: '기타', icon: MoreHorizontal, color: '#6b7280', bgColor: 'bg-gray-500/20' }
 ]
 
