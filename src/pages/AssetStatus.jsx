@@ -506,19 +506,31 @@ const AssetStatus = () => {
     return years
   }, [statusData])
 
-  // 입출금 이력에서 월별 합계 계산 (VND는 KRW로 환산)
-  const getTransactionMonthlyTotal = useCallback((year, month, currency) => {
+  // 입출금 이력에서 월별 합계 계산 (VND/USD는 KRW로 환산, filterType으로 지출/수익 구분)
+  const getTransactionMonthlyTotal = useCallback((year, month, currency, filterType = 'expense') => {
     const transactions = transactionHistory[currency.toLowerCase()] || []
     const total = transactions
       .filter(tx => {
         const txDate = new Date(tx.date)
-        return txDate.getFullYear() === year && (txDate.getMonth() + 1) === month
+        const isMatch = txDate.getFullYear() === year && (txDate.getMonth() + 1) === month
+        if (!isMatch) return false
+        
+        if (filterType === 'tech_income') {
+          return tx.category === 'tech_income'
+        } else if (filterType === 'expense') {
+          // tech_income이 아닌 것들은 지출로 취급 (기존 로직 유지)
+          return tx.category !== 'tech_income'
+        }
+        return true
       })
       .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
 
-    // VND는 KRW로 환산하여 반환
+    // 환산 로직
     if (currency.toLowerCase() === 'vnd') {
       return total * vndToKrwRate
+    } else if (currency.toLowerCase() === 'usd' && filterType === 'tech_income') {
+      // USD의 경우 재테크 수익 집계를 위해 환산 추가
+      return total * (latestExchangeRateRef.current || DEFAULT_EXCHANGE_RATE)
     }
 
     return total
@@ -554,15 +566,29 @@ const AssetStatus = () => {
       let monthData = { ...yearData[monthKey] } || {}
 
       // 입출금 이력 연동: KRW 지출 자동 반영
-      const krwTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'krw')
+      const krwTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'krw', 'expense')
       if (krwTotal > 0) {
         monthData['loan'] = krwTotal // 'loan' = 월화 지출
       }
 
       // 입출금 이력 연동: VND 지출 자동 반영
-      const vndTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'vnd')
+      const vndTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'vnd', 'expense')
       if (vndTotal > 0) {
         monthData['vnd'] = vndTotal // 'vnd' = VND 지출
+      }
+
+      // 입출금 이력 연동: 재테크 수입 자동 반영 (krw, vnd, usd 합산)
+      const krwTech = getTransactionMonthlyTotal(selectedYear, monthKey, 'krw', 'tech_income')
+      const vndTech = getTransactionMonthlyTotal(selectedYear, monthKey, 'vnd', 'tech_income')
+      const usdTech = getTransactionMonthlyTotal(selectedYear, monthKey, 'usd', 'tech_income')
+      const techTotal = krwTech + vndTech + usdTech
+      
+      if (techTotal > 0) {
+        // Find category by name '재테크', '재테크 수입' or id 'other'
+        const techCat = incomeCategories.find(c => c.name === '재테크' || c.name === '재테크 수입' || c.id === 'other')
+        if (techCat) {
+          monthData[techCat.id] = techTotal
+        }
       }
 
       // 배당금 이력 연동: 배당금 자동 반영 (이름 '배당금'으로만 매칭)
@@ -2039,15 +2065,17 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {incomeCategories.map(cat => {
-                  // 배당금 자동 연동 항목 확인 (이름 '배당금'으로만 매칭)
+                  // 배당금 또는 재테크 수입 연동 항목 확인
                   const isDividendLinked = (cat.name === '배당금')
+                  const isTechIncomeLinked = (cat.name === '재테크' || cat.name === '재테크 수입' || cat.id === 'other')
+                  const isLinked = isDividendLinked || isTechIncomeLinked
 
                   return (
-                    <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isDividendLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-emerald-500/50 transition-colors`}>
+                    <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-emerald-500/50 transition-colors`}>
                       <label className="block text-sm font-medium text-gray-400 mb-2 flex justify-between">
                         {cat.name}
-                        {isDividendLinked && (
-                          <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title="입출금 이력 배당금과 자동 연동">
+                        {isLinked && (
+                          <span className="text-[10px] text-indigo-300 bg-indigo-900/40 px-1.5 py-0.5 rounded border border-indigo-500/30" title={`입출금 이력 ${isDividendLinked ? '배당금' : '재테크'} 거래 내역과 자동 연동`}>
                             🔗 자동 연동
                           </span>
                         )}
@@ -2057,10 +2085,10 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
                           type="number"
                           value={formData[cat.id] || ''}
                           onChange={(e) => handleChange(cat.id, e.target.value)}
-                          className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-600 ${isDividendLinked ? 'bg-indigo-900/20 border border-indigo-500/30 focus:ring-indigo-500 cursor-not-allowed text-indigo-200' : 'bg-slate-900 border border-slate-600 focus:ring-emerald-500'}`}
+                          className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-white placeholder-gray-600 ${isLinked ? 'bg-indigo-900/20 border border-indigo-500/30 focus:ring-indigo-500 cursor-not-allowed text-indigo-200' : 'bg-slate-900 border border-slate-600 focus:ring-emerald-500'}`}
                           placeholder="0"
-                          readOnly={isDividendLinked}
-                          title={isDividendLinked ? '입출금 이력 페이지의 배당금 거래 내역과 자동 연동됩니다' : ''}
+                          readOnly={isLinked}
+                          title={isLinked ? `입출금 이력 페이지의 ${isDividendLinked ? '배당금' : '재테크'} 거래 내역과 자동 연동됩니다` : ''}
                         />
                         <span className="absolute right-3 top-2 text-xs text-gray-500">KRW</span>
                       </div>

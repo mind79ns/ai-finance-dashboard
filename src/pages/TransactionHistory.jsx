@@ -56,6 +56,7 @@ const CATEGORIES = [
   { id: 'leisure', name: '여가/문화', icon: Gamepad2, color: '#06b6d4', bgColor: 'bg-cyan-500/20' },
   { id: 'utilities', name: '공과금', icon: Zap, color: '#6366f1', bgColor: 'bg-indigo-500/20' },
   { id: 'savings', name: '저축/투자', icon: Wallet, color: '#10b981', bgColor: 'bg-emerald-500/20' },
+  { id: 'tech_income', name: '재테크', icon: TrendingUp, color: '#f59e0b', bgColor: 'bg-amber-500/20' },
   { id: 'other', name: '기타', icon: MoreHorizontal, color: '#6b7280', bgColor: 'bg-gray-500/20' }
 ]
 
