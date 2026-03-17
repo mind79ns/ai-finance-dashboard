@@ -1965,7 +1965,16 @@ const TransactionHistory = () => {
                       <div className="space-y-3">
                         {stats.categories.map(cat => {
                           const IconComponent = cat.icon
-                          const percent = stats.totalAmount > 0 ? (cat.total / stats.totalAmount) * 100 : 0
+                          const isIncomeItem = cat.id === 'tech_income' && cat.total > 0;
+                          const displayTotal = Math.abs(cat.total);
+
+                          let percent = 0;
+                          if (isIncomeItem) {
+                            percent = stats.totalIncome > 0 ? (displayTotal / stats.totalIncome) * 100 : 0;
+                          } else {
+                            percent = stats.totalAmount > 0 ? (displayTotal / stats.totalAmount) * 100 : 0;
+                          }
+
                           return (
                             <div key={cat.id} className="flex items-center gap-4 p-3 bg-slate-900/60 rounded-xl hover:bg-slate-900 transition-colors border border-slate-700/30">
                               <div className={`w-12 h-12 rounded-xl ${cat.bgColor} flex items-center justify-center`}>
@@ -1974,18 +1983,21 @@ const TransactionHistory = () => {
                               <div className="flex-1">
                                 <div className="flex items-center justify-between mb-2">
                                   <div>
-                                    <span className="font-semibold text-gray-200">{cat.name}</span>
-                                    <span className="text-xs text-slate-500 ml-2">{cat.count}건</span>
+                                    <span className="font-semibold text-gray-200 flex items-center gap-2">
+                                      {cat.name}
+                                      {isIncomeItem && <span className="text-[10px] text-emerald-400 bg-emerald-900/40 px-1 py-0.5 rounded">수익</span>}
+                                    </span>
+                                    <span className="text-xs text-slate-500">{cat.count}건</span>
                                   </div>
-                                  <span className="font-bold text-gray-200">
-                                    {formatCurrency(cat.total, categoryStatsCurrency)}
+                                  <span className={`font-bold ${isIncomeItem ? 'text-emerald-400' : 'text-gray-200'}`}>
+                                    {isIncomeItem ? '+' : ''}{formatCurrency(cat.total, categoryStatsCurrency)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 bg-slate-700/50 rounded-full h-2">
                                     <div
                                       className="h-2 rounded-full transition-all duration-500"
-                                      style={{ width: `${percent}%`, backgroundColor: cat.color }}
+                                      style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: isIncomeItem ? '#10b981' : cat.color }}
                                     />
                                   </div>
                                   <span className="text-sm font-medium text-slate-400 w-14 text-right">
