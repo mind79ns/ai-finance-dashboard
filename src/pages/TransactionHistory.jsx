@@ -91,6 +91,8 @@ const TransactionHistory = () => {
   // 카테고리별 통계 모달 상태
   const [showCategoryStatsModal, setShowCategoryStatsModal] = useState(false)
   const [categoryStatsCurrency, setCategoryStatsCurrency] = useState(null)
+  const [categoryStatsYear, setCategoryStatsYear] = useState(new Date().getFullYear())
+  const [categoryStatsMonth, setCategoryStatsMonth] = useState(new Date().getMonth() + 1)
 
   const [editingTransaction, setEditingTransaction] = useState(null)
 
@@ -656,15 +658,11 @@ const TransactionHistory = () => {
   }, [getFilteredTransactions, selectedCurrency, exchangeRates])
 
   // 카테고리별 통계 계산
-  const getCategoryStats = useCallback((transactions, currency) => {
-    const now = new Date()
-    const currentYear = now.getFullYear()
-    const currentMonth = now.getMonth() + 1
-
+  const getCategoryStats = useCallback((transactions, currency, targetYear = new Date().getFullYear(), targetMonth = new Date().getMonth() + 1) => {
     // 당월 거래만 필터링
     const monthlyTx = transactions.filter(tx => {
       const txDate = new Date(tx.date)
-      return txDate.getFullYear() === currentYear && (txDate.getMonth() + 1) === currentMonth
+      return txDate.getFullYear() === targetYear && (txDate.getMonth() + 1) === targetMonth
     })
 
     // 카테고리별 집계
@@ -743,21 +741,21 @@ const TransactionHistory = () => {
     // 월별 차트 데이터 (최근 6개월)
     const monthlyChartData = []
     for (let i = 5; i >= 0; i--) {
-      const targetDate = new Date(currentYear, currentMonth - 1 - i, 1)
-      const targetYear = targetDate.getFullYear()
-      const targetMonth = targetDate.getMonth() + 1
+      const targetDate = new Date(targetYear, targetMonth - 1 - i, 1)
+      const loopYear = targetDate.getFullYear()
+      const loopMonth = targetDate.getMonth() + 1
 
       const monthTx = transactions.filter(tx => {
         const txDate = new Date(tx.date)
-        return txDate.getFullYear() === targetYear && (txDate.getMonth() + 1) === targetMonth
+        return txDate.getFullYear() === loopYear && (txDate.getMonth() + 1) === loopMonth
       })
 
       const monthTotal = monthTx.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
 
       monthlyChartData.push({
-        month: `${targetMonth}월`,
+        month: `${loopMonth}월`,
         amount: monthTotal,
-        year: targetYear
+        year: loopYear
       })
     }
 
@@ -846,7 +844,12 @@ const TransactionHistory = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setCategoryStatsCurrency(currency); setShowCategoryStatsModal(true); }}
+              onClick={() => { 
+                setCategoryStatsCurrency(currency); 
+                setCategoryStatsYear(new Date().getFullYear());
+                setCategoryStatsMonth(new Date().getMonth() + 1);
+                setShowCategoryStatsModal(true); 
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-fuchsia-400 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/30 rounded-lg transition-colors"
             >
               <PieChart className="w-4 h-4" />
@@ -939,7 +942,12 @@ const TransactionHistory = () => {
                 <p className="text-sm font-semibold text-cyan-300/80">카테고리별 지출 ({currentYearMonth})</p>
               </div>
               <button
-                onClick={() => { setCategoryStatsCurrency(currency); setShowCategoryStatsModal(true); }}
+                onClick={() => { 
+                  setCategoryStatsCurrency(currency); 
+                  setCategoryStatsYear(new Date().getFullYear());
+                  setCategoryStatsMonth(new Date().getMonth() + 1);
+                  setShowCategoryStatsModal(true); 
+                }}
                 className="text-xs text-fuchsia-400 hover:text-fuchsia-300"
               >
                 상세보기 →
@@ -1835,9 +1843,39 @@ const TransactionHistory = () => {
                   <h3 className="text-lg font-bold text-fuchsia-300">
                     카테고리 분석 ({categoryStatsCurrency})
                   </h3>
-                  <p className="text-sm text-slate-400">
-                    {new Date().getFullYear()}년 {new Date().getMonth() + 1}월 지출 현황
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <button
+                      onClick={() => {
+                        if (categoryStatsMonth === 1) {
+                          setCategoryStatsMonth(12)
+                          setCategoryStatsYear(y => y - 1)
+                        } else {
+                          setCategoryStatsMonth(m => m - 1)
+                        }
+                      }}
+                      className="p-1 hover:bg-fuchsia-500/20 rounded-lg transition-colors group"
+                      title="이전 달"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300" />
+                    </button>
+                    <span className="text-sm font-medium text-slate-300">
+                      {categoryStatsYear}년 {categoryStatsMonth}월 지출 현황
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (categoryStatsMonth === 12) {
+                          setCategoryStatsMonth(1)
+                          setCategoryStatsYear(y => y + 1)
+                        } else {
+                          setCategoryStatsMonth(m => m + 1)
+                        }
+                      }}
+                      className="p-1 hover:bg-fuchsia-500/20 rounded-lg transition-colors group"
+                      title="다음 달"
+                    >
+                      <ChevronRight className="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300" />
+                    </button>
+                  </div>
                 </div>
               </div>
               <button
@@ -1852,7 +1890,7 @@ const TransactionHistory = () => {
             <div className="flex-1 overflow-y-auto p-6">
               {(() => {
                 const transactions = getTransactionsByCurrency(categoryStatsCurrency)
-                const stats = getCategoryStats(transactions, categoryStatsCurrency)
+                const stats = getCategoryStats(transactions, categoryStatsCurrency, categoryStatsYear, categoryStatsMonth)
 
                 return (
                   <div className="space-y-6">
