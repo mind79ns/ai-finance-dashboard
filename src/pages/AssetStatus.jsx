@@ -525,9 +525,11 @@ const AssetStatus = () => {
           return tx.category === 'salary'
         } else if (filterType === 'card') {
           return tx.category === 'card'
+        } else if (filterType === 'insurance') {
+          return tx.category === 'insurance'
         } else if (filterType === 'expense') {
-          // tech_income, salary, card는 일반 지출에서 제외 (별도 항목으로 연동)
-          return tx.category !== 'tech_income' && tx.category !== 'salary' && tx.category !== 'card'
+          // tech_income, salary, card, insurance는 일반 지출에서 제외 (별도 항목으로 연동)
+          return tx.category !== 'tech_income' && tx.category !== 'salary' && tx.category !== 'card' && tx.category !== 'insurance'
         }
         return true
       })
@@ -591,6 +593,15 @@ const AssetStatus = () => {
         const cardCat = expenseCategories.find(c => c.name === '카드 지출' || c.id === 'card')
         if (cardCat) {
           monthData[cardCat.id] = krwCardTotal
+        }
+      }
+
+      // 입출금 이력 연동: 보험료 (KRW) 자동 반영
+      const krwInsuranceTotal = getTransactionMonthlyTotal(selectedYear, monthKey, 'krw', 'insurance')
+      if (krwInsuranceTotal > 0) {
+        const insuranceCat = expenseCategories.find(c => c.name === '보험료' || c.id === 'insurance')
+        if (insuranceCat) {
+          monthData[insuranceCat.id] = krwInsuranceTotal
         }
       }
 
@@ -2150,8 +2161,13 @@ const EditMonthModal = ({ year, month, monthName, monthData, incomeCategories, e
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {expenseCategories.map(cat => {
                   // 입출금 이력 연동 항목 확인
-                  const isLinked = (cat.id === 'loan' || cat.id === 'vnd' || cat.name === '카드 지출' || cat.id === 'card')
-                  const linkedLabel = cat.id === 'loan' ? 'KRW' : (cat.id === 'vnd' ? 'VND' : '카드 지출 (KRW)')
+                  const isLinked = (cat.id === 'loan' || cat.id === 'vnd' || cat.name === '카드 지출' || cat.id === 'card' || cat.name === '보험료' || cat.id === 'insurance')
+                  
+                  let linkedLabel = ''
+                  if (cat.id === 'loan') linkedLabel = 'KRW'
+                  else if (cat.id === 'vnd') linkedLabel = 'VND'
+                  else if (cat.name === '카드 지출' || cat.id === 'card') linkedLabel = '카드 지출 (KRW)'
+                  else if (cat.name === '보험료' || cat.id === 'insurance') linkedLabel = '보험료 (KRW)'
 
                   return (
                     <div key={cat.id} className={`bg-slate-800/50 p-3 rounded-lg border ${isLinked ? 'border-indigo-500/30 bg-indigo-900/10' : 'border-slate-700'} hover:border-rose-500/50 transition-colors`}>

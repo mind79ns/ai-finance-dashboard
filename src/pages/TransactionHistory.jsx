@@ -28,7 +28,8 @@ import {
   Wallet,
   CreditCard,
   MoreHorizontal,
-  PieChart
+  PieChart,
+  Shield
 } from 'lucide-react'
 import {
   BarChart,
@@ -60,6 +61,7 @@ const CATEGORIES = [
   { id: 'salary', name: '월급여', icon: DollarSign, color: '#3b82f6', bgColor: 'bg-blue-500/20' },
   { id: 'tech_income', name: '재테크', icon: TrendingUp, color: '#f59e0b', bgColor: 'bg-amber-500/20' },
   { id: 'card', name: '카드 지출', icon: CreditCard, color: '#ec4899', bgColor: 'bg-pink-500/20' },
+  { id: 'insurance', name: '보험료', icon: Shield, color: '#14b8a6', bgColor: 'bg-teal-500/20' },
   { id: 'other', name: '기타', icon: MoreHorizontal, color: '#6b7280', bgColor: 'bg-gray-500/20' }
 ]
 
