@@ -628,7 +628,38 @@ ${goalLines}
 - 각 섹션 말미에 핵심 요약을 추가하세요`
 }
 
-export const buildRebalancingPrompt = (portfolioData, portfolioInsights, riskAnalysis) => {
+export const buildOptimizationPrompt = (portfolioData, marketInsights, riskAnalysis) => {
+  const assets = portfolioData?.assets || []
+  if (!assets.length) return ''
+
+  const totalValue = assets.reduce((sum, a) => sum + (Number(a.valueKRW) || 0), 0)
+  
+  const assetListText = assets.map(a => {
+    const currentPercent = totalValue > 0 ? ((Number(a.valueKRW) || 0) / totalValue) * 100 : 0
+    return `- ${a.symbol} (${a.type}): 현재 ${formatNumber(currentPercent, 1)}% 비중, 수익률 ${formatPercent(a.profitPercent)}`
+  }).join('\n')
+
+  const marketTone = marketInsights ? marketInsights.sentiment.label : '데이터 없음'
+  const riskLevel = riskAnalysis ? riskAnalysis.riskLevel : '데이터 없음'
+
+  return `당신은 최고급 퀀트 투자 AI입니다. 현재 시장 상황과 포트폴리오 상태를 논리적으로 분석하여, 입력받은 자산들의 최적 목표 비중(%)을 산출해주세요.
+
+[현재 환경]
+시장 톤: ${marketTone}
+포트폴리오 리스크: ${riskLevel}
+
+[보유 자산 객체 목록]
+${assetListText}
+
+**지시사항:**
+1. 위 자산들의 미래 트렌드와 현재 과대/과소 수익률, 시장 톤을 종합하여 각 심볼(symbol)당 이상적인 배분율(0~100)을 제안하세요.
+2. 모든 자산 비중 합계는 정확히 100.0이 되어야 합니다.
+3. 결과물은 반드시 아래와 같은 순수한 한 줄짜리 JSON 형식으로만 응답해야 합니다. 마크다운(\`\`\`) 블록이나 부가 설명은 절대 넣지 마세요.
+{"AAPL": 40.5, "NVDA": 30.5, "TLT": 29.0}
+`
+}
+
+export const buildRebalancingPrompt = (portfolioData, portfolioInsights, riskAnalysis, targetAllocation, rebalanceTrades) => {
   if (!portfolioData || !portfolioInsights) {
     return '포트폴리오 데이터가 부족하여 리밸런싱을 제안할 수 없습니다.'
   }
@@ -655,6 +686,11 @@ export const buildRebalancingPrompt = (portfolioData, portfolioInsights, riskAna
 
   const topHoldings = portfolioInsights.largestPositions.map(item => `- ${item.symbol}: ${formatNumber(item.weight, 1)}% 비중, 수익률 ${formatPercent(item.profitPercent)}`).join('\n')
 
+  let tradeLines = '- 매매 계획 없음'
+  if (rebalanceTrades && rebalanceTrades.length > 0) {
+    tradeLines = rebalanceTrades.map(t => `- [${t.action === 'BUY' ? '🟢매수' : '🔴매도'}] ${t.symbol}: ${t.currentPercent.toFixed(1)}% → ${t.targetPercent.toFixed(1)}% (금액: ${formatCurrency(Math.abs(t.tradeAmount), 'KRW')})`).join('\n')
+  }
+
   return `포트폴리오 리밸런싱 전략을 제안해주세요.
 
 현재 평가액: ${formatCurrency(portfolioInsights.totalValueKRW, 'KRW')}
@@ -667,32 +703,31 @@ ${allocationLines}
 통화 노출:
 ${currencyLines}
 
-과도 비중 섹터:
-${overweightLines}
+과도 비중/부족 비중 섹터:
+과도: ${overweightLines.replace(/\n/g, ', ')}
+부족: ${underweightLines.replace(/\n/g, ', ')}
 
-부족 비중 섹터:
-${underweightLines}
+---
+[🤖 AI 최적화 매매 내역 (실행 계획)]
+이 내역은 목표 비중에 따라 도출된 구체적 행동 지침입니다:
+${tradeLines}
+---
 
-주요 보유 자산:
-${topHoldings}
-
-작성 지침:
-1. 현재 배분과 위험도를 검토하고, 적정 목표 배분 비율(예: 성장형/중립형/보수형)을 가정하여 제안하세요.
-2. 과도/부족 비중 섹터를 해소할 수 있는 매수·매도/환헤지 전략을 구체적으로 제시하세요.
-3. 실행 단계를 우선순위별로 나누고, 각 단계의 예상 영향(긍정/부정)과 모니터링 포인트를 병기하세요.
-4. 환율 변동, 세금, 거래비용 등 구현상의 주의사항을 포함하세요.
-5. 리밸런싱 주기와 자동화 아이디어, 추적해야 할 주요 지표를 체크리스트로 정리하세요.
+**작성 지침:**
+1. 위의 [🤖 AI 최적화 매매 내역]을 반드시 반영하여 왜 해당 종목을 매수/매도해야 하는지에 대한 강력한 논리와 거시적(매크로)/미시적 근거를 설명하세요. 추상적인 제안보다는 구체적인 실행 이유(Actionable Insights)에 집중하세요.
+2. 실행 단계를 우선순위별로 나누고, 각 단계의 예상 영향(긍정/부정)과 모니터링 포인트를 병기하세요.
+3. 환율 변동, 세금, 거래비용 등 매매 실행상의 주의사항을 포함하세요.
+4. 이 매매가 성공적으로 이루어졌을 때 예측되는 포트폴리오 위험도 변화나 긍정적 측면을 설명하세요.
 
 **출력 형식 지침 (필수):**
 - 각 섹션은 명확한 Markdown 헤딩(##)으로 구분하세요
-- 이모지를 적극 활용하여 시각적 가독성을 높이세요 (예: 🎯 목표 배분, 📊 현재 vs 목표, ⚖️ 리밸런싱 액션)
-- 현재 배분 vs 목표 배분 비교는 **Markdown 표 형식**으로 작성하세요
+- 이모지를 적극 활용하여 시각적 가독성을 높이세요 (예: 🎯 실행 목표, ⚖️ 리밸런싱 액션 플랜, 💡 기대 효과)
+- 매매 내역과 근거는 **Markdown 표 형식**으로 작성하세요
   예시:
-  | 자산군 | 현재 비중 | 목표 비중 | 조정 필요 | 액션 |
-  |--------|----------|----------|----------|------|
-  | 주식 | 65% | 50% | -15% | 매도 ₩3,000,000 |
+  | 자산군 | 액션 규모 | 실행 매매 논리 | 기대 효과 |
+  |--------|----------|----------|-----------|
+  | AAPL | 매도 ₩3,000,000 | 고점에 도달하여 차익 실현 및 현금 확보 | 변동성 헤지 |
 - 우선순위 액션은 번호 목록으로 명확히 구분하세요
-- 예상 영향은 긍정(✅)/주의(⚠️)/부정(❌) 이모지로 표시하세요
 - 체크리스트는 - [ ] 형식으로 작성하세요`
 }
 

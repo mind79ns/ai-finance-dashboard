@@ -16,6 +16,7 @@ import {
   buildMarketReportPrompt,
   buildPortfolioAnalysisPrompt,
   buildRebalancingPrompt,
+  buildOptimizationPrompt,
   buildChatPrompt
 } from '../utils/aiInsights'
 
@@ -731,6 +732,48 @@ ${insights.map(i => '- ' + i).join('\n')}
     }
   }
 
+  const optimizeAllocation = async () => {
+    if (!portfolioData?.assets?.length) return
+
+    setLoading(true)
+    try {
+      const prompt = buildOptimizationPrompt(portfolioData, marketInsights, riskAnalysis)
+      const response = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        '당신은 최고급 퀀트 투자 AI입니다. 반드시 순수 JSON 객체 형태로만 응답하세요.',
+        selectedAI
+      )
+      
+      // 파싱 시도 (마크다운 등이 섞여있을 수 있으므로 정규식으로 JSON 추출 시도)
+      let jsonStr = response
+      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0]
+      }
+      
+      const newAllocation = JSON.parse(jsonStr)
+      
+      // 유효성 검사
+      const validatedAllocation = {}
+      portfolioData.assets.forEach(asset => {
+        const val = Number(newAllocation[asset.symbol])
+        if (!isNaN(val) && val >= 0) {
+          validatedAllocation[asset.symbol] = val
+        } else {
+          validatedAllocation[asset.symbol] = 0
+        }
+      })
+      
+      setTargetAllocation(validatedAllocation)
+      
+    } catch (error) {
+      console.error('Failed to optimize allocation:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const generateRebalancingSuggestion = async () => {
     if (!portfolioData) {
       setRebalancingSuggestion('포트폴리오 데이터가 없습니다.')
@@ -739,7 +782,7 @@ ${insights.map(i => '- ' + i).join('\n')}
 
     setLoading(true)
     try {
-      const prompt = buildRebalancingPrompt(portfolioData, portfolioInsights, riskAnalysis)
+      const prompt = buildRebalancingPrompt(portfolioData, portfolioInsights, riskAnalysis, targetAllocation, calculateRebalanceTrades)
       const suggestion = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
@@ -1207,74 +1250,7 @@ ${assetsList}
     }
   }
 
-  // AI 포트폴리오 최적화 제안
-  const optimizeAllocation = async () => {
-    if (!portfolioData || !portfolioData.assets?.length) return
 
-    setLoading(true)
-    try {
-      const assetsList = portfolioData.assets
-        .map(a => `${a.symbol} (${a.name || ''}): 현재비중 ${((a.valueKRW / portfolioData.totalValueKRW) * 100).toFixed(1)}%, 수익률 ${a.profitPercent.toFixed(1)}%`)
-        .join('\n')
-
-      const prompt = `
-당신은 포트폴리오 최적화 전문가(Portfolio Optimization Expert)입니다.
-현재 시장 상황과 종목의 특성을 고려하여, 리스크를 최소화하면서도 수익률과 안정성을 극대화할 수 있는 **최적의 목표 비중(Target Weights)**을 제안해주세요.
-
-[보유 자산 현황]
-${assetsList}
-
-[제약 조건]
-1. 모든 자산의 목표 비중 합계는 정확히 **100%**여야 합니다.
-2. 특정 종목에 50% 이상 몰빵하지 마세요 (분산 투자 원칙).
-3. 수익률이 극도로 저조하고 전망이 어두운 종목은 비중 축소를, 상승 여력이 높은 종목은 비중 확대를 고려하세요.
-4. 결과는 반드시 **JSON 형식**으로만 출력하세요. 설명 등 사족을 달지 마세요.
-
-[출력 형식 예시]
-{
-  "AAPL": 25.5,
-  "TSLA": 15.0,
-  "NVDA": 10.0,
-  ...
-}
-`
-      const response = await aiService.routeAIRequest(
-        prompt,
-        aiService.TASK_LEVEL.ADVANCED,
-        '당신은 포트폴리오 최적화 AI입니다. JSON 형식으로만 응답합니다.',
-        'gpt' // Force GPT for better JSON handling
-      )
-
-      // Parse JSON response
-      try {
-        const jsonMatch = response.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          const suggestedWeights = JSON.parse(jsonMatch[0])
-          setTargetAllocation(prev => {
-            const newAllocation = { ...prev }
-            Object.keys(suggestedWeights).forEach(symbol => {
-              if (newAllocation.hasOwnProperty(symbol) || portfolioData.assets.some(a => a.symbol === symbol)) {
-                newAllocation[symbol] = parseFloat(suggestedWeights[symbol])
-              }
-            })
-            return newAllocation
-          })
-          alert('AI가 제안하는 최적 비중이 적용되었습니다. 세부 조정은 직접 가능합니다.')
-        } else {
-          throw new Error('JSON parsing failed')
-        }
-      } catch (e) {
-        console.error('AI Optimization Parse Error:', e)
-        alert('최적화 제안을 해석하는데 실패했습니다. 다시 시도해주세요.')
-      }
-
-    } catch (error) {
-      console.error('Optimization Error:', error)
-      alert('최적화 중 오류가 발생했습니다.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // AI 뉴스 요약
   const generateNewsSummary = async () => {
