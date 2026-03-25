@@ -2989,9 +2989,9 @@ ${assetsList}
                 </button>
               </div>
               <div className="px-6 py-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                <div className="markdown-body text-sm text-gray-300">
+                <div className="text-sm text-gray-300" style={{ color: '#d1d5db', backgroundColor: 'transparent' }}>
                   <ReactMarkdown
-                    className="prose max-w-none leading-relaxed"
+                    className="prose prose-invert max-w-none leading-relaxed"
                     remarkPlugins={[remarkGfm]}
                     components={darkMarkdownComponents}
                   >
