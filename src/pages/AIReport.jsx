@@ -900,8 +900,8 @@ ${insights.map(i => '- ' + i).join('\n')}
 
   // 종목 심층 분석 (Multi-Agent Pipeline)
   const generateStockAnalysis = async () => {
-    const targetSymbol = selectedStock ? selectedStock.symbol : customStockCode
-    const targetName = selectedStock ? selectedStock.name : customStockName
+    const targetSymbol = selectedStock ? selectedStock.symbol : (customStockCode || customStockName)
+    const targetName = selectedStock ? selectedStock.name : (customStockName || customStockCode)
 
     if (!targetSymbol) {
       setStockAnalysis('분석할 종목을 선택하거나 종목 코드를 입력해주세요.')
@@ -1762,7 +1762,7 @@ ${assetsList}
           </div>
 
           {/* 선택된 종목 정보 및 Perplexity 검색 버튼 */}
-          {(selectedStock || (customStockCode && customStockName)) && (
+          {(selectedStock || customStockCode || customStockName) && (
             <>
               {selectedStock && (
                 <div className="cyber-card bg-gradient-to-br from-slate-800 to-slate-900 border-teal-500/50 shadow-[0_0_20px_rgba(20,184,166,0.15)] p-6">
@@ -2086,7 +2086,7 @@ ${assetsList}
           )}
 
           {
-            !selectedStock && !(customStockCode && customStockName) && (
+            !selectedStock && !customStockCode && !customStockName && (
               <div className="cyber-card text-center py-12 border-dashed border-teal-500/30">
                 <TrendingUp className="w-12 h-12 text-teal-500/50 mx-auto mb-4" />
                 <p className="text-gray-400 font-medium">분석할 종목을 선택하거나 직접 입력해주세요</p>
