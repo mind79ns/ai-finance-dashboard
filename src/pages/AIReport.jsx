@@ -1679,7 +1679,7 @@ ${assetsList}
           <div className="cyber-card">
             <h4 className="text-sm font-medium text-gray-300 mb-3">📊 보유 종목에서 선택</h4>
             {portfolioData && portfolioData.assets && portfolioData.assets.length > 0 ? (
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 {portfolioData.assets.map((asset) => (
                   <button
                     key={asset.symbol}
@@ -1688,17 +1688,25 @@ ${assetsList}
                       setCustomStockCode('')
                       setCustomStockName('')
                     }}
-                    className={`p-2 rounded-lg border transition-all text-left ${selectedStock?.symbol === asset.symbol
+                    className={`p-3 rounded-lg border transition-all text-left w-full ${selectedStock?.symbol === asset.symbol
                       ? 'border-teal-500 bg-teal-500/20 shadow-[0_0_10px_rgba(20,184,166,0.2)]'
                       : 'border-slate-700 bg-slate-800 hover:border-teal-500/50 hover:bg-slate-700'
                       }`}
                   >
-                    <p className="font-semibold text-sm text-white">{asset.symbol}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">{asset.name}</p>
-                    <p className={`text-[10px] mt-0.5 font-medium ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                      }`}>
-                      {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(1)}%
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      {/* 좌측: 심볼 + 종목명 */}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-base text-white leading-tight">{asset.symbol}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{asset.name}</p>
+                      </div>
+                      {/* 우측: 손익률 */}
+                      <div className="text-right flex-shrink-0">
+                        <p className={`text-base font-bold leading-tight ${asset.profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                          }`}>
+                          {asset.profitPercent >= 0 ? '+' : ''}{asset.profitPercent.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
