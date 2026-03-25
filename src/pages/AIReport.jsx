@@ -5,6 +5,7 @@ import { Sparkles, FileText, RefreshCw, Zap, TrendingUp, AlertTriangle, Clock, A
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, RadialBarChart, RadialBar } from 'recharts'
 import aiService from '../services/aiService'
 import marketDataService from '../services/marketDataService'
+import stockAgentService from '../services/stockAgentService'
 import AIStrategyBadge from '../components/AIStrategyBadge'
 import dataSync from '../utils/dataSync'
 import {
@@ -87,6 +88,9 @@ const AIReport = () => {
   // Rebalancing target allocation
   const [targetAllocation, setTargetAllocation] = useState({})  // { symbol: targetPercent }
   const [showRebalanceCalc, setShowRebalanceCalc] = useState(false)
+
+  // Agent pipeline progress
+  const [agentProgress, setAgentProgress] = useState({ phase: 0, agent: '', status: '' })
 
 
   const marketInsights = useMemo(() => computeMarketInsights(marketData), [marketData])
@@ -894,11 +898,10 @@ ${insights.map(i => '- ' + i).join('\n')}
     }
   }
 
-  // 종목 심층 분석 (Phase 2 Refactor)
+  // 종목 심층 분석 (Multi-Agent Pipeline)
   const generateStockAnalysis = async () => {
     const targetSymbol = selectedStock ? selectedStock.symbol : customStockCode
     const targetName = selectedStock ? selectedStock.name : customStockName
-    const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
 
     if (!targetSymbol) {
       setStockAnalysis('분석할 종목을 선택하거나 종목 코드를 입력해주세요.')
@@ -906,7 +909,9 @@ ${insights.map(i => '- ' + i).join('\n')}
     }
 
     setLoading(true)
-    setStockAnalysis('') // Clear previous
+    setStockAnalysis('')
+    setAgentProgress({ phase: 0, agent: 'Init', status: '시장 데이터 수집 중...' })
+
     try {
       // 1단계: Finnhub 데이터 병렬 수집
       const [quoteRes, profileRes, metricsRes, newsRes] = await Promise.allSettled([
@@ -921,130 +926,36 @@ ${insights.map(i => '- ' + i).join('\n')}
       const metrics = metricsRes.status === 'fulfilled' ? metricsRes.value : null
       const news = newsRes.status === 'fulfilled' ? newsRes.value : null
 
-      // 보강 데이터 저장 (UI 카드 표시용)
       setStockEnrichedData({ quote, profile, metrics, news })
 
-      // 2단계: 프롬프트 데이터 구성
-      const priceSection = quote
-        ? `현재가: $${quote.price?.toLocaleString()} | 전일대비: ${quote.change >= 0 ? '+' : ''}${quote.change?.toFixed(2)} (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent?.toFixed(2)}%) | 당일 고/저: $${quote.high} / $${quote.low}`
-        : selectedStock
-          ? `현재가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.currentPrice?.toLocaleString()} (수익률: ${selectedStock.profitPercent?.toFixed(2)}%)`
-          : '가격 정보 없음'
-
-      const profileSection = profile
-        ? `\n[기업 프로필]\n이름: ${profile.name} | 산업: ${profile.industry} | 국가: ${profile.country}\n거래소: ${profile.exchange} | 시가총액: $${(profile.marketCap || 0).toLocaleString()}M | IPO: ${profile.ipo || 'N/A'}`
-        : ''
-
-      const metricsSection = metrics
-        ? `\n[재무 지표 - Finnhub 실시간]\n52주 고가: $${metrics['52WeekHigh']} (${metrics['52WeekHighDate'] || 'N/A'}) | 52주 저가: $${metrics['52WeekLow']} (${metrics['52WeekLowDate'] || 'N/A'})\nPER: ${metrics.peRatio?.toFixed(2) || 'N/A'} | PBR: ${metrics.pbRatio?.toFixed(2) || 'N/A'} | PSR: ${metrics.psRatio?.toFixed(2) || 'N/A'}\nROE: ${metrics.roe?.toFixed(2) || 'N/A'}% | ROA: ${metrics.roa?.toFixed(2) || 'N/A'}%\n배당수익률: ${metrics.dividendYield?.toFixed(2) || 'N/A'}% | Beta: ${metrics.beta?.toFixed(2) || 'N/A'}\nEPS 성장률: ${metrics.epsGrowth?.toFixed(2) || 'N/A'}% | 매출 성장률: ${metrics.revenueGrowth?.toFixed(2) || 'N/A'}%\n유동비율: ${metrics.currentRatio?.toFixed(2) || 'N/A'} | 부채비율: ${metrics.debtToEquity?.toFixed(2) || 'N/A'}\n10일 평균 거래량: ${metrics.avgVolume10Day?.toFixed(2) || 'N/A'}M주`
-        : ''
-
-      const newsSection = news && news.length > 0
-        ? `\n[최근 뉴스 헤드라인 (${news.length}건)]\n${news.map((n, i) => `${i + 1}. [${n.datetime}] ${n.headline} (${n.source})`).join('\n')}`
-        : ''
-
+      // 포트폴리오 컨텍스트
       const portfolioContext = selectedStock
-        ? `\n[투자자 보유 정보]\n보유수량: ${selectedStock.quantity}주 | 매수가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.purchasePrice?.toLocaleString()} | 현재 수익률: ${selectedStock.profitPercent?.toFixed(2)}%`
+        ? `보유수량: ${selectedStock.quantity}주 | 매수가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.purchasePrice?.toLocaleString()} | 현재 수익률: ${selectedStock.profitPercent?.toFixed(2)}%`
         : ''
 
-      // 3단계: 확장된 AI 프롬프트 (7개 섹션)
-      const prompt = `[${today} 기준 실시간 종목 심층 분석 요청]
-
-=== 분석 대상 ===
-종목: ${targetName} (${targetSymbol})
-${priceSection}
-${profileSection}
-${metricsSection}
-${newsSection}
-${portfolioContext}
-
-=== 분석 지시 ===
-당신은 월스트리트의 최상위 헤지펀드 매니저이자 CFA(공인재무분석사)입니다.
-위에 제공된 **실제 시장 데이터(Finnhub API 기준)**를 기반으로, 투자자가 즉시 행동할 수 있는 심층 분석을 작성하세요.
-
-반드시 다음 7개 섹션을 Markdown 형식으로 작성하세요:
-
-## 1. 🎯 투자 의견 (Investment Rating)
-| 항목 | 내용 |
-|---|---|
-| **투자 등급** | (강력매수 / 매수 / 중립 / 매도 / 강력매도) |
-| **신뢰도** | (상 / 중 / 하) |
-| **목표 주가** | (구체적 범위 또는 N/A) |
-| **핵심 근거** | (한 줄 요약) |
-
-## 2. 📊 핵심 지표 대시보드 (Key Metrics)
-위에서 제공된 재무 지표 데이터를 기반으로 표 형태로 정리하세요:
-| 지표 | 수치 | 업종 평균 대비 | 평가 |
-|---|---|---|---|
-| PER | | | (고평가/적정/저평가) |
-| PBR | | | |
-| ROE | | | |
-| 배당수익률 | | | |
-| 부채비율 | | | |
-
-## 3. 📈 기술적 분석 (Technical Analysis)
-* **52주 고/저 대비 위치**: 현재가가 52주 범위에서 어디에 있는지 (%) 분석
-* **추세 판단**: 상승추세 / 하락추세 / 횡보구간
-* **주요 지지/저항선**: 근거와 함께 제시
-* **거래량 분석**: 평균 거래량 대비 현재 수급 상황
-
-## 4. 💰 재무 건전성 (Financial Health)
-* **수익성**: ROE, ROA 기반 수익 창출 능력 평가
-* **성장성**: EPS/매출 성장률 기반 성장 모멘텀
-* **안정성**: 유동비율, 부채비율 기반 재무 안정성
-* **종합 등급**: (🟢 우수 / 🟡 보통 / 🔴 주의)
-
-## 5. ⚔️ 경쟁사 비교 (Peer Comparison)
-동종 업계의 주요 경쟁 기업 2-3개와 핵심 지표 비교표:
-| 종목 | PER | 시가총액 | 성장률 | 투자매력도 |
-|---|---|---|---|---|
-
-## 6. ⚠️ 리스크 요인 (Risk Factors)
-* **시장 리스크**: (금리, 환율, 지정학적 요인)
-* **산업 리스크**: (경쟁 심화, 규제 변화)
-* **기업 고유 리스크**: (실적 변동, 구조적 문제)
-* **리스크 종합 등급**: (🟢 낮음 / 🟡 보통 / 🔴 높음)
-
-## 7. 🎯 실전 매매 전략 (Action Plan)
-| 항목 | 가격/수준 |
-|---|---|
-| **현재가** | |
-| **1차 진입가 (공격적)** | |
-| **2차 진입가 (보수적)** | |
-| **손절가 (Stop Loss)** | |
-| **1차 목표가** | |
-| **2차 목표가** | |
-| **비중 제안** | (포트폴리오 대비 %) |
-
-**구체적 행동 지침:**
-* 지금 바로 매수/매도/관망해야 하는 이유
-* 분할 매수 전략 또는 손절 시나리오
-
-**작성 원칙:**
-- 🔴 위에 제공된 실제 데이터(Finnhub 재무지표, 가격, 뉴스)를 적극 활용하세요.
-- 데이터가 없는 항목은 "데이터 없음"으로 표시하고, 일반적 분석으로 대체하세요.
-- 구체적인 수치와 근거를 반드시 제시하세요. 추상적 서술 금지.
-- 개조식(Bullet points)과 표(Table) 위주로 가독성을 극대화하세요.
-- ${today} 기준 분석임을 명시하세요.`
-
-      const analysis = await aiService.routeAIRequest(
-        prompt,
-        aiService.TASK_LEVEL.ADVANCED,
-        '당신은 CFA 자격을 보유한 월스트리트 수석 애널리스트입니다. 실제 재무 데이터를 기반으로 근거 있는 분석만 제공합니다. 한국어로 작성하되, 전문 용어는 원어 병기합니다.',
-        selectedAI
+      // 2단계: 에이전트 파이프라인 실행
+      const analysis = await stockAgentService.runAgentPipeline(
+        { symbol: targetSymbol, name: targetName, quote, profile, metrics, news, portfolioContext },
+        selectedAI,
+        (phase, agent, status) => {
+          setAgentProgress({ phase, agent, status })
+        }
       )
+
       setStockAnalysis(analysis)
+      setAgentProgress({ phase: 0, agent: '', status: '' })
       appendHistory({
         id: Date.now(),
         type: 'stock',
         createdAt: new Date().toISOString(),
         stock: targetSymbol,
-        summary: `${targetName} (${targetSymbol}) 심층 분석`,
+        summary: `${targetName} (${targetSymbol}) AI 에이전트 심층 분석`,
         content: analysis,
         enrichedData: { quote, profile, metrics }
       })
     } catch (error) {
       setStockAnalysis('종목 분석 중 오류가 발생했습니다. API 키를 확인해주세요.')
+      setAgentProgress({ phase: 0, agent: '', status: '' })
     } finally {
       setLoading(false)
     }
@@ -2071,17 +1982,35 @@ ${assetsList}
                   {loading ? (
                     <>
                       <RefreshCw className="w-5 h-5 animate-spin" />
-                      {stockCompareMode ? '두 종목 데이터 수집 + 비교 분석 중...' : 'Finnhub 데이터 수집 + AI 심층 분석 중...'}
+                      {stockCompareMode ? '두 종목 데이터 수집 + 비교 분석 중...' : (agentProgress.status || 'AI 에이전트 분석 중...')}
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      {stockCompareMode ? '⚔️ AI 종목 비교 분석 시작' : '🚀 AI 심층 분석 시작 (7개 섹션)'}
+                      {stockCompareMode ? '⚔️ AI 종목 비교 분석 시작' : '🤖 AI 에이전트 심층 분석 (6단계)'}
                     </>
                   )}
                 </button>
+
+                {/* Agent Progress Bar */}
+                {loading && !stockCompareMode && agentProgress.phase > 0 && (
+                  <div className="w-full max-w-md">
+                    <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                      <span>{agentProgress.agent}</span>
+                      <span>Phase {agentProgress.phase}/4</span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-teal-500 to-indigo-500 rounded-full transition-all duration-500"
+                        style={{ width: `${(agentProgress.phase / 4) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-teal-400 mt-1 text-center">{agentProgress.status}</p>
+                  </div>
+                )}
+
                 <p className="text-sm text-gray-400 mt-2">
-                  * Finnhub 실시간 데이터(재무지표, 52주 범위, 뉴스) + AI 분석을 결합합니다.
+                  * 6개 전문 AI 서브 에이전트가 순차적으로 기업개요·재무·산업·모멘텀·리스크·종합의견을 분석합니다.
                 </p>
               </div>
 
