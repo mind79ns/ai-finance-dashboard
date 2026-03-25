@@ -2064,7 +2064,7 @@ ${assetsList}
                     </div>
                     <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-sm">
                       <ReactMarkdown
-                        className="prose max-w-none leading-relaxed"
+                        className="prose prose-invert max-w-none leading-relaxed"
                         remarkPlugins={[remarkGfm]}
                         components={darkMarkdownComponents}
                       >

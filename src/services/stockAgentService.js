@@ -71,16 +71,32 @@ const buildDataContext = ({ symbol, name, quote, profile, metrics, news, portfol
 }
 
 /**
+ * Strip wrapping code blocks from AI response (e.g. ```markdown ... ```)
+ * Some AI models wrap their markdown output in code fences which prevents proper rendering.
+ */
+const cleanAgentResponse = (response) => {
+  if (!response || typeof response !== 'string') return response || ''
+  let cleaned = response.trim()
+  // Remove wrapping ```markdown ... ``` or ``` ... ```
+  const codeBlockMatch = cleaned.match(/^```(?:markdown|md)?\s*\n([\s\S]*?)\n```\s*$/i)
+  if (codeBlockMatch) {
+    cleaned = codeBlockMatch[1].trim()
+  }
+  return cleaned
+}
+
+/**
  * Run a single sub-agent
  */
 const runSubAgent = async (agentPromptMd, userPrompt, aiProvider) => {
   const systemPrompt = extractSystemPrompt(agentPromptMd)
-  return await aiService.routeAIRequest(
+  const response = await aiService.routeAIRequest(
     userPrompt,
     aiService.TASK_LEVEL.ADVANCED,
     systemPrompt,
     aiProvider
   )
+  return cleanAgentResponse(response)
 }
 
 /**
