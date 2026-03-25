@@ -25,6 +25,56 @@ class MarketDataService {
     // Simple cache to avoid excessive API calls
     this.cache = {}
     this.cacheExpiry = 60000 // 1 minute
+
+    // 한국 KOSDAQ 대표 종목 코드 (6자리) — .KQ 접미사 사용
+    this.kosdaqCodes = new Set([
+      '263750', // 펄어비스
+      '293490', // 카카오게임즈
+      '095340', // ISC
+      '041510', // SM엔터테인먼트 (KOSDAQ에서 KOSPI로 이전)
+      '112040', // 위메이드
+      '036570', // 엔씨소프트 -> KOSPI
+      '251270', // 넷마블 -> KOSPI
+      '059210', // 메타바이오메드
+      '215600', // 신라젠
+    ])
+  }
+
+  /**
+   * 한국 종목 코드를 Finnhub 호환 심볼로 변환
+   * 6자리 숫자 → .KS(KOSPI) 또는 .KQ(KOSDAQ) 접미사 추가
+   * 이미 .KS/.KQ가 포함된 경우 그대로 반환
+   */
+  normalizeSymbol(symbol) {
+    if (!symbol) return symbol
+    const cleaned = symbol.trim().toUpperCase()
+    
+    // 이미 한국 접미사가 있으면 그대로 반환
+    if (cleaned.endsWith('.KS') || cleaned.endsWith('.KQ')) {
+      return cleaned
+    }
+
+    // 6자리 숫자면 한국 종목 코드
+    if (/^\d{6}$/.test(cleaned)) {
+      // KOSDAQ 목록에 있으면 .KQ, 아니면 기본적으로 .KS 사용
+      if (this.kosdaqCodes.has(cleaned)) {
+        console.log(`🇰🇷 한국 KOSDAQ 종목 감지: ${cleaned} → ${cleaned}.KQ`)
+        return `${cleaned}.KQ`
+      }
+      console.log(`🇰🇷 한국 KOSPI 종목 감지: ${cleaned} → ${cleaned}.KS`)
+      return `${cleaned}.KS`
+    }
+
+    return cleaned
+  }
+
+  /**
+   * 원래 심볼(사용자 입력)과 Finnhub 심볼을 반환
+   */
+  getSymbolPair(symbol) {
+    const original = symbol.trim().toUpperCase()
+    const finnhub = this.normalizeSymbol(symbol)
+    return { original, finnhub }
   }
 
   /**
@@ -380,7 +430,8 @@ class MarketDataService {
    * 포트폴리오에서 사용
    */
   async getStockPrice(symbol) {
-    const cacheKey = `stock_${symbol}`
+    const finnhubSymbol = this.normalizeSymbol(symbol)
+    const cacheKey = `stock_${finnhubSymbol}`
     const cached = this.getCached(cacheKey)
     if (cached) return cached
 
@@ -392,7 +443,7 @@ class MarketDataService {
 
       const response = await axios.get(`${this.finnhubBaseURL}/quote`, {
         params: {
-          symbol: symbol.toUpperCase(),
+          symbol: finnhubSymbol,
           token: API_CONFIG.FINNHUB_API_KEY
         }
       })
@@ -401,12 +452,12 @@ class MarketDataService {
 
       // Finnhub returns c (current price)
       if (!data.c || data.c === 0) {
-        console.warn(`⚠️ No price data for ${symbol}`)
+        console.warn(`⚠️ No price data for ${finnhubSymbol}`)
         return null
       }
 
       const result = {
-        symbol: symbol.toUpperCase(),
+        symbol: finnhubSymbol,
         price: data.c,
         change: data.d,
         changePercent: data.dp,
@@ -418,11 +469,11 @@ class MarketDataService {
       }
 
       this.setCache(cacheKey, result)
-      console.log(`✅ Finnhub: ${symbol} price = $${result.price}`)
+      console.log(`✅ Finnhub: ${finnhubSymbol} price = ${result.price}`)
       return result
 
     } catch (error) {
-      console.error(`❌ Finnhub error for ${symbol}:`, error.message)
+      console.error(`❌ Finnhub error for ${finnhubSymbol}:`, error.message)
       return null
     }
   }
@@ -455,7 +506,8 @@ class MarketDataService {
    * 산업, 시가총액, 직원수, IPO일자, 웹사이트 등
    */
   async getStockProfile(symbol) {
-    const cacheKey = `profile_${symbol}`
+    const finnhubSymbol = this.normalizeSymbol(symbol)
+    const cacheKey = `profile_${finnhubSymbol}`
     const cached = this.getCached(cacheKey)
     if (cached) return cached
 
@@ -464,14 +516,14 @@ class MarketDataService {
 
       const response = await axios.get(`${this.finnhubBaseURL}/stock/profile2`, {
         params: {
-          symbol: symbol.toUpperCase(),
+          symbol: finnhubSymbol,
           token: API_CONFIG.FINNHUB_API_KEY
         }
       })
 
       const data = response.data
       if (!data || !data.name) {
-        console.warn(`⚠️ No profile data for ${symbol}`)
+        console.warn(`⚠️ No profile data for ${finnhubSymbol}`)
         return null
       }
 
@@ -491,11 +543,11 @@ class MarketDataService {
       }
 
       this.setCache(cacheKey, result)
-      console.log(`✅ Finnhub Profile: ${symbol} - ${result.name} (${result.industry})`)
+      console.log(`✅ Finnhub Profile: ${finnhubSymbol} - ${result.name} (${result.industry})`)
       return result
 
     } catch (error) {
-      console.error(`❌ Finnhub profile error for ${symbol}:`, error.message)
+      console.error(`❌ Finnhub profile error for ${finnhubSymbol}:`, error.message)
       return null
     }
   }
@@ -505,7 +557,8 @@ class MarketDataService {
    * 52주 고/저, PER, PBR, EPS, 배당수익률, ROE 등
    */
   async getStockMetrics(symbol) {
-    const cacheKey = `metrics_${symbol}`
+    const finnhubSymbol = this.normalizeSymbol(symbol)
+    const cacheKey = `metrics_${finnhubSymbol}`
     const cached = this.getCached(cacheKey)
     if (cached) return cached
 
@@ -514,7 +567,7 @@ class MarketDataService {
 
       const response = await axios.get(`${this.finnhubBaseURL}/stock/metric`, {
         params: {
-          symbol: symbol.toUpperCase(),
+          symbol: finnhubSymbol,
           metric: 'all',
           token: API_CONFIG.FINNHUB_API_KEY
         }
@@ -522,7 +575,7 @@ class MarketDataService {
 
       const data = response.data
       if (!data || !data.metric) {
-        console.warn(`⚠️ No metrics data for ${symbol}`)
+        console.warn(`⚠️ No metrics data for ${finnhubSymbol}`)
         return null
       }
 
@@ -557,11 +610,11 @@ class MarketDataService {
       }
 
       this.setCache(cacheKey, result)
-      console.log(`✅ Finnhub Metrics: ${symbol} - PE: ${result.peRatio}, 52W: ${result['52WeekLow']}-${result['52WeekHigh']}`)
+      console.log(`✅ Finnhub Metrics: ${finnhubSymbol} - PE: ${result.peRatio}, 52W: ${result['52WeekLow']}-${result['52WeekHigh']}`)
       return result
 
     } catch (error) {
-      console.error(`❌ Finnhub metrics error for ${symbol}:`, error.message)
+      console.error(`❌ Finnhub metrics error for ${finnhubSymbol}:`, error.message)
       return null
     }
   }
@@ -571,7 +624,8 @@ class MarketDataService {
    * 최근 N일간의 뉴스 헤드라인 (최대 maxItems건)
    */
   async getCompanyNews(symbol, daysBack = 7, maxItems = 5) {
-    const cacheKey = `news_${symbol}_${daysBack}`
+    const finnhubSymbol = this.normalizeSymbol(symbol)
+    const cacheKey = `news_${finnhubSymbol}_${daysBack}`
     const cached = this.getCached(cacheKey)
     if (cached) return cached
 
@@ -583,7 +637,7 @@ class MarketDataService {
 
       const response = await axios.get(`${this.finnhubBaseURL}/company-news`, {
         params: {
-          symbol: symbol.toUpperCase(),
+          symbol: finnhubSymbol,
           from,
           to,
           token: API_CONFIG.FINNHUB_API_KEY
@@ -592,7 +646,7 @@ class MarketDataService {
 
       const data = response.data
       if (!data || !Array.isArray(data) || data.length === 0) {
-        console.warn(`⚠️ No news for ${symbol}`)
+        console.warn(`⚠️ No news for ${finnhubSymbol}`)
         return null
       }
 
@@ -607,11 +661,11 @@ class MarketDataService {
       }))
 
       this.setCache(cacheKey, result)
-      console.log(`✅ Finnhub News: ${symbol} - ${result.length} articles`)
+      console.log(`✅ Finnhub News: ${finnhubSymbol} - ${result.length} articles`)
       return result
 
     } catch (error) {
-      console.error(`❌ Finnhub news error for ${symbol}:`, error.message)
+      console.error(`❌ Finnhub news error for ${finnhubSymbol}:`, error.message)
       return null
     }
   }
