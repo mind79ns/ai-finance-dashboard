@@ -1802,15 +1802,23 @@ ${assetsList}
                 </div>
               )}
 
-              {!selectedStock && customStockCode && customStockName && (
+              {!selectedStock && (customStockCode || customStockName) && (
                 <div className="cyber-card bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border-purple-500/30 p-6">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-slate-800 rounded-xl border border-purple-500/30 shadow-lg">
                       <TrendingUp className="w-8 h-8 text-purple-400" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold text-white neon-text-purple">{customStockCode}</h3>
-                      <p className="text-lg text-gray-300 mt-1">{customStockName}</p>
+                      <h3 className="text-2xl font-bold text-white neon-text-purple">{customStockCode || customStockName}</h3>
+                      {customStockCode && customStockName && (
+                        <p className="text-lg text-gray-300 mt-1">{customStockName}</p>
+                      )}
+                      {!customStockCode && customStockName && (
+                        <p className="text-sm text-gray-400 mt-1">종목명으로 검색합니다</p>
+                      )}
+                      {customStockCode && !customStockName && (
+                        <p className="text-sm text-gray-400 mt-1">종목 코드로 검색합니다</p>
+                      )}
                     </div>
                   </div>
                 </div>
