@@ -73,15 +73,37 @@ const buildDataContext = ({ symbol, name, quote, profile, metrics, news, portfol
 /**
  * Strip wrapping code blocks from AI response (e.g. ```markdown ... ```)
  * Some AI models wrap their markdown output in code fences which prevents proper rendering.
+ * Handles multiple patterns: ```markdown, ```md, ```, with/without CRLF, nested blocks.
  */
 const cleanAgentResponse = (response) => {
   if (!response || typeof response !== 'string') return response || ''
   let cleaned = response.trim()
-  // Remove wrapping ```markdown ... ``` or ``` ... ```
-  const codeBlockMatch = cleaned.match(/^```(?:markdown|md)?\s*\n([\s\S]*?)\n```\s*$/i)
-  if (codeBlockMatch) {
-    cleaned = codeBlockMatch[1].trim()
+
+  // Normalize line endings
+  cleaned = cleaned.replace(/\r\n/g, '\n')
+
+  // Pattern 1: Full wrap — ```markdown\n...\n```
+  const fullWrapPattern = /^```(?:markdown|md|text)?\s*\n([\s\S]*?)\n```\s*$/i
+  let match = cleaned.match(fullWrapPattern)
+  if (match) {
+    cleaned = match[1].trim()
   }
+
+  // Pattern 2: Leading code fence only (no closing) — sometimes AI only opens but doesn't close
+  if (/^```(?:markdown|md|text)?\s*\n/i.test(cleaned) && !cleaned.endsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:markdown|md|text)?\s*\n/i, '').trim()
+  }
+
+  // Pattern 3: Multiple code blocks wrapping entire content (recursive strip)
+  let prevLength = 0
+  while (prevLength !== cleaned.length) {
+    prevLength = cleaned.length
+    const m = cleaned.match(/^```(?:markdown|md|text)?\s*\n([\s\S]*?)\n```\s*$/i)
+    if (m) {
+      cleaned = m[1].trim()
+    }
+  }
+
   return cleaned
 }
 
