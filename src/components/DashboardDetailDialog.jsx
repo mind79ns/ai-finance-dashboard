@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { X, TrendingUp, TrendingDown, Wallet, BarChart3, PiggyBank, Target, Globe, Zap, Clock, ArrowUpRight, ArrowDownRight, Info } from 'lucide-react'
+import { X, TrendingUp, TrendingDown, Wallet, BarChart3, PiggyBank, Target, Globe, Zap, Clock, ArrowUpRight, ArrowDownRight, Info, Activity } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 const CYBER_COLORS = ['#00d4ff', '#00ff88', '#ffd700', '#ff6b6b', '#a855f7', '#06b6d4', '#f97316']
@@ -278,12 +278,16 @@ const ProfitDetail = ({ d }) => {
 
       <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">수익 기여도 랭킹</h3>
       <CyberTable
-        headers={['순위', '종목명', {label:'수익 크기',align:'left'}, {label:'수익률',align:'right'}]}
+        headers={['순위', '종목명', {label:'투자금/수익금',align:'right'}, {label:'수익 크기',align:'left'}, {label:'수익률',align:'right'}]}
         rows={sorted.map((p, i) => [
           <span className="text-cyan-500/50">#{i + 1}</span>,
           <div className="flex flex-col">
             <span className="font-bold">{p.symbol}</span>
             {p.name !== p.symbol && <span className="text-[10px] text-cyan-300/40">{p.name}</span>}
+          </div>,
+          <div className="flex flex-col text-right">
+            <span className="font-bold">{fmtC(p.valueKRW || 0)}</span>
+            <span className="text-xs"><PnlText value={p.profitKRW || 0} suffix="원" /></span>
           </div>,
           <SparklineBar value={p.profitPercent} max={maxProfit} color={p.profitPercent >= 0 ? '#10b981' : '#f43f5e'} />,
           <PnlText value={p.profitPercent} suffix="%" />
@@ -340,6 +344,20 @@ const DividendDetail = ({ d }) => {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2 mt-6">종목별 / 월별 세부 배당 내역</h3>
+      {d.dividendData && d.dividendData.length > 0 ? (
+        <CyberTable
+          headers={['날짜', '종목명', {label:'배당액',align:'right'}]}
+          rows={d.dividendData.slice().sort((a,b) => new Date(b.date) - new Date(a.date)).map(div => [
+            <span className="text-cyan-200">{div.date}</span>,
+            <span className="font-bold">{div.symbol || '알 수 없음'}</span>,
+            <span className="text-amber-400">+{fmtC(div.amount || 0)}</span>
+          ])}
+        />
+      ) : (
+        <p className="text-cyan-300/40 text-center py-4">상세 배당 내역이 없습니다.</p>
+      )}
     </div>
   )
 }
@@ -400,16 +418,20 @@ const AccountDetail = ({ d }) => {
       />
       <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">편입 자산 상세 리스트</h3>
       <CyberTable
-        headers={['종목', '비중(크기)', {label:'보유수량',align:'right'}, {label:'평가액',align:'right'}, {label:'수익률',align:'right'}]}
+        headers={['종목', '비중(크기)', {label:'보유수량',align:'right'}, {label:'투자 원금',align:'right'}, {label:'평가액',align:'right'}, {label:'손익/수익률',align:'right'}]}
         rows={assets.map(a => [
           <div className="flex flex-col">
             <span className="font-bold text-cyan-100">{a.symbol}</span>
             <span className="text-[10px] text-cyan-300/40">{a.name}</span>
           </div>,
-          <SparklineBar value={a.valueKRW} max={maxVal} color="#00ff88" />,
-          a.qty, 
-          fmtC(a.valueKRW),
-          <PnlText value={a.profitPercent} suffix="%" />
+          <SparklineBar value={a.valueKRW || 0} max={maxVal} color="#00ff88" />,
+          a.quantity || a.qty, 
+          fmtC(a.investedKRW || 0),
+          fmtC(a.valueKRW || 0),
+          <div className="flex flex-col items-end">
+            <PnlText value={a.profitKRW || 0} suffix="원" />
+            <span className="text-xs"><PnlText value={a.profitPercent || 0} suffix="%" /></span>
+          </div>
         ])}
       />
     </div>
@@ -499,10 +521,17 @@ const PerformersDetail = ({ d, isGainer }) => {
         type={isGainer ? 'success' : 'danger'}
       />
       <CyberTable
-        headers={['순위', '종목', {label:'수익률 크기',align:'left'}, {label:'상세 수치',align:'right'}]}
+        headers={['순위', '종목', {label:'평가금 / 손익액',align:'right'}, {label:'수익률 크기',align:'left'}, {label:'수익률',align:'right'}]}
         rows={items.map((p, i) => [
           <span className="font-bold opacity-50">#{i + 1}</span>,
-          p.symbol,
+          <div className="flex flex-col">
+            <span className="font-bold">{p.symbol}</span>
+            {p.name !== p.symbol && <span className="text-[10px] text-cyan-300/40">{p.name}</span>}
+          </div>,
+          <div className="flex flex-col items-end">
+            <span className="font-bold">{fmtC(p.valueKRW || 0)}</span>
+            <span className="text-xs"><PnlText value={p.profitKRW || 0} suffix="원" /></span>
+          </div>,
           <SparklineBar value={p.profitPercent} max={maxVal} color={isGainer ? '#10b981' : '#f43f5e'} />,
           <PnlText value={p.profitPercent} suffix="%" />
         ])}

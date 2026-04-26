@@ -67,6 +67,7 @@ const Dashboard = () => {
   const [trendDividend, setTrendDividend] = useState([])
   const [yearlyFlow, setYearlyFlow] = useState({ income: 0, expense: 0, net: 0 })
   const [performanceList, setPerformanceList] = useState([]) // For Profit Dialog
+  const [dividendDataList, setDividendDataList] = useState([]) // For Dividend Dialog
   
   // Dialog State
   const [dialogState, setDialogState] = useState({ isOpen: false, type: null, data: null })
@@ -143,7 +144,22 @@ const Dashboard = () => {
           totalValueKRW: evaluationKRW,
           profitKRW,
           profitPercent,
-          assetCount: acc.assets.length
+          assetCount: acc.assets.length,
+          assets: acc.assets.map(a => {
+            const invested = a.quantity * a.avgPrice
+            const invKRW = a.currency === 'USD' ? invested * usdToKrw : invested
+            const value = a.quantity * (a.currentPrice || a.avgPrice)
+            const valKRW = a.currency === 'USD' ? value * usdToKrw : value
+            const pKRW = valKRW - invKRW
+            const pPct = invKRW > 0 ? (pKRW / invKRW) * 100 : 0
+            return {
+              ...a,
+              investedKRW: invKRW,
+              valueKRW: valKRW,
+              profitKRW: pKRW,
+              profitPercent: pPct
+            }
+          })
         }
       }).sort((a, b) => b.totalValueKRW - a.totalValueKRW)
 
@@ -225,6 +241,7 @@ const Dashboard = () => {
       })
       setIfChanged(setPerformanceList, performanceList, sorted)
       setIfChanged(setDividendTotal, dividendTotal, totalDividend)
+      setIfChanged(setDividendDataList, dividendDataList, dividendData || [])
       setIfChanged(setPortfolioHistory, portfolioHistory, history)
       setIfChanged(setTrendPortfolio, trendPortfolio, tPortfolio)
       setIfChanged(setTrendAsset, trendAsset, tAsset)
@@ -467,7 +484,7 @@ const Dashboard = () => {
                     trendColor="#10b981"
                   />
                 </div>
-                <div onClick={() => openDialog('dividend', { dividendTotal, trendDividend })} className="h-1/2">
+                <div onClick={() => openDialog('dividend', { dividendTotal, trendDividend, dividendData: dividendDataList })} className="h-1/2">
                   <StatBox
                     icon={PiggyBank}
                     label="Annual Dividend"
@@ -506,7 +523,7 @@ const Dashboard = () => {
 
           {/* Top Performers */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('gainers', { items: topPerformers.gainers })}>
+            <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('gainers', { items: performanceList.filter(p => p.profitPercent > 0) })}>
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
                 <span className="text-emerald-400 font-semibold text-xs uppercase">Top Gainers</span>
@@ -523,7 +540,7 @@ const Dashboard = () => {
                 )) : <p className="text-cyan-300/40 text-xs">No gainers</p>}
               </div>
             </div>
-            <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('losers', { items: topPerformers.losers })}>
+            <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('losers', { items: performanceList.filter(p => p.profitPercent < 0) })}>
               <div className="flex items-center gap-2 mb-3">
                 <TrendingDown className="w-4 h-4 text-rose-400" />
                 <span className="text-rose-400 font-semibold text-xs uppercase">Top Losers</span>
