@@ -12,10 +12,7 @@ const fmt = (v, cur = 'KRW') => {
 
 const fmtC = (v) => {
   if (!Number.isFinite(v)) return '-'
-  const a = Math.abs(v)
-  if (a >= 1e8) return `${(v / 1e8).toFixed(1)}억`
-  if (a >= 1e4) return `${(v / 1e4).toFixed(0)}만`
-  return v.toLocaleString()
+  return `${Math.round(v).toLocaleString('ko-KR')}원`
 }
 
 const DashboardDetailDialog = ({ isOpen, onClose, dialogType, dialogData }) => {
@@ -309,8 +306,8 @@ const DividendDetail = ({ d }) => {
   if (d.dividendData) {
     const map = {}
     d.dividendData.forEach(div => {
-      const sym = div.symbol || '기타'
-      map[sym] = (map[sym] || 0) + (div.amount || 0)
+      const key = div.name && div.name !== div.symbol ? `${div.symbol} (${div.name})` : (div.symbol || '기타')
+      map[key] = (map[key] || 0) + (div.amountKRW || 0)
     })
     symbolShares = Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value)
   }
@@ -411,8 +408,11 @@ const DividendDetail = ({ d }) => {
           headers={['날짜', '종목명', {label:'배당액',align:'right'}]}
           rows={d.dividendData.slice().sort((a,b) => new Date(b.date) - new Date(a.date)).map(div => [
             <span className="text-cyan-200">{div.date}</span>,
-            <span className="font-bold">{div.symbol || '알 수 없음'}</span>,
-            <span className="text-amber-400">+{fmtC(div.amount || 0)}</span>
+            <div className="flex flex-col">
+              <span className="font-bold">{div.symbol || '알 수 없음'}</span>
+              {div.name && div.name !== div.symbol && <span className="text-[10px] text-cyan-300/40">{div.name}</span>}
+            </div>,
+            <span className="text-amber-400">+{fmtC(div.amountKRW || 0)}</span>
           ])}
         />
       ) : (

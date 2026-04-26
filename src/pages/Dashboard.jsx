@@ -167,9 +167,18 @@ const Dashboard = () => {
 
       const dividendData = await dataSync.loadUserSetting('dividend_transactions')
       const yearlyDividends = (dividendData || []).filter(d => new Date(d.date).getFullYear() === currentYear)
-      const totalDividend = yearlyDividends.reduce((sum, d) => {
-        return sum + (d.currency === 'USD' ? d.amount * usdToKrw : d.amount)
-      }, 0)
+      
+      const processedDividends = yearlyDividends.map(d => {
+        const amountKRW = d.currency === 'USD' ? d.amount * usdToKrw : d.amount;
+        const assetInfo = assetsMap[d.symbol];
+        return {
+          ...d,
+          amountKRW,
+          name: assetInfo ? assetInfo.name : d.symbol
+        };
+      });
+
+      const totalDividend = processedDividends.reduce((sum, d) => sum + d.amountKRW, 0)
 
       // --- 월별 스냅샷: 현재 월 데이터 저장 ---
       const snapshotKey = 'portfolio_monthly_snapshots'
@@ -241,7 +250,7 @@ const Dashboard = () => {
       })
       setIfChanged(setPerformanceList, performanceList, sorted)
       setIfChanged(setDividendTotal, dividendTotal, totalDividend)
-      setIfChanged(setDividendDataList, dividendDataList, dividendData || [])
+      setIfChanged(setDividendDataList, dividendDataList, processedDividends)
       setIfChanged(setPortfolioHistory, portfolioHistory, history)
       setIfChanged(setTrendPortfolio, trendPortfolio, tPortfolio)
       setIfChanged(setTrendAsset, trendAsset, tAsset)
