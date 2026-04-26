@@ -799,7 +799,7 @@ const buildPortfolioSummary = (assets, usdToKrw) => {
     accountMap[account].assets.push({ ...asset, qty, curPrice, avgPrice, currency, valueKRW, profitKRW, profitPercent })
 
     assetsMap[asset.symbol] = { ...asset, valueKRW, currency, profitKRW, profitPercent }
-    performance.push({ symbol: asset.symbol, name: asset.name || asset.symbol, profitPercent: Number(profitPercent.toFixed(2)) })
+    performance.push({ symbol: asset.symbol, name: asset.name || asset.symbol, profitPercent: Number(profitPercent.toFixed(2)), valueKRW, profitKRW })
   })
 
   Object.values(accountMap).forEach(acc => {

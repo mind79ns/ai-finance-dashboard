@@ -304,6 +304,17 @@ const DividendDetail = ({ d }) => {
   // 최고 배당월 찾기
   const bestMonth = [...trendDividend].sort((a, b) => b.value - a.value)[0]
 
+  // 종목별 기여도 계산
+  let symbolShares = []
+  if (d.dividendData) {
+    const map = {}
+    d.dividendData.forEach(div => {
+      const sym = div.symbol || '기타'
+      map[sym] = (map[sym] || 0) + (div.amount || 0)
+    })
+    symbolShares = Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value)
+  }
+
   return (
     <div className="space-y-6">
       <AIInsightBadge 
@@ -327,6 +338,55 @@ const DividendDetail = ({ d }) => {
           <p className="text-amber-200 font-bold text-xl">{fmt(bestMonth?.value || 0)}</p>
         </div>
       </div>
+
+      {symbolShares.length > 0 && (
+        <>
+          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2 mt-6">종목별 배당금 기여도</h3>
+          <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10 flex flex-col md:flex-row items-center gap-4">
+            <div className="w-full md:w-1/2 h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={symbolShares}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {symbolShares.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CYBER_COLORS[index % CYBER_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff' }}
+                    formatter={(val) => [fmt(val), '배당금']}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="w-full md:w-1/2">
+              <div className="space-y-2 max-h-[200px] overflow-y-auto cyber-scrollbar pr-2">
+                {symbolShares.map((s, i) => (
+                  <div key={s.name} className="flex justify-between items-center text-xs p-2 rounded bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: CYBER_COLORS[i % CYBER_COLORS.length] }} />
+                      <span className="text-cyan-100 font-bold">{s.name}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-amber-400 font-semibold">{fmtC(s.value)}</span>
+                      <span className="text-cyan-300/60 w-10 text-right">{dividendTotal > 0 ? ((s.value/dividendTotal)*100).toFixed(1) : 0}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">월별 현금 흐름 추이</h3>
       <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
