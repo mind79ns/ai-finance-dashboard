@@ -118,9 +118,16 @@ const CyberTable = ({ headers, rows }) => (
 const PnlText = ({ value, suffix = '' }) => {
   if (!Number.isFinite(value)) return <span>-</span>
   const pos = value >= 0
+  let displayValue;
+  if (suffix === '원') {
+    displayValue = Math.round(Math.abs(value)).toLocaleString('ko-KR');
+  } else {
+    const absVal = Math.abs(value)
+    displayValue = absVal % 1 !== 0 ? absVal.toFixed(2) : absVal
+  }
   return (
     <span className={pos ? 'text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.5)] font-bold' : 'text-rose-400 drop-shadow-[0_0_6px_rgba(251,113,133,0.5)] font-bold'}>
-      {pos ? '+' : ''}{value % 1 !== 0 ? value.toFixed(2) : value}{suffix}
+      {pos ? '+' : '-'}{displayValue}{suffix}
     </span>
   )
 }
@@ -191,7 +198,7 @@ const PortfolioDetail = ({ d }) => {
           <span className="font-medium">{a.account}</span>,
           <SparklineBar value={a.totalValueKRW} max={total} color="#00d4ff" />,
           fmtC(a.totalValueKRW),
-          <PnlText value={a.profitKRW} suffix={` (${fmtC(a.profitKRW)})`} />,
+          <PnlText value={a.profitKRW} suffix="원" />,
           <PnlText value={a.profitPercent} suffix="%" />
         ])}
       />

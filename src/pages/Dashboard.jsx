@@ -768,10 +768,7 @@ const formatCurrency = (value, currency = 'KRW') => {
 
 const formatCompact = (value) => {
   if (!Number.isFinite(value)) return '-'
-  const abs = Math.abs(value)
-  if (abs >= 1e8) return `${(value / 1e8).toFixed(1)}억`
-  if (abs >= 1e4) return `${(value / 1e4).toFixed(0)}만`
-  return value.toLocaleString()
+  return Math.round(value).toLocaleString('ko-KR')
 }
 
 const buildPortfolioSummary = (assets, usdToKrw) => {
