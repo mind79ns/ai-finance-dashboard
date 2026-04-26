@@ -157,20 +157,20 @@ const DataMigrationPanel = () => {
       <div className="flex items-center gap-3 mb-6">
         <Database className="w-6 h-6 text-primary-600" />
         <div>
-          <h3 className="text-xl font-bold text-gray-900">Supabase 데이터 관리</h3>
-          <p className="text-sm text-gray-600 mt-1">로컬 데이터를 클라우드로 마이그레이션하여 모든 기기에서 접근하세요</p>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Supabase 데이터 관리</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">로컬 데이터를 클라우드로 마이그레이션하여 모든 기기에서 접근하세요</p>
         </div>
       </div>
 
       {/* Connection Status */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-blue-900 mb-2">Supabase 설정 안내</p>
-            <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
-              <li>프로젝트 루트의 <code className="bg-blue-100 px-1 rounded">supabase-setup.md</code> 파일을 참고하여 Supabase 프로젝트를 생성하세요</li>
-              <li><code className="bg-blue-100 px-1 rounded">.env.example</code>을 복사하여 <code className="bg-blue-100 px-1 rounded">.env</code> 파일을 만들고 Supabase 인증 정보를 입력하세요</li>
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Supabase 설정 안내</p>
+            <ol className="text-xs text-blue-800 dark:text-blue-400 space-y-1 list-decimal list-inside">
+              <li>프로젝트 루트의 <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">supabase-setup.md</code> 파일을 참고하여 Supabase 프로젝트를 생성하세요</li>
+              <li><code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env.example</code>을 복사하여 <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env</code> 파일을 만들고 Supabase 인증 정보를 입력하세요</li>
               <li>아래 "연결 테스트" 버튼을 클릭하여 Supabase 연결을 확인하세요</li>
             </ol>
           </div>
@@ -179,21 +179,21 @@ const DataMigrationPanel = () => {
 
       {/* Local Data Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-xs font-medium text-blue-700 mb-1">포트폴리오 자산</p>
-          <p className="text-2xl font-bold text-blue-900">{localData.portfolioCount}</p>
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">포트폴리오 자산</p>
+          <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">{localData.portfolioCount}</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-          <p className="text-xs font-medium text-purple-700 mb-1">계좌 원금</p>
-          <p className="text-2xl font-bold text-purple-900">{localData.principalCount}</p>
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <p className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">계좌 원금</p>
+          <p className="text-2xl font-bold text-purple-900 dark:text-purple-300">{localData.principalCount}</p>
         </div>
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4">
-          <p className="text-xs font-medium text-emerald-700 mb-1">재무 목표</p>
-          <p className="text-2xl font-bold text-emerald-900">{localData.goalsCount}</p>
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">재무 목표</p>
+          <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-300">{localData.goalsCount}</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
-          <p className="text-xs font-medium text-amber-700 mb-1">투자 일지</p>
-          <p className="text-2xl font-bold text-amber-900">{localData.logsCount}</p>
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+          <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">투자 일지</p>
+          <p className="text-2xl font-bold text-amber-900 dark:text-amber-300">{localData.logsCount}</p>
         </div>
       </div>
 
@@ -201,33 +201,33 @@ const DataMigrationPanel = () => {
       {message && (
         <div className={`rounded-lg p-4 mb-6 ${
           migrationStatus === 'success'
-            ? 'bg-green-50 border border-green-200'
+            ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
             : migrationStatus === 'error'
-            ? 'bg-red-50 border border-red-200'
-            : 'bg-gray-50 border border-gray-200'
+            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+            : 'bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700'
         }`}>
           <div className="flex items-start gap-3">
-            {migrationStatus === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />}
-            {migrationStatus === 'error' && <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />}
+            {migrationStatus === 'success' && <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />}
+            {migrationStatus === 'error' && <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />}
             {migrationStatus === 'loading' && (
-              <div className="w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin flex-shrink-0 mt-0.5"></div>
+              <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin flex-shrink-0 mt-0.5"></div>
             )}
             <div className="flex-1">
               <p className={`text-sm font-medium ${
                 migrationStatus === 'success'
-                  ? 'text-green-900'
+                  ? 'text-green-900 dark:text-green-300'
                   : migrationStatus === 'error'
-                  ? 'text-red-900'
-                  : 'text-gray-900'
+                  ? 'text-red-900 dark:text-red-300'
+                  : 'text-gray-900 dark:text-gray-200'
               }`}>
                 {message}
               </p>
 
               {/* Error Details */}
               {errorDetails && migrationStatus === 'error' && (
-                <div className="mt-3 pt-3 border-t border-red-200">
-                  <p className="text-sm font-semibold text-red-800 mb-2">{errorDetails.title}</p>
-                  <ul className="text-xs text-red-700 space-y-1.5">
+                <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800/50">
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2">{errorDetails.title}</p>
+                  <ul className="text-xs text-red-700 dark:text-red-400 space-y-1.5">
                     {errorDetails.suggestions.map((suggestion, idx) => (
                       <li key={idx} className="flex items-start gap-2">
                         <span className="text-red-400 mt-0.5">•</span>
@@ -304,8 +304,8 @@ const DataMigrationPanel = () => {
 
       {/* Connection not tested yet notice */}
       {connectionStatus === null && !migrationStatus && (
-        <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-          <p className="text-sm text-gray-600 flex items-center gap-2">
+        <div className="mt-4 p-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg">
+          <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-gray-400" />
             먼저 "연결 테스트" 버튼을 클릭하여 Supabase 연결 상태를 확인하세요
           </p>
@@ -314,12 +314,12 @@ const DataMigrationPanel = () => {
 
       {/* Warning */}
       {localData.hasData && (
-        <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="mt-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-900 mb-1">⚠️ 마이그레이션 전 주의사항</p>
-              <ul className="text-xs text-amber-800 space-y-1">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-300 mb-1">⚠️ 마이그레이션 전 주의사항</p>
+              <ul className="text-xs text-amber-800 dark:text-amber-400 space-y-1">
                 <li>• 마이그레이션 후에도 로컬 데이터는 유지됩니다</li>
                 <li>• 중복 데이터가 생성될 수 있으니 한 번만 실행하세요</li>
                 <li>• 마이그레이션 완료 후 페이지가 자동으로 새로고침됩니다</li>
@@ -330,8 +330,8 @@ const DataMigrationPanel = () => {
       )}
 
       {!localData.hasData && (
-        <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="mt-6 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             마이그레이션할 로컬 데이터가 없습니다. 먼저 포트폴리오 자산을 추가하세요.
           </p>
         </div>

@@ -107,18 +107,46 @@ const cleanAgentResponse = (response) => {
   return cleaned
 }
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
 /**
- * Run a single sub-agent
+ * Run a single sub-agent with Retry logic for 429 Rate Limits
  */
-const runSubAgent = async (agentPromptMd, userPrompt, aiProvider) => {
+const runSubAgent = async (agentPromptMd, userPrompt, aiProvider, maxRetries = 2) => {
   const systemPrompt = extractSystemPrompt(agentPromptMd)
-  const response = await aiService.routeAIRequest(
-    userPrompt,
-    aiService.TASK_LEVEL.ADVANCED,
-    systemPrompt,
-    aiProvider
-  )
-  return cleanAgentResponse(response)
+  
+  let lastError = null
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      if (attempt > 1) {
+        console.warn(`⏳ [Retry ${attempt - 1}/${maxRetries}] Retrying AI Agent after rate limit...`)
+        await delay(5000) // 5초 대기 후 재시도
+      }
+
+      const response = await aiService.routeAIRequest(
+        userPrompt,
+        aiService.TASK_LEVEL.ADVANCED,
+        systemPrompt,
+        aiProvider
+      )
+      return cleanAgentResponse(response)
+      
+    } catch (error) {
+      lastError = error
+      const status = error?.response?.status || error?.status || 0
+      const isRateLimit = status === 429 || error.message?.includes('429') || error.message?.includes('Too Many Requests') || error.message?.includes('rate limit')
+      const isServerOverload = status === 503 || error.message?.includes('503') || error.message?.includes('overloaded')
+
+      if (!isRateLimit && !isServerOverload) {
+        throw error // 429, 503이 아닌 타 에러는 즉시 예외 처리
+      }
+      
+      if (attempt > maxRetries) {
+        throw error // 최대 재시도 횟수 초과 시 예외 처리
+      }
+    }
+  }
+  throw lastError
 }
 
 /**
@@ -134,31 +162,45 @@ const runAgentPipeline = async (params, aiProvider = 'auto', onProgress = () => 
 
   try {
     // ═══════════════════════════════════════════
-    // Phase 1: 기초 분석 (병렬 실행)
+    // Phase 1: 기초 분석 (안전성을 위해 직렬 순차 실행)
+    // 멀티 에이전트 다중 접속 시 429 Rate Limit 방지
     // ═══════════════════════════════════════════
-    onProgress(1, 'Phase 1', '기업개요 · 재무분석 · 산업분석 병렬 실행 중...')
-
-    const [companyResult, financialResult, industryResult] = await Promise.allSettled([
-      runSubAgent(
+    onProgress(1, 'Phase 1', '기업개요 분석 실행 중...')
+    let companyAnalysis, financialAnalysis, industryAnalysis
+    
+    try {
+      companyAnalysis = await runSubAgent(
         companyOverviewPrompt,
         `아래 데이터를 기반으로 기업개요를 분석해주세요.\n\n${dataContext}`,
         aiProvider
-      ),
-      runSubAgent(
+      )
+    } catch (e) {
+      companyAnalysis = '⚠️ 기업개요 분석 실패: ' + e.message
+    }
+
+    onProgress(1, 'Phase 1', '재무분석 실행 중...')
+    await delay(1000) // 에이전트 간 최소 1초 간격 보장
+    try {
+      financialAnalysis = await runSubAgent(
         financialAnalysisPrompt,
         `아래 데이터를 기반으로 재무 심층 분석을 수행해주세요.\n\n${dataContext}`,
         aiProvider
-      ),
-      runSubAgent(
+      )
+    } catch (e) {
+      financialAnalysis = '⚠️ 재무분석 실패: ' + e.message
+    }
+
+    onProgress(1, 'Phase 1', '산업분석 실행 중...')
+    await delay(1000)
+    try {
+      industryAnalysis = await runSubAgent(
         industryAnalysisPrompt,
         `아래 데이터를 기반으로 산업 분석을 수행해주세요.\n\n${dataContext}`,
         aiProvider
       )
-    ])
-
-    const companyAnalysis = companyResult.status === 'fulfilled' ? companyResult.value : '⚠️ 기업개요 분석 실패'
-    const financialAnalysis = financialResult.status === 'fulfilled' ? financialResult.value : '⚠️ 재무분석 실패'
-    const industryAnalysis = industryResult.status === 'fulfilled' ? industryResult.value : '⚠️ 산업분석 실패'
+    } catch (e) {
+      industryAnalysis = '⚠️ 산업분석 실패: ' + e.message
+    }
 
     sections.push(companyAnalysis)
     sections.push(financialAnalysis)
@@ -168,7 +210,7 @@ const runAgentPipeline = async (params, aiProvider = 'auto', onProgress = () => 
     // Phase 2: 모멘텀 분석 (Phase 1 결과 참조)
     // ═══════════════════════════════════════════
     onProgress(2, 'Phase 2', '모멘텀분석 실행 중...')
-
+    await delay(1000)
     const phase1Summary = `[이전 분석 결과 요약]\n\n--- 기업개요 ---\n${companyAnalysis}\n\n--- 재무분석 ---\n${financialAnalysis}\n\n--- 산업분석 ---\n${industryAnalysis}`
 
     const momentumAnalysis = await runSubAgent(
@@ -182,7 +224,7 @@ const runAgentPipeline = async (params, aiProvider = 'auto', onProgress = () => 
     // Phase 3: 리스크 요인 (Phase 1+2 결과 참조)
     // ═══════════════════════════════════════════
     onProgress(3, 'Phase 3', '리스크 요인 분석 실행 중...')
-
+    await delay(1000)
     const phase2Summary = `${phase1Summary}\n\n--- 모멘텀분석 ---\n${momentumAnalysis}`
 
     const riskAnalysis = await runSubAgent(
@@ -196,7 +238,7 @@ const runAgentPipeline = async (params, aiProvider = 'auto', onProgress = () => 
     // Phase 4: 종합의견 + 추천 (전 단계 통합)
     // ═══════════════════════════════════════════
     onProgress(4, 'Phase 4', '종합의견 및 추천 픽 도출 중...')
-
+    await delay(1000)
     const allPriorAnalysis = `${phase2Summary}\n\n--- 리스크요인 ---\n${riskAnalysis}`
 
     const recommendation = await runSubAgent(

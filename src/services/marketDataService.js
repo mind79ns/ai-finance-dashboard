@@ -502,52 +502,109 @@ class MarketDataService {
   }
 
   /**
+   * ✅ Naver Finance - 통합 검색 기반 종목명 보완
+   * Finnhub이 한국주식 프로필(기업명)을 지원하지 않을 때 우회하여 정확한 한글 종목명 주입
+   */
+  async fetchNaverFinanceName(symbol) {
+    // 6자리 기호만 추출
+    const cleanSymbol = symbol.replace(/[^0-9]/g, '')
+    if (cleanSymbol.length !== 6) return null
+    
+    try {
+      const isDev = import.meta.env.DEV
+      const proxyUrl = isDev 
+        ? `/api/naver/api/stock/${cleanSymbol}/integration`
+        : `/.netlify/functions/naver-finance?symbol=${cleanSymbol}`
+        
+      const response = await axios.get(proxyUrl)
+      if (response.data && response.data.stockName) {
+        return response.data.stockName
+      }
+    } catch (error) {
+      console.warn(`Naver finance profile fallback failed for ${symbol}`)
+    }
+    return null
+  }
+
+  /**
    * ✅ Finnhub - 기업 프로필 정보 조회
    * 산업, 시가총액, 직원수, IPO일자, 웹사이트 등
    */
   async getStockProfile(symbol) {
     const finnhubSymbol = this.normalizeSymbol(symbol)
+    const isKoreanStock = finnhubSymbol.endsWith('.KS') || finnhubSymbol.endsWith('.KQ')
     const cacheKey = `profile_${finnhubSymbol}`
     const cached = this.getCached(cacheKey)
     if (cached) return cached
 
     try {
-      if (!API_CONFIG.FINNHUB_API_KEY) return null
-
-      const response = await axios.get(`${this.finnhubBaseURL}/stock/profile2`, {
-        params: {
-          symbol: finnhubSymbol,
-          token: API_CONFIG.FINNHUB_API_KEY
+      let result = null
+      if (API_CONFIG.FINNHUB_API_KEY) {
+        try {
+          const response = await axios.get(`${this.finnhubBaseURL}/stock/profile2`, {
+            params: {
+              symbol: finnhubSymbol,
+              token: API_CONFIG.FINNHUB_API_KEY
+            }
+          })
+          const data = response.data
+          if (data && data.name) {
+            result = {
+              name: data.name,
+              ticker: data.ticker,
+              country: data.country,
+              currency: data.currency,
+              exchange: data.exchange,
+              industry: data.finnhubIndustry,
+              ipo: data.ipo,
+              logo: data.logo,
+              marketCap: data.marketCapitalization, // in millions
+              shareOutstanding: data.shareOutstanding,
+              weburl: data.weburl,
+              phone: data.phone
+            }
+          }
+        } catch (fhError) {
+          console.warn(`⚠️ Finnhub profile fetch failed for ${finnhubSymbol}:`, fhError.message)
         }
-      })
+      }
 
-      const data = response.data
-      if (!data || !data.name) {
-        console.warn(`⚠️ No profile data for ${finnhubSymbol}`)
+      // 🔴 Finnhub 실패 및 한국 주식인 경우 Naver Finance Fallback으로 종목명이라도 확보
+      if ((!result || !result.name || result.name === symbol) && isKoreanStock) {
+        console.log(`📡 Fetching Korean stock name fallback for ${finnhubSymbol}...`)
+        
+        // 추가: 에러 전이 방지
+        try {
+          const koreanName = await this.fetchNaverFinanceName(finnhubSymbol)
+          if (koreanName) {
+            result = {
+              name: koreanName,
+              ticker: finnhubSymbol,
+              country: 'KR',
+              currency: 'KRW',
+              exchange: finnhubSymbol.endsWith('.KS') ? 'KOSPI' : 'KOSDAQ',
+              industry: 'N/A (한국 종목)',
+              ipo: 'N/A',
+              marketCap: 0,
+              weburl: 'N/A'
+            }
+          }
+        } catch (naverError) {
+          console.warn(`⚠️ Naver finance name fallback error:`, naverError.message)
+        }
+      }
+
+      if (!result) {
+        console.warn(`⚠️ No profile data found for ${finnhubSymbol}`)
         return null
       }
 
-      const result = {
-        name: data.name,
-        ticker: data.ticker,
-        country: data.country,
-        currency: data.currency,
-        exchange: data.exchange,
-        industry: data.finnhubIndustry,
-        ipo: data.ipo,
-        logo: data.logo,
-        marketCap: data.marketCapitalization, // in millions
-        shareOutstanding: data.shareOutstanding,
-        weburl: data.weburl,
-        phone: data.phone
-      }
-
       this.setCache(cacheKey, result)
-      console.log(`✅ Finnhub Profile: ${finnhubSymbol} - ${result.name} (${result.industry})`)
+      console.log(`✅ Profile loaded: ${finnhubSymbol} - ${result.name} (${result.industry || 'N/A'})`)
       return result
 
     } catch (error) {
-      console.error(`❌ Finnhub profile error for ${finnhubSymbol}:`, error.message)
+      console.error(`❌ Profile fetch error for ${finnhubSymbol}:`, error.message)
       return null
     }
   }
@@ -563,54 +620,82 @@ class MarketDataService {
     if (cached) return cached
 
     try {
-      if (!API_CONFIG.FINNHUB_API_KEY) return null
+      let result = null
 
-      const response = await axios.get(`${this.finnhubBaseURL}/stock/metric`, {
-        params: {
-          symbol: finnhubSymbol,
-          metric: 'all',
-          token: API_CONFIG.FINNHUB_API_KEY
+      if (API_CONFIG.FINNHUB_API_KEY) {
+        try {
+          const response = await axios.get(`${this.finnhubBaseURL}/stock/metric`, {
+            params: {
+              symbol: finnhubSymbol,
+              metric: 'all',
+              token: API_CONFIG.FINNHUB_API_KEY
+            }
+          })
+
+          const data = response.data
+          if (data && data.metric) {
+            const m = data.metric
+            result = {
+              // 가격 지표
+              '52WeekHigh': m['52WeekHigh'],
+              '52WeekLow': m['52WeekLow'],
+              '52WeekHighDate': m['52WeekHighDate'],
+              '52WeekLowDate': m['52WeekLowDate'],
+              // 밸류에이션
+              peRatio: m['peNormalizedAnnual'] || m['peTTM'],
+              pbRatio: m['pbQuarterly'] || m['pbAnnual'],
+              psRatio: m['psTTM'],
+              // 수익성
+              epsGrowth: m['epsGrowthTTMYoy'],
+              revenueGrowth: m['revenueGrowthTTMYoy'],
+              roe: m['roeTTM'],
+              roa: m['roaTTM'],
+              // 배당
+              dividendYield: m['dividendYieldIndicatedAnnual'],
+              dividendPerShare: m['dividendPerShareAnnual'],
+              // 재무건전성
+              currentRatio: m['currentRatioQuarterly'],
+              debtToEquity: m['totalDebt/totalEquityQuarterly'],
+              // 시장 데이터
+              marketCap: m['marketCapitalization'],
+              beta: m['beta'],
+              // 거래
+              avgVolume10Day: m['10DayAverageTradingVolume'],
+              avgVolume3Month: m['3MonthAverageTradingVolume']
+            }
+          }
+        } catch (fhError) {
+          console.warn(`⚠️ Finnhub metric fetch failed for ${finnhubSymbol}:`, fhError.message)
         }
-      })
+      }
 
-      const data = response.data
-      if (!data || !data.metric) {
-        console.warn(`⚠️ No metrics data for ${finnhubSymbol}`)
+      // 🇰🇷 한국 종목이거나 (또는) Finnhub 데이터가 부족한 경우 Yahoo Finance API를 통해 주요 데이터 보완
+      const isKoreanStock = finnhubSymbol.endsWith('.KS') || finnhubSymbol.endsWith('.KQ')
+      
+      if (isKoreanStock || !result || !result.marketCap || !result['52WeekHigh']) {
+        console.log(`📡 Fetching auxiliary data for ${finnhubSymbol} from Yahoo Finance...`)
+        const yahooData = await this.fetchYahooFinanceData(finnhubSymbol)
+        if (yahooData) {
+          result = {
+            ...result,
+            '52WeekHigh': yahooData['52WeekHigh'] || result?.['52WeekHigh'],
+            '52WeekLow': yahooData['52WeekLow'] || result?.['52WeekLow'],
+            peRatio: yahooData.peRatio || result?.peRatio,
+            pbRatio: yahooData.pbRatio || result?.pbRatio,
+            marketCap: yahooData.marketCap || result?.marketCap,
+            dividendYield: yahooData.dividendYield || result?.dividendYield,
+            dividendPerShare: yahooData.dividendPerShare || result?.dividendPerShare
+          }
+        }
+      }
+
+      if (!result) {
+        console.warn(`⚠️ No metrics found for ${finnhubSymbol} from both sources`)
         return null
       }
 
-      const m = data.metric
-      const result = {
-        // 가격 지표
-        '52WeekHigh': m['52WeekHigh'],
-        '52WeekLow': m['52WeekLow'],
-        '52WeekHighDate': m['52WeekHighDate'],
-        '52WeekLowDate': m['52WeekLowDate'],
-        // 밸류에이션
-        peRatio: m['peNormalizedAnnual'] || m['peTTM'],
-        pbRatio: m['pbQuarterly'] || m['pbAnnual'],
-        psRatio: m['psTTM'],
-        // 수익성
-        epsGrowth: m['epsGrowthTTMYoy'],
-        revenueGrowth: m['revenueGrowthTTMYoy'],
-        roe: m['roeTTM'],
-        roa: m['roaTTM'],
-        // 배당
-        dividendYield: m['dividendYieldIndicatedAnnual'],
-        dividendPerShare: m['dividendPerShareAnnual'],
-        // 재무건전성
-        currentRatio: m['currentRatioQuarterly'],
-        debtToEquity: m['totalDebt/totalEquityQuarterly'],
-        // 시장 데이터
-        marketCap: m['marketCapitalization'],
-        beta: m['beta'],
-        // 거래
-        avgVolume10Day: m['10DayAverageTradingVolume'],
-        avgVolume3Month: m['3MonthAverageTradingVolume']
-      }
-
       this.setCache(cacheKey, result)
-      console.log(`✅ Finnhub Metrics: ${finnhubSymbol} - PE: ${result.peRatio}, 52W: ${result['52WeekLow']}-${result['52WeekHigh']}`)
+      console.log(`✅ Final Metrics: ${finnhubSymbol} - PE: ${result.peRatio}, 52W: ${result['52WeekHigh']}`)
       return result
 
     } catch (error) {
@@ -694,6 +779,53 @@ class MarketDataService {
     } catch (error) {
       console.error('❌ Failed to fetch market data:', error)
       throw error
+    }
+  }
+
+  /**
+   * ✅ Yahoo Finance - 보조 데이터 조회 (한국 종목용 Fallback)
+   * Netlify Serverless Function(/.netlify/functions/yahoo-finance)을 이용하여 브라우저 CORS 차단 완벽 우회
+   * 로컬 개발 환경(Vite)에서는 proxy 설정을 통함
+   */
+  async fetchYahooFinanceData(symbol) {
+    const cacheKey = `yahoo_${symbol}`
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      // 환경에 따라 프록시 URL 분기
+      const isDev = import.meta.env.DEV
+      const proxyUrl = isDev 
+        ? `/api/yahoo/v7/finance/quote?symbols=${encodeURIComponent(symbol)}`
+        : `/.netlify/functions/yahoo-finance?symbol=${encodeURIComponent(symbol)}`
+        
+      const response = await axios.get(proxyUrl)
+      
+      const data = response.data?.quoteResponse?.result?.[0]
+      if (!data) {
+        console.warn(`Yahoo proxy returned empty data for ${symbol}`)
+        return null
+      }
+
+      const result = {
+        '52WeekHigh': data.fiftyTwoWeekHigh,
+        '52WeekLow': data.fiftyTwoWeekLow,
+        peRatio: data.trailingPE,
+        pbRatio: data.priceToBook,
+        marketCap: data.marketCap,
+        dividendYield: data.dividendYield,
+        dividendPerShare: data.dividendRate,
+        epsGrowth: data.epsTrailingTwelveMonths,
+        price: data.regularMarketPrice,
+        previousClose: data.regularMarketPreviousClose
+      }
+
+      this.setCache(cacheKey, result)
+      console.log(`✅ Yahoo Finance Fallback: ${symbol} - PE: ${result.peRatio}`)
+      return result
+    } catch (error) {
+      console.error(`❌ Yahoo Finance proxy error for ${symbol}:`, error.message)
+      return null
     }
   }
 

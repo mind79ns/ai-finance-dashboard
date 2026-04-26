@@ -927,15 +927,31 @@ ${insights.map(i => '- ' + i).join('\n')}
       const news = newsRes.status === 'fulfilled' ? newsRes.value : null
 
       setStockEnrichedData({ quote, profile, metrics, news })
+      
+      // ✅ 입력된 이름이 코드와 같거(없거)나, 프로필에 더 정확한 이름이 있다면 덮어쓰기
+      const finalTargetName = (profile && profile.name && profile.name !== targetSymbol) 
+        ? profile.name 
+        : targetName
+
+      // ✅ 포트폴리오 자동 매칭 (목록에서 클릭하지 않고 직접 입력한 경우 지원)
+      let resolvedStock = selectedStock
+      if (!resolvedStock && portfolioData && portfolioData.assets) {
+        resolvedStock = portfolioData.assets.find(
+          asset => 
+            (asset.symbol && targetSymbol && asset.symbol.toUpperCase() === targetSymbol.toUpperCase()) ||
+            (asset.name && finalTargetName && asset.name.includes(finalTargetName)) ||
+            (asset.name && targetName && asset.name.includes(targetName))
+        )
+      }
 
       // 포트폴리오 컨텍스트
-      const portfolioContext = selectedStock
-        ? `보유수량: ${selectedStock.quantity}주 | 매수가: ${selectedStock.currency === 'KRW' ? '₩' : '$'}${selectedStock.purchasePrice?.toLocaleString()} | 현재 수익률: ${selectedStock.profitPercent?.toFixed(2)}%`
+      const portfolioContext = resolvedStock
+        ? `보유수량: ${resolvedStock.quantity}주 | 매수가: ${resolvedStock.currency === 'KRW' ? '₩' : '$'}${resolvedStock.purchasePrice?.toLocaleString()} | 현재 수익률: ${resolvedStock.profitPercent?.toFixed(2)}%`
         : ''
 
       // 2단계: 에이전트 파이프라인 실행
       const analysis = await stockAgentService.runAgentPipeline(
-        { symbol: targetSymbol, name: targetName, quote, profile, metrics, news, portfolioContext },
+        { symbol: targetSymbol, name: finalTargetName, quote, profile, metrics, news, portfolioContext },
         selectedAI,
         (phase, agent, status) => {
           setAgentProgress({ phase, agent, status })

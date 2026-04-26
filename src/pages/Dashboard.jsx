@@ -37,6 +37,7 @@ import { format, startOfMonth, subMonths } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import marketDataService from '../services/marketDataService'
 import dataSync from '../utils/dataSync'
+import DashboardDetailDialog from '../components/DashboardDetailDialog'
 const DEFAULT_USD_KRW = 1340
 
 const Dashboard = () => {
@@ -65,6 +66,12 @@ const Dashboard = () => {
   const [profitTrend, setProfitTrend] = useState([])
   const [trendDividend, setTrendDividend] = useState([])
   const [yearlyFlow, setYearlyFlow] = useState({ income: 0, expense: 0, net: 0 })
+  const [performanceList, setPerformanceList] = useState([]) // For Profit Dialog
+  
+  // Dialog State
+  const [dialogState, setDialogState] = useState({ isOpen: false, type: null, data: null })
+  const openDialog = useCallback((type, data) => setDialogState({ isOpen: true, type, data }), [])
+  const closeDialog = useCallback(() => setDialogState({ isOpen: false, type: null, data: null }), [])
 
   const loadDashboardData = useCallback(async (forceRefresh = false) => {
     // 백그라운드 자동 갱신인 경우 화면을 멈추거나 로딩바를 띄우지 않음
@@ -216,6 +223,7 @@ const Dashboard = () => {
         gainers: sorted.filter(p => p.profitPercent > 0).slice(0, 5),
         losers: sorted.filter(p => p.profitPercent < 0).slice(-5).reverse()
       })
+      setIfChanged(setPerformanceList, performanceList, sorted)
       setIfChanged(setDividendTotal, dividendTotal, totalDividend)
       setIfChanged(setPortfolioHistory, portfolioHistory, history)
       setIfChanged(setTrendPortfolio, trendPortfolio, tPortfolio)
@@ -285,7 +293,7 @@ const Dashboard = () => {
         {/* Left Column - Charts */}
         <div className="col-span-12 lg:col-span-3 flex flex-col gap-4">
           {/* Portfolio History Chart */}
-          <div className="cyber-card cyber-card-glow p-4 shrink-0">
+          <div className="cyber-card cyber-card-glow p-4 shrink-0 cyber-card-clickable" onClick={() => openDialog('growthRate', { portfolioHistory })}>
             <div className="flex items-center gap-2 mb-4">
               <Activity className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Growth Rate</h3>
@@ -349,7 +357,7 @@ const Dashboard = () => {
                       ? '!text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] font-bold'
                       : '!text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)] font-bold';
                     return (
-                      <tr key={acc.account}>
+                      <tr key={acc.account} className="cyber-stat-clickable hover:bg-cyan-500/10" onClick={() => openDialog('account', { account: acc.account, assets: acc.assets })}>
                         <td className="text-cyan-200 truncate" title={acc.account}>{acc.account}</td>
                         <td className="text-right !text-white whitespace-nowrap">{formatCompact(acc.totalValueKRW)}</td>
                         <td className={`text-right whitespace-nowrap ${colorClass}`}>
@@ -370,7 +378,7 @@ const Dashboard = () => {
           </div>
 
           {/* Yearly Asset Flow - Small 1x3 Card */}
-          <div className="cyber-card cyber-card-glow p-3 shrink-0">
+          <div className="cyber-card cyber-card-glow p-3 shrink-0 cyber-card-clickable" onClick={() => openDialog('yearlyFlow', { yearlyFlow, monthlyNetChanges })}>
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-3 h-3 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-xs uppercase tracking-wide">연간 요약</h3>
@@ -408,23 +416,27 @@ const Dashboard = () => {
             <div className="flex flex-col lg:flex-row items-stretch gap-6 lg:h-[260px]">
               {/* Left Stats */}
               <div className="flex-1 flex flex-col gap-3 w-full lg:w-auto h-full justify-between min-w-0">
-                <StatBox
-                  icon={Wallet}
-                  label="Total Portfolio"
-                  value={formatCurrency(portfolioSummary.totalValueKRW, 'KRW')}
-                  sub={`USD ${formatCurrency(portfolioSummary.totalValueUSD, 'USD')}`}
-                  color="cyan"
-                  trendData={trendPortfolio}
-                  trendColor="#00d4ff"
-                />
-                <StatBox
-                  icon={BarChart3}
-                  label="Asset Status TOTAL"
-                  value={formatCurrency(assetStatusTotal, 'KRW')}
-                  color="cyan"
-                  trendData={trendAsset}
-                  trendColor="#a855f7"
-                />
+                <div onClick={() => openDialog('portfolio', { accountSummary, portfolioSummary })} className="h-1/2">
+                  <StatBox
+                    icon={Wallet}
+                    label="Total Portfolio"
+                    value={formatCurrency(portfolioSummary.totalValueKRW, 'KRW')}
+                    sub={`USD ${formatCurrency(portfolioSummary.totalValueUSD, 'USD')}`}
+                    color="cyan"
+                    trendData={trendPortfolio}
+                    trendColor="#00d4ff"
+                  />
+                </div>
+                <div onClick={() => openDialog('assetStatus', { trendAsset, assetStatusTotal })} className="h-1/2">
+                  <StatBox
+                    icon={BarChart3}
+                    label="Asset Status TOTAL"
+                    value={formatCurrency(assetStatusTotal, 'KRW')}
+                    color="cyan"
+                    trendData={trendAsset}
+                    trendColor="#a855f7"
+                  />
+                </div>
               </div>
 
               {/* Center Ring */}
@@ -445,23 +457,27 @@ const Dashboard = () => {
 
               {/* Right Stats */}
               <div className="flex-1 flex flex-col gap-3 w-full lg:w-auto h-full justify-between min-w-0">
-                <StatBox
-                  icon={TrendingUp}
-                  label="Total Profit"
-                  value={formatCurrency(portfolioSummary.totalProfitKRW, 'KRW')}
-                  positive={portfolioSummary.totalProfitKRW >= 0}
-                  trendData={profitTrend}
-                  trendColor="#10b981"
-                />
-                <StatBox
-                  icon={PiggyBank}
-                  label="Annual Dividend"
-                  value={formatCurrency(dividendTotal, 'KRW')}
-                  sub={`Monthly ${formatCurrency(dividendTotal / 12, 'KRW')}`}
-                  color="gold"
-                  trendData={trendDividend}
-                  trendColor="#ffd700"
-                />
+                <div onClick={() => openDialog('profit', { performance: performanceList, portfolioSummary })} className="h-1/2">
+                  <StatBox
+                    icon={TrendingUp}
+                    label="Total Profit"
+                    value={formatCurrency(portfolioSummary.totalProfitKRW, 'KRW')}
+                    positive={portfolioSummary.totalProfitKRW >= 0}
+                    trendData={profitTrend}
+                    trendColor="#10b981"
+                  />
+                </div>
+                <div onClick={() => openDialog('dividend', { dividendTotal, trendDividend })} className="h-1/2">
+                  <StatBox
+                    icon={PiggyBank}
+                    label="Annual Dividend"
+                    value={formatCurrency(dividendTotal, 'KRW')}
+                    sub={`Monthly ${formatCurrency(dividendTotal / 12, 'KRW')}`}
+                    color="gold"
+                    trendData={trendDividend}
+                    trendColor="#ffd700"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -475,7 +491,7 @@ const Dashboard = () => {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {marketHighlights.map(item => (
-                  <div key={item.label} className="cyber-stat-item text-center">
+                  <div key={item.label} className="cyber-stat-item text-center cyber-stat-clickable" onClick={() => openDialog('market', item)}>
                     <p className="text-cyan-300/60 text-xs mb-1">{item.label}</p>
                     <p className="text-white font-bold text-sm">{item.value}</p>
                     <p className={`text-xs flex items-center justify-center gap-1 mt-1 ${item.change >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
@@ -490,7 +506,7 @@ const Dashboard = () => {
 
           {/* Top Performers */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="cyber-card cyber-card-glow p-4">
+            <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('gainers', { items: topPerformers.gainers })}>
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
                 <span className="text-emerald-400 font-semibold text-xs uppercase">Top Gainers</span>
@@ -507,7 +523,7 @@ const Dashboard = () => {
                 )) : <p className="text-cyan-300/40 text-xs">No gainers</p>}
               </div>
             </div>
-            <div className="cyber-card cyber-card-glow p-4">
+            <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('losers', { items: topPerformers.losers })}>
               <div className="flex items-center gap-2 mb-3">
                 <TrendingDown className="w-4 h-4 text-rose-400" />
                 <span className="text-rose-400 font-semibold text-xs uppercase">Top Losers</span>
@@ -530,7 +546,7 @@ const Dashboard = () => {
         {/* Right Column */}
         <div className="col-span-12 lg:col-span-3 space-y-4">
           {/* Asset Allocation */}
-          <div className="cyber-card cyber-card-glow p-4">
+          <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('allocation', { allocationData, portfolioSummary })}>
             <div className="flex items-center gap-2 mb-4">
               <Zap className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Asset Allocation</h3>
@@ -573,7 +589,7 @@ const Dashboard = () => {
           </div>
 
           {/* Goals Progress */}
-          <div className="cyber-card cyber-card-glow p-4">
+          <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('goals', { goals: goalSummary.goals })}>
             <div className="flex items-center gap-2 mb-4">
               <Target className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Goal Progress</h3>
@@ -600,7 +616,7 @@ const Dashboard = () => {
           </div>
 
           {/* Monthly Net Change Bar Chart */}
-          <div className="cyber-card cyber-card-glow p-4">
+          <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('netChange', { monthlyNetChanges })}>
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">월 순변동</h3>
@@ -633,7 +649,7 @@ const Dashboard = () => {
 
       {/* Bottom Section - Recent Activities */}
       <div className="mt-6">
-        <div className="cyber-card cyber-card-glow p-4">
+        <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('activities', { activities: recentActivities })}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-cyan-400" />
@@ -665,6 +681,14 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Detail Dialog */}
+      <DashboardDetailDialog 
+        isOpen={dialogState.isOpen} 
+        onClose={closeDialog} 
+        dialogType={dialogState.type} 
+        dialogData={dialogState.data} 
+      />
     </div>
   )
 }
