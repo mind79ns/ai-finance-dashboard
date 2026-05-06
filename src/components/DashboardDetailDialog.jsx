@@ -637,6 +637,51 @@ const YearlyFlowDetail = ({ d }) => {
           />
         </>
       )}
+
+      {/* 월별 년도간 비교 (전년 vs 올해) */}
+      {prevData && curData && prevData.monthly && curData.monthly && (
+        <>
+          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">월별 비교 ({prevYear}년 vs {currentYear}년)</h3>
+          <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={curData.monthly.map((m, i) => ({
+                month: m.month,
+                [`${prevYear} 순이익`]: prevData.monthly[i]?.net || 0,
+                [`${currentYear} 순이익`]: m.net || 0
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.05)" vertical={false} />
+                <XAxis dataKey="month" stroke="#4a6d7c" fontSize={11} tickLine={false} />
+                <YAxis stroke="#4a6d7c" fontSize={11} tickFormatter={v => `${(v / 1e4).toFixed(0)}만`} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+                  formatter={(v) => [fmt(v)]}
+                  cursor={{fill: 'rgba(0,210,255,0.05)'}}
+                />
+                <Bar dataKey={`${prevYear} 순이익`} fill="#6366f1" radius={[4, 4, 0, 0]} opacity={0.6} />
+                <Bar dataKey={`${currentYear} 순이익`} fill="#00d4ff" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <CyberTable
+            headers={['월', {label:`${prevYear} 수입`,align:'right'}, {label:`${prevYear} 지출`,align:'right'}, {label:`${currentYear} 수입`,align:'right'}, {label:`${currentYear} 지출`,align:'right'}, {label:'증감',align:'right'}]}
+            rows={curData.monthly.map((m, i) => {
+              const prev = prevData.monthly[i] || { income: 0, expense: 0, net: 0 }
+              const hasData = m.income > 0 || m.expense > 0 || prev.income > 0 || prev.expense > 0
+              if (!hasData) return null
+              const diff = m.net - prev.net
+              return [
+                <span className="font-bold text-cyan-200">{m.month}</span>,
+                <span className="text-cyan-300/60">{fmtC(prev.income)}</span>,
+                <span className="text-cyan-300/60">{fmtC(prev.expense)}</span>,
+                <span className="text-emerald-400 font-semibold">{fmtC(m.income)}</span>,
+                <span className="text-rose-400 font-semibold">{fmtC(m.expense)}</span>,
+                <PnlText value={diff} suffix="원" />
+              ]
+            }).filter(Boolean)}
+          />
+        </>
+      )}
     </div>
   )
 }

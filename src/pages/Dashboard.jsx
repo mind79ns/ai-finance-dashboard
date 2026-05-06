@@ -266,22 +266,27 @@ const Dashboard = () => {
       setIfChanged(setTrendDividend, trendDividend, tDividend)
       setIfChanged(setMonthlyNetChanges, monthlyNetChanges, netChanges)
       setIfChanged(setYearlyFlow, yearlyFlow, { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense })
-      // 다년도 비교 데이터 구축
+      // 다년도 비교 데이터 구축 (월별 세부 포함)
+      const MONTH_LABELS_YR = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
       const allYears = Object.keys(assetAccountData || {}).sort()
       const yearCompare = {}
       allYears.forEach(year => {
         const yrData = (assetStatusData || {})[Number(year)] || (assetAccountData || {})[Number(year)] || {}
         let yrIncome = 0, yrExpense = 0
+        const monthly = []
         for (let m = 1; m <= 12; m++) {
           const md = yrData[m] || {}
-          yrIncome += incomeCats.reduce((s, c) => c.isAccumulated ? s : s + Number(md[c.id] || 0), 0)
-          yrExpense += expenseCats.reduce((s, c) => s + Number(md[c.id] || 0), 0)
+          const mIncome = incomeCats.reduce((s, c) => c.isAccumulated ? s : s + Number(md[c.id] || 0), 0)
+          const mExpense = expenseCats.reduce((s, c) => s + Number(md[c.id] || 0), 0)
+          yrIncome += mIncome
+          yrExpense += mExpense
+          monthly.push({ month: MONTH_LABELS_YR[m - 1], income: mIncome, expense: mExpense, net: mIncome - mExpense })
         }
-        yearCompare[year] = { income: yrIncome, expense: yrExpense, net: yrIncome - yrExpense }
+        yearCompare[year] = { income: yrIncome, expense: yrExpense, net: yrIncome - yrExpense, monthly }
       })
       // 현재 연도가 없으면 추가
       if (!yearCompare[currentYear]) {
-        yearCompare[currentYear] = { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense }
+        yearCompare[currentYear] = { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense, monthly: netChanges }
       }
       setIfChanged(setYearlyCompareData, yearlyCompareData, yearCompare)
       setIfChanged(setGoalSummary, goalSummary, summarizeGoals(goalsRaw))
