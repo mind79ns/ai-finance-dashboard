@@ -238,7 +238,7 @@ const Dashboard = () => {
         const expenseTotal = expenseCats.reduce((sum, cat) => sum + Number(mData[cat.id] || 0), 0)
         totalYrIncome += incomeTotal
         totalYrExpense += expenseTotal
-        netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal })
+        netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal, income: incomeTotal, expense: expenseTotal })
       }
 
       // --- [최적화] 상태 업데이트 전 값 변경 여부(JSON.stringify)를 확인하여 리렌더링 폭풍(깜빡임) 방지 ---
@@ -649,7 +649,7 @@ const Dashboard = () => {
           </div>
 
           {/* Monthly Net Change Bar Chart */}
-          <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('netChange', { monthlyNetChanges })}>
+          <div className="cyber-card cyber-card-glow p-4 cyber-card-clickable" onClick={() => openDialog('netChange', { monthlyNetChanges, yearlyFlow })}>
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-4 h-4 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">월 순변동</h3>

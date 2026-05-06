@@ -689,12 +689,69 @@ const GoalsDetail = ({ d }) => {
 
 /* ═══ 13. Net Change ═══ */
 const NetChangeDetail = ({ d }) => {
-  const { monthlyNetChanges = [] } = d
+  const { monthlyNetChanges = [], yearlyFlow = {} } = d
+  
+  const totalIncome = monthlyNetChanges.reduce((sum, m) => sum + (m.income || 0), 0)
+  const totalExpense = monthlyNetChanges.reduce((sum, m) => sum + (m.expense || 0), 0)
+  const totalNet = totalIncome - totalExpense
+  const savingsRate = totalIncome > 0 ? ((totalNet / totalIncome) * 100) : 0
+  const activeMonths = monthlyNetChanges.filter(m => m.income > 0 || m.expense > 0)
+  const avgMonthlyNet = activeMonths.length > 0 ? totalNet / activeMonths.length : 0
+  const bestMonth = [...monthlyNetChanges].sort((a, b) => b.value - a.value)[0]
+  const worstMonth = [...monthlyNetChanges].sort((a, b) => a.value - b.value)[0]
+
   return (
     <div className="space-y-6">
-      <AIInsightBadge icon={BarChart3} title="변동성 및 트렌드" message="막대가 위로 향하면(녹색) 잉여 현금이 창출된 달이며, 아래로 향하면(적색) 적자가 발생한 달입니다." type="info" />
+      <AIInsightBadge 
+        icon={BarChart3} 
+        title="현금흐름 종합 분석" 
+        message={`올해 총 수입 ${fmt(totalIncome)} 중 ${savingsRate.toFixed(1)}%를 저축/잉여금으로 확보하고 있습니다. ${bestMonth?.month || ''}에 가장 많은 잉여금이 발생했습니다.`}
+        type={savingsRate >= 20 ? 'success' : savingsRate >= 0 ? 'warning' : 'danger'}
+      />
+
+      {/* 연간 요약 지표 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="cyber-stat-item text-center p-4">
+          <p className="text-cyan-300/60 text-xs mb-1">연간 총 수입</p>
+          <p className="neon-text-green font-bold text-xl">{fmt(totalIncome)}</p>
+        </div>
+        <div className="cyber-stat-item text-center p-4 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-xs mb-1">연간 총 지출</p>
+          <p className="neon-text-red font-bold text-xl">{fmt(totalExpense)}</p>
+        </div>
+        <div className="cyber-stat-item text-center p-4 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-xs mb-1">순이익 (잉여금)</p>
+          <p className={`font-bold text-xl ${totalNet >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>{fmt(totalNet)}</p>
+        </div>
+        <div className="cyber-stat-item text-center p-4 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-xs mb-1">저축률</p>
+          <p className={`font-bold text-xl ${savingsRate >= 20 ? 'neon-text-green' : savingsRate >= 0 ? 'text-amber-400' : 'neon-text-red'}`}>{savingsRate.toFixed(1)}%</p>
+        </div>
+      </div>
+
+      {/* 수입/지출 비교 바차트 */}
+      <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">월별 수입 vs 지출 비교</h3>
       <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
         <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={monthlyNetChanges}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.05)" vertical={false} />
+            <XAxis dataKey="month" stroke="#4a6d7c" fontSize={11} tickLine={false} />
+            <YAxis stroke="#4a6d7c" fontSize={11} tickFormatter={v => `${(v / 1e4).toFixed(0)}만`} axisLine={false} tickLine={false} />
+            <Tooltip 
+              contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }} 
+              formatter={(v, name) => [fmt(v), name === 'income' ? '수입' : name === 'expense' ? '지출' : '순변동']}
+              cursor={{fill: 'rgba(0,210,255,0.05)'}}
+            />
+            <Bar dataKey="income" name="income" fill="#10b981" radius={[4, 4, 0, 0]} opacity={0.8} />
+            <Bar dataKey="expense" name="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} opacity={0.8} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 순변동 흐름 차트 */}
+      <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">월별 순변동 흐름</h3>
+      <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
+        <ResponsiveContainer width="100%" height={200}>
           <BarChart data={monthlyNetChanges}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.05)" vertical={false} />
             <XAxis dataKey="month" stroke="#4a6d7c" fontSize={11} tickLine={false} />
@@ -705,6 +762,33 @@ const NetChangeDetail = ({ d }) => {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* 월별 세부 내역 테이블 */}
+      <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">월별 세부 내역</h3>
+      <CyberTable
+        headers={['월', {label:'수입',align:'right'}, {label:'지출',align:'right'}, {label:'순변동',align:'right'}, {label:'비율',align:'right'}]}
+        rows={monthlyNetChanges.filter(m => m.income > 0 || m.expense > 0).map(m => [
+          <span className="font-bold text-cyan-200">{m.month}</span>,
+          <span className="text-emerald-400 font-semibold">{fmtC(m.income || 0)}</span>,
+          <span className="text-rose-400 font-semibold">{fmtC(m.expense || 0)}</span>,
+          <PnlText value={m.value} suffix="원" />,
+          <span className={`text-xs font-bold ${(m.income || 0) > 0 && ((m.value / m.income) * 100) >= 20 ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {(m.income || 0) > 0 ? ((m.value / m.income) * 100).toFixed(1) : 0}%
+          </span>
+        ])}
+      />
+
+      {/* 하이라이트 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="cyber-stat-item p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-center">
+          <p className="text-cyan-300/60 text-xs mb-1">🟢 최고 잉여금 ({bestMonth?.month})</p>
+          <p className="neon-text-green font-bold text-lg">{fmt(bestMonth?.value || 0)}</p>
+        </div>
+        <div className="cyber-stat-item p-4 bg-rose-500/5 border border-rose-500/20 rounded-lg text-center">
+          <p className="text-cyan-300/60 text-xs mb-1">🔴 최저/적자 ({worstMonth?.month})</p>
+          <p className="neon-text-red font-bold text-lg">{fmt(worstMonth?.value || 0)}</p>
+        </div>
       </div>
     </div>
   )
