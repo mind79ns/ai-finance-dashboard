@@ -484,7 +484,7 @@ const Dashboard = () => {
                     trendColor="#00d4ff"
                   />
                 </div>
-                <div onClick={() => openDialog('assetStatus', { trendAsset, assetStatusTotal })} className="h-1/2">
+                <div onClick={() => openDialog('assetStatus', { trendAsset, assetStatusTotal, monthlyNetChanges, yearlyFlow })} className="h-1/2">
                   <StatBox
                     icon={BarChart3}
                     label="Asset Status TOTAL"

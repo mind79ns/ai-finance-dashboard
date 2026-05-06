@@ -208,41 +208,63 @@ const PortfolioDetail = ({ d }) => {
 
 /* ═══ 2. Asset Status ═══ */
 const AssetStatusDetail = ({ d }) => {
-  const { trendAsset = [], assetStatusTotal = 0 } = d
+  const { trendAsset = [], assetStatusTotal = 0, monthlyNetChanges = [], yearlyFlow = {} } = d
   
-  // 계산: MoM (Month-over-Month) 및 평균
+  // MoM 및 평균
   const validTrends = trendAsset.filter(t => t.value > 0)
-  let momPercent = 0
+  let momPercent = 0, momDiff = 0
   let avgMonthly = 0
   if (validTrends.length >= 2) {
     const last = validTrends[validTrends.length - 1].value
     const prev = validTrends[validTrends.length - 2].value
     momPercent = ((last - prev) / prev) * 100
+    momDiff = last - prev
   }
   if (validTrends.length > 0) {
     avgMonthly = validTrends.reduce((sum, t) => sum + t.value, 0) / validTrends.length
   }
 
+  // 최고/최저 월
+  const activeMonths = monthlyNetChanges.filter(m => m.income > 0 || m.expense > 0)
+  const bestMonth = [...activeMonths].sort((a, b) => b.value - a.value)[0]
+  const worstMonth = [...activeMonths].sort((a, b) => a.value - b.value)[0]
+  const totalIncome = yearlyFlow.income || 0
+  const totalExpense = yearlyFlow.expense || 0
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="cyber-stat-item p-4 text-center md:col-span-1">
+      <AIInsightBadge 
+        icon={BarChart3} 
+        title="자산 현황 종합 분석" 
+        message={`현재 총 자산은 ${fmt(assetStatusTotal)}이며, 전월 대비 ${momPercent >= 0 ? '증가' : '감소'}(${momPercent.toFixed(1)}%) 추세입니다.`}
+        type={momPercent >= 0 ? 'success' : 'warning'}
+      />
+
+      {/* 핵심 지표 카드 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="cyber-stat-item p-4 text-center">
           <p className="text-cyan-300/60 text-xs mb-1">현재 자산 총액</p>
           <p className="neon-text-cyan font-bold text-2xl">{fmt(assetStatusTotal)}</p>
         </div>
-        <div className="cyber-stat-item p-4 text-center md:col-span-1 bg-slate-800/40">
-          <p className="text-cyan-300/60 text-xs mb-1">전월 대비 증감 (MoM)</p>
-          <p className="text-xl"><PnlText value={momPercent} suffix="%" /></p>
+        <div className="cyber-stat-item p-4 text-center bg-slate-800/40">
+          <p className="text-cyan-300/60 text-xs mb-1">전월 대비 (MoM)</p>
+          <div className="text-xl"><PnlText value={momPercent} suffix="%" /></div>
+          <p className="text-[10px] text-cyan-300/40 mt-1">{fmt(momDiff)} 변동</p>
         </div>
-        <div className="cyber-stat-item p-4 text-center md:col-span-1 bg-slate-800/40">
+        <div className="cyber-stat-item p-4 text-center bg-slate-800/40">
           <p className="text-cyan-300/60 text-xs mb-1">월 평균 유지액</p>
           <p className="text-cyan-100 font-bold text-xl">{fmt(avgMonthly)}</p>
         </div>
+        <div className="cyber-stat-item p-4 text-center bg-slate-800/40">
+          <p className="text-cyan-300/60 text-xs mb-1">연간 순이익</p>
+          <div className="text-xl"><PnlText value={yearlyFlow.net || 0} suffix="원" /></div>
+        </div>
       </div>
 
+      {/* 자산 성장 곡선 */}
       <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">자산 성장 곡선</h3>
       <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={trendAsset}>
             <defs>
               <linearGradient id="gradAssetDlg" x1="0" y1="0" x2="0" y2="1">
@@ -257,6 +279,66 @@ const AssetStatusDetail = ({ d }) => {
             <Area type="monotone" dataKey="value" stroke="#a855f7" strokeWidth={3} fill="url(#gradAssetDlg)" dot={{ r: 4, fill: '#a855f7', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} connectNulls />
           </AreaChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* 월별 수입/지출 비교 차트 */}
+      {activeMonths.length > 0 && (
+        <>
+          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">월별 수입 vs 지출 현황</h3>
+          <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={monthlyNetChanges}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.05)" vertical={false} />
+                <XAxis dataKey="month" stroke="#4a6d7c" fontSize={11} tickLine={false} />
+                <YAxis stroke="#4a6d7c" fontSize={11} tickFormatter={v => `${(v / 1e4).toFixed(0)}만`} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+                  formatter={(v, name) => [fmt(v), name === 'income' ? '수입' : name === 'expense' ? '지출' : '순변동']}
+                  cursor={{fill: 'rgba(0,210,255,0.05)'}}
+                />
+                <Bar dataKey="income" name="income" fill="#10b981" radius={[4, 4, 0, 0]} opacity={0.8} />
+                <Bar dataKey="expense" name="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} opacity={0.8} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
+
+      {/* 월별 세부 내역 테이블 */}
+      {activeMonths.length > 0 && (
+        <>
+          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">월별 증감 세부 내역</h3>
+          <CyberTable
+            headers={['월', {label:'수입',align:'right'}, {label:'지출',align:'right'}, {label:'순변동',align:'right'}, {label:'비중',align:'right'}]}
+            rows={activeMonths.map(m => [
+              <span className="font-bold text-cyan-200">{m.month}</span>,
+              <span className="text-emerald-400 font-semibold">{fmtC(m.income || 0)}</span>,
+              <span className="text-rose-400 font-semibold">{fmtC(m.expense || 0)}</span>,
+              <PnlText value={m.value} suffix="원" />,
+              <span className={`text-xs font-bold ${(m.income || 0) > 0 && ((m.value / m.income) * 100) >= 20 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {(m.income || 0) > 0 ? ((m.value / m.income) * 100).toFixed(1) : 0}%
+              </span>
+            ])}
+          />
+        </>
+      )}
+
+      {/* 하이라이트 */}
+      <div className="grid grid-cols-2 gap-4">
+        {bestMonth && (
+          <div className="cyber-stat-item p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-center">
+            <p className="text-cyan-300/60 text-xs mb-1">🟢 최고 잉여금 ({bestMonth.month})</p>
+            <p className="neon-text-green font-bold text-lg">{fmt(bestMonth.value)}</p>
+            <p className="text-[10px] text-cyan-300/40">수입 {fmtC(bestMonth.income || 0)} / 지출 {fmtC(bestMonth.expense || 0)}</p>
+          </div>
+        )}
+        {worstMonth && (
+          <div className="cyber-stat-item p-4 bg-rose-500/5 border border-rose-500/20 rounded-lg text-center">
+            <p className="text-cyan-300/60 text-xs mb-1">🔴 최저/적자 ({worstMonth.month})</p>
+            <p className="neon-text-red font-bold text-lg">{fmt(worstMonth.value)}</p>
+            <p className="text-[10px] text-cyan-300/40">수입 {fmtC(worstMonth.income || 0)} / 지출 {fmtC(worstMonth.expense || 0)}</p>
+          </div>
+        )}
       </div>
     </div>
   )
