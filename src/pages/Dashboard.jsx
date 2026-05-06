@@ -68,6 +68,7 @@ const Dashboard = () => {
   const [yearlyFlow, setYearlyFlow] = useState({ income: 0, expense: 0, net: 0 })
   const [performanceList, setPerformanceList] = useState([]) // For Profit Dialog
   const [dividendDataList, setDividendDataList] = useState([]) // For Dividend Dialog
+  const [yearlyCompareData, setYearlyCompareData] = useState({}) // For Yearly Flow Dialog
   
   // Dialog State
   const [dialogState, setDialogState] = useState({ isOpen: false, type: null, data: null })
@@ -265,6 +266,24 @@ const Dashboard = () => {
       setIfChanged(setTrendDividend, trendDividend, tDividend)
       setIfChanged(setMonthlyNetChanges, monthlyNetChanges, netChanges)
       setIfChanged(setYearlyFlow, yearlyFlow, { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense })
+      // 다년도 비교 데이터 구축
+      const allYears = Object.keys(assetAccountData || {}).sort()
+      const yearCompare = {}
+      allYears.forEach(year => {
+        const yrData = (assetStatusData || {})[Number(year)] || (assetAccountData || {})[Number(year)] || {}
+        let yrIncome = 0, yrExpense = 0
+        for (let m = 1; m <= 12; m++) {
+          const md = yrData[m] || {}
+          yrIncome += incomeCats.reduce((s, c) => c.isAccumulated ? s : s + Number(md[c.id] || 0), 0)
+          yrExpense += expenseCats.reduce((s, c) => s + Number(md[c.id] || 0), 0)
+        }
+        yearCompare[year] = { income: yrIncome, expense: yrExpense, net: yrIncome - yrExpense }
+      })
+      // 현재 연도가 없으면 추가
+      if (!yearCompare[currentYear]) {
+        yearCompare[currentYear] = { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense }
+      }
+      setIfChanged(setYearlyCompareData, yearlyCompareData, yearCompare)
       setIfChanged(setGoalSummary, goalSummary, summarizeGoals(goalsRaw))
       setIfChanged(setRecentActivities, recentActivities, buildRecentActivities(logsRaw, dividendData || [], assetsMap, usdToKrw))
     } catch (err) {
@@ -411,7 +430,7 @@ const Dashboard = () => {
           </div>
 
           {/* Yearly Asset Flow - Small 1x3 Card */}
-          <div className="cyber-card cyber-card-glow p-3 shrink-0 cyber-card-clickable" onClick={() => openDialog('yearlyFlow', { yearlyFlow, monthlyNetChanges })}>
+          <div className="cyber-card cyber-card-glow p-3 shrink-0 cyber-card-clickable" onClick={() => openDialog('yearlyFlow', { yearlyFlow, monthlyNetChanges, yearlyCompareData })}>
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-3 h-3 text-cyan-400" />
               <h3 className="text-cyan-400 font-semibold text-xs uppercase tracking-wide">연간 요약</h3>

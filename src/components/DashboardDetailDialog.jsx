@@ -507,7 +507,7 @@ const AccountDetail = ({ d }) => {
 
 /* ═══ 7. Yearly Flow ═══ */
 const YearlyFlowDetail = ({ d }) => {
-  const { yearlyFlow = {}, monthlyNetChanges = [] } = d
+  const { yearlyFlow = {}, monthlyNetChanges = [], yearlyCompareData = {} } = d
   const savingsRate = yearlyFlow.income > 0 ? ((yearlyFlow.income - yearlyFlow.expense) / yearlyFlow.income) * 100 : 0
   
   let insightType = 'info'
@@ -519,10 +519,36 @@ const YearlyFlowDetail = ({ d }) => {
     else { insightType = 'danger'; insightMsg = '적자 상태입니다! 즉각적인 지출 통제와 현금흐름 개선이 시급합니다.' }
   }
 
+  // 다년도 비교 차트 데이터
+  const years = Object.keys(yearlyCompareData).sort()
+  const yearChartData = years.map(y => ({
+    year: `${y}년`,
+    income: yearlyCompareData[y].income,
+    expense: yearlyCompareData[y].expense,
+    net: yearlyCompareData[y].net
+  }))
+
+  // 전년 대비 증감률 계산
+  const currentYear = new Date().getFullYear().toString()
+  const prevYear = (Number(currentYear) - 1).toString()
+  const curData = yearlyCompareData[currentYear]
+  const prevData = yearlyCompareData[prevYear]
+  let incomeChange = null, expenseChange = null, netChange = null
+  if (curData && prevData && prevData.income > 0) {
+    incomeChange = ((curData.income - prevData.income) / prevData.income) * 100
+  }
+  if (curData && prevData && prevData.expense > 0) {
+    expenseChange = ((curData.expense - prevData.expense) / prevData.expense) * 100
+  }
+  if (curData && prevData && prevData.net !== 0) {
+    netChange = ((curData.net - prevData.net) / Math.abs(prevData.net)) * 100
+  }
+
   return (
     <div className="space-y-6">
       <AIInsightBadge icon={Activity} title="현금흐름(Cashflow) 진단" message={insightMsg} type={insightType} />
 
+      {/* 올해 요약 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="cyber-stat-item text-center p-4 bg-emerald-500/10 border-emerald-500/30">
           <p className="text-emerald-300/80 text-xs mb-1">연간 총 수입</p>
@@ -543,6 +569,74 @@ const YearlyFlowDetail = ({ d }) => {
           </p>
         </div>
       </div>
+
+      {/* 전년 대비 증감 */}
+      {prevData && (
+        <>
+          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">전년({prevYear}) 대비 변화</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="cyber-stat-item text-center p-4 bg-slate-800/40 rounded-lg">
+              <p className="text-cyan-300/60 text-xs mb-1">수입 증감</p>
+              {incomeChange !== null ? <PnlText value={incomeChange} suffix="%" /> : <span className="text-cyan-300/40">-</span>}
+              <p className="text-[10px] text-cyan-300/40 mt-1">{fmt(prevData.income)} → {fmt(curData?.income || 0)}</p>
+            </div>
+            <div className="cyber-stat-item text-center p-4 bg-slate-800/40 rounded-lg">
+              <p className="text-cyan-300/60 text-xs mb-1">지출 증감</p>
+              {expenseChange !== null ? <PnlText value={expenseChange} suffix="%" /> : <span className="text-cyan-300/40">-</span>}
+              <p className="text-[10px] text-cyan-300/40 mt-1">{fmt(prevData.expense)} → {fmt(curData?.expense || 0)}</p>
+            </div>
+            <div className="cyber-stat-item text-center p-4 bg-slate-800/40 rounded-lg">
+              <p className="text-cyan-300/60 text-xs mb-1">순이익 변화</p>
+              {netChange !== null ? <PnlText value={netChange} suffix="%" /> : <span className="text-cyan-300/40">-</span>}
+              <p className="text-[10px] text-cyan-300/40 mt-1">{fmt(prevData.net)} → {fmt(curData?.net || 0)}</p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 다년도 비교 바차트 */}
+      {yearChartData.length > 1 && (
+        <>
+          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">년도별 수입 / 지출 비교</h3>
+          <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={yearChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.05)" vertical={false} />
+                <XAxis dataKey="year" stroke="#4a6d7c" fontSize={12} tickLine={false} />
+                <YAxis stroke="#4a6d7c" fontSize={11} tickFormatter={v => `${(v / 1e4).toFixed(0)}만`} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+                  formatter={(v, name) => [fmt(v), name === 'income' ? '수입' : name === 'expense' ? '지출' : '순이익']}
+                  cursor={{fill: 'rgba(0,210,255,0.05)'}}
+                />
+                <Bar dataKey="income" name="income" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" name="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
+
+      {/* 년도별 세부 비교 테이블 */}
+      {years.length > 0 && (
+        <>
+          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">년도별 현금흐름 비교표</h3>
+          <CyberTable
+            headers={['년도', {label:'수입',align:'right'}, {label:'지출',align:'right'}, {label:'순이익',align:'right'}, {label:'저축률',align:'right'}]}
+            rows={years.map(y => {
+              const yd = yearlyCompareData[y]
+              const sr = yd.income > 0 ? ((yd.net / yd.income) * 100) : 0
+              return [
+                <span className={`font-bold ${y === currentYear ? 'text-cyan-400' : 'text-cyan-200'}`}>{y}년 {y === currentYear ? '(올해)' : ''}</span>,
+                <span className="text-emerald-400 font-semibold">{fmtC(yd.income)}</span>,
+                <span className="text-rose-400 font-semibold">{fmtC(yd.expense)}</span>,
+                <PnlText value={yd.net} suffix="원" />,
+                <span className={`font-bold ${sr >= 20 ? 'text-emerald-400' : sr >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>{sr.toFixed(1)}%</span>
+              ]
+            })}
+          />
+        </>
+      )}
     </div>
   )
 }
