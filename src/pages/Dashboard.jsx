@@ -211,7 +211,14 @@ const Dashboard = () => {
       const tPortfolio = buildYearlyTrend(snapshots, currentYear, 'portfolioTotal')
       const tAsset = buildYearlyTrend(snapshots, currentYear, 'assetStatusTotal')
       const tProfit = buildYearlyTrend(snapshots, currentYear, 'totalProfit')
-      const tDividend = buildYearlyTrend(snapshots, currentYear, 'dividendTotal')
+      // 배당금은 스냅샷(누적값)이 아닌 실제 트랜잭션에서 월별 발생액을 직접 집계
+      const MONTH_LABELS_DIV = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+      const tDividend = MONTH_LABELS_DIV.map((label, i) => {
+        const monthTotal = processedDividends
+          .filter(d => new Date(d.date).getMonth() === i)
+          .reduce((sum, d) => sum + (d.amountKRW || 0), 0)
+        return { month: label, value: monthTotal }
+      })
 
       // 월별 순변동 계산 (Asset Status 데이터 기반)
       const currentYearStatus = (assetStatusData || {})[currentYear] || {}
