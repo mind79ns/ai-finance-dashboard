@@ -722,8 +722,11 @@ const ActivitiesDetail = ({ d }) => {
           <span className={`px-2 py-1 rounded text-xs font-bold ${a.type === 'buy' ? 'bg-emerald-500/20 text-emerald-400' : a.type === 'sell' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
             {a.type === 'buy' ? 'BUY' : a.type === 'sell' ? 'SELL' : 'DIVIDEND'}
           </span>,
-          <span className="font-medium text-cyan-50">{a.title}</span>,
-          <PnlText value={a.amount} suffix={` (${fmtC(a.amount)})`} />,
+          <div className="flex flex-col">
+            <span className="font-medium text-cyan-50">{a.symbol || ''} {a.type === 'buy' ? '매수' : a.type === 'sell' ? '매도' : '배당'}</span>
+            {a.name && <span className="text-[10px] text-cyan-300/40">{a.name}</span>}
+          </div>,
+          <PnlText value={a.amount} suffix="원" />,
           <span className="text-cyan-300/60 text-xs">{a.date}</span>
         ])}
       />

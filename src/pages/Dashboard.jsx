@@ -872,20 +872,34 @@ const summarizeGoals = (goals) => {
 
 const buildRecentActivities = (logs, dividends, assetsMap, usdToKrw) => {
   const activities = []
-  logs.slice(0, 5).forEach(log => {
+  logs.slice(0, 20).forEach(log => {
     const asset = assetsMap[log.asset]
     const total = Number(log.total || 0)
     const amountKRW = (asset?.currency || 'USD') === 'USD' ? total * usdToKrw : total
+    const assetName = asset?.name || ''
     activities.push({
-      type: log.type, title: `${log.asset} ${log.type === 'buy' ? '매수' : '매도'}`,
+      type: log.type,
+      symbol: log.asset,
+      name: assetName,
+      title: `${log.asset} ${log.type === 'buy' ? '매수' : '매도'}`,
       amount: log.type === 'buy' ? -amountKRW : amountKRW,
       date: log.date ? format(new Date(log.date), 'M/d') : '-',
       ts: new Date(log.date).getTime()
     })
   })
-  dividends.slice(0, 3).forEach(d => {
+  dividends.slice(0, 10).forEach(d => {
     const amountKRW = d.currency === 'USD' ? d.amount * usdToKrw : d.amount
-    activities.push({ type: 'dividend', title: `${d.symbol} 배당`, amount: amountKRW, date: d.date ? format(new Date(d.date), 'M/d') : '-', ts: new Date(d.date).getTime() })
+    const asset = assetsMap[d.symbol]
+    const assetName = asset?.name || d.name || ''
+    activities.push({
+      type: 'dividend',
+      symbol: d.symbol,
+      name: assetName,
+      title: `${d.symbol} 배당`,
+      amount: amountKRW,
+      date: d.date ? format(new Date(d.date), 'M/d') : '-',
+      ts: new Date(d.date).getTime()
+    })
   })
   return activities.sort((a, b) => b.ts - a.ts)
 }
