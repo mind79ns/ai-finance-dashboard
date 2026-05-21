@@ -20,9 +20,20 @@
       "Bash(iconv:*)",
       "Bash(test:*)",
       "Bash(curl:*)",
-      "Bash(npm run deploy)"
+      "Bash(npm run deploy)",
+      "Bash(awk '{print $5, $9}')",
+      "PowerShell(Get-ChildItem -File \"D:\\\\MyProject\\\\ai-finance-dashboard\\\\\" | Select-Object Name, @{N='KB';E={[math]::Round\\($_.Length/1KB,1\\)}}, LastWriteTime | Sort-Object Name | Format-Table -AutoSize)",
+      "Bash(git mv *)",
+      "Bash(git rm *)",
+      "Bash(rm -rf dist/)",
+      "Bash(rmdir backup *)",
+      "Bash(awk '{for \\(i=9; i<=NF; i++\\) printf \"%s \", $i; print \"\"}')"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }
