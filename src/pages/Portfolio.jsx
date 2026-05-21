@@ -26,6 +26,7 @@ const Portfolio = () => {
     category: '해외주식'
   })
   const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false) // 백그라운드 시세 갱신 인디케이터용
   const [lastUpdate, setLastUpdate] = useState(null)
   const [exchangeRate, setExchangeRate] = useState(1340) // USD/KRW rate
   const [searchQuery, setSearchQuery] = useState('')
@@ -135,8 +136,8 @@ const Portfolio = () => {
         const loadedPrincipals = await dataSync.loadAccountPrincipals()
         if (mounted) setAccountPrincipals(loadedPrincipals)
 
-        // If no assets were loaded, just end loading state
-        if (mounted && (!loadedAssets || loadedAssets.length === 0)) {
+        // [Optimistic UI] 캐시값으로 화면을 즉시 그린다. 시세 갱신은 백그라운드에서 진행.
+        if (mounted) {
           setLoading(false)
         }
       } catch (error) {
@@ -176,25 +177,22 @@ const Portfolio = () => {
         return
       }
 
+      if (!cancelled) setIsRefreshing(true)
+
       try {
-        // [병목 개선] 백그라운드 폴링 시 전체 화면 Loading 스피너를 띄우지 않음
-        // 단, 앱 진입(첫 로드) 시 로딩 상태가 유지되고 있으므로 이후 스피너를 해제합니다.
         const { updatedAssets, nextExchangeRate } = await fetchAndUpdateAssetPrices(assets, exchangeRate)
 
         if (!cancelled) {
           skipPriceUpdateRef.current = true
           setExchangeRate(nextExchangeRate)
           setAssets(updatedAssets)
-          // [병목 개선] UI 렌더링을 막지 않도록 서버 저장은 비동기로 처리 (await 제거)
           dataSync.savePortfolioAssets(updatedAssets, { exchangeRate: nextExchangeRate }).catch(console.error)
           setLastUpdate(new Date())
         }
       } catch (error) {
         console.error('Price update error:', error)
       } finally {
-        if (!cancelled) {
-          setLoading(false) // 최초 1회 실시간 갱신 완료 후 로딩바 영구 제거
-        }
+        if (!cancelled) setIsRefreshing(false)
       }
     }
 
@@ -658,7 +656,12 @@ const Portfolio = () => {
             <p className="text-xs text-cyan-300/60">환율 (USD/KRW)</p>
             <p className="text-sm font-medium text-cyan-300">₩{exchangeRate.toLocaleString()}</p>
           </div>
-          {loading && <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin" />}
+          {(loading || isRefreshing) && (
+            <span className="flex items-center gap-1 text-xs text-cyan-300/70">
+              <RefreshCw className="w-4 h-4 text-cyan-400 animate-spin" />
+              {isRefreshing && !loading ? '시세 갱신 중' : '로딩 중'}
+            </span>
+          )}
         </div>
       </div>
 
