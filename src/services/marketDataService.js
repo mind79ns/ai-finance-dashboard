@@ -130,22 +130,16 @@ class MarketDataService {
       // Using ETFs that track major indices (Finnhub supports stocks/ETFs only)
       const responses = await Promise.all([
         axios.get(`${this.finnhubBaseURL}/quote`, {
-          params: {
-            symbol: 'SPY',  // SPDR S&P 500 ETF Trust
-            token: API_CONFIG.FINNHUB_API_KEY
-          }
+          params: { symbol: 'SPY', token: API_CONFIG.FINNHUB_API_KEY },
+          timeout: 5000
         }),
         axios.get(`${this.finnhubBaseURL}/quote`, {
-          params: {
-            symbol: 'QQQ',  // Invesco QQQ (Nasdaq 100)
-            token: API_CONFIG.FINNHUB_API_KEY
-          }
+          params: { symbol: 'QQQ', token: API_CONFIG.FINNHUB_API_KEY },
+          timeout: 5000
         }),
         axios.get(`${this.finnhubBaseURL}/quote`, {
-          params: {
-            symbol: 'DIA',  // SPDR Dow Jones Industrial Average ETF
-            token: API_CONFIG.FINNHUB_API_KEY
-          }
+          params: { symbol: 'DIA', token: API_CONFIG.FINNHUB_API_KEY },
+          timeout: 5000
         })
       ])
 
@@ -220,10 +214,8 @@ class MarketDataService {
 
       // GLD = SPDR Gold Shares ETF (tracks gold price)
       const response = await axios.get(`${this.finnhubBaseURL}/quote`, {
-        params: {
-          symbol: 'GLD',
-          token: API_CONFIG.FINNHUB_API_KEY
-        }
+        params: { symbol: 'GLD', token: API_CONFIG.FINNHUB_API_KEY },
+        timeout: 5000
       })
 
       const data = response.data
@@ -265,7 +257,8 @@ class MarketDataService {
           include_24hr_change: true,
           include_24hr_vol: true,
           include_market_cap: true
-        }
+        },
+        timeout: 5000
       })
 
       const data = response.data
@@ -338,9 +331,10 @@ class MarketDataService {
         return `${proxyUrl}${encodeURIComponent(`${this.fredBaseURL}?series_id=${seriesId}&api_key=${API_CONFIG.FRED_API_KEY}&file_type=json&limit=1&sort_order=desc`)}`
       }
 
+      // allorigins 퍼블릭 프록시는 빈번히 지연되므로 4초 timeout 으로 강제 컷
       const responses = await Promise.all([
-        axios.get(getFredUrl('FEDFUNDS')),
-        axios.get(getFredUrl('DGS10'))
+        axios.get(getFredUrl('FEDFUNDS'), { timeout: 4000 }),
+        axios.get(getFredUrl('DGS10'), { timeout: 4000 })
       ])
 
       const fedFunds = responses[0].data.observations[0]
@@ -379,7 +373,7 @@ class MarketDataService {
     if (cached) return cached
 
     try {
-      const response = await axios.get(`${this.exchangeRateBaseURL}/USD`)
+      const response = await axios.get(`${this.exchangeRateBaseURL}/USD`, { timeout: 5000 })
       const rates = response.data.rates
 
       const result = {
@@ -442,10 +436,8 @@ class MarketDataService {
       }
 
       const response = await axios.get(`${this.finnhubBaseURL}/quote`, {
-        params: {
-          symbol: finnhubSymbol,
-          token: API_CONFIG.FINNHUB_API_KEY
-        }
+        params: { symbol: finnhubSymbol, token: API_CONFIG.FINNHUB_API_KEY },
+        timeout: 5000
       })
 
       const data = response.data
@@ -757,28 +749,26 @@ class MarketDataService {
 
   /**
    * ✅ 모든 시장 데이터 한번에 가져오기
+   * Promise.allSettled + 개별 fallback 으로 한 API 의 실패/지연이 전체를 막지 않도록 한다.
    */
   async getAllMarketData() {
-    try {
-      const [stocks, gold, crypto, currency, interestRates] = await Promise.all([
-        this.fetchStockIndices(),
-        this.fetchGoldPrice(),
-        this.getCryptoPrices(),
-        this.getExchangeRates(),
-        this.fetchInterestRates()
-      ])
+    const settled = await Promise.allSettled([
+      this.fetchStockIndices(),
+      this.fetchGoldPrice(),
+      this.getCryptoPrices(),
+      this.getExchangeRates(),
+      this.fetchInterestRates()
+    ])
 
-      return {
-        stocks,
-        gold,
-        crypto,
-        currency,
-        interestRates,
-        lastUpdated: new Date().toISOString()
-      }
-    } catch (error) {
-      console.error('❌ Failed to fetch market data:', error)
-      throw error
+    const pick = (idx, fallback) => settled[idx].status === 'fulfilled' ? settled[idx].value : fallback
+
+    return {
+      stocks: pick(0, this.getFallbackStockData()),
+      gold: pick(1, this.getFallbackGoldData ? this.getFallbackGoldData() : null),
+      crypto: pick(2, this.getFallbackCryptoData()),
+      currency: pick(3, this.getFallbackCurrencyData()),
+      interestRates: pick(4, this.getFallbackInterestRateData()),
+      lastUpdated: new Date().toISOString()
     }
   }
 

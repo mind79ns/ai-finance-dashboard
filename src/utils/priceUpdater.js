@@ -72,16 +72,34 @@ export const fetchAndUpdateAssetPrices = async (assets, currentExchangeRate = 13
         })
 
         // 2. 외부 API Fallback (캐시에 없는 데이터)
+        // 환율/코인 각각 필요한 것만 선택 호출. getAllMarketData() 의 Finnhub 지수·금·FRED 금리는
+        // priceUpdater 결과에 쓰이지 않으므로 호출하지 않는다.
+        const supplementalTasks = []
+        if (isExchangeRateStale) {
+            supplementalTasks.push(
+                marketDataService.getExchangeRates()
+                    .then(rates => ({ kind: 'fx', rates }))
+                    .catch(err => ({ kind: 'fx', error: err }))
+            )
+        }
+        if (hasMissingCrypto) {
+            supplementalTasks.push(
+                marketDataService.getCryptoPrices()
+                    .then(crypto => ({ kind: 'crypto', crypto }))
+                    .catch(err => ({ kind: 'crypto', error: err }))
+            )
+        }
 
-        // 코인 또는 환율 캐시 누락 시에만 전체 마켓 데이터 1회 호출
-        if (hasMissingCrypto || isExchangeRateStale) {
-            try {
-                marketData = await marketDataService.getAllMarketData()
-                if (isExchangeRateStale && marketData?.currency?.usdKrw?.rate) {
-                    nextExchangeRate = marketData.currency.usdKrw.rate
-                }
-            } catch (err) {
-                console.warn('Failed to fetch fallback market data:', err)
+        if (supplementalTasks.length > 0) {
+            const supplemental = await Promise.all(supplementalTasks)
+            const fxResult = supplemental.find(r => r.kind === 'fx')
+            const cryptoResult = supplemental.find(r => r.kind === 'crypto')
+
+            if (fxResult && !fxResult.error && fxResult.rates?.usdKrw?.rate) {
+                nextExchangeRate = fxResult.rates.usdKrw.rate
+            }
+            if (cryptoResult && !cryptoResult.error) {
+                marketData = { crypto: cryptoResult.crypto }
             }
         }
 

@@ -96,7 +96,7 @@ class KISService {
       const padded = missing.map(s => String(s).padStart(6, '0'))
       const response = await axios.get(`${this.baseURL}/kis-batch`, {
         params: { codes: padded.join(',') },
-        timeout: 15000
+        timeout: 8000
       })
 
       const results = response.data?.results || {}
@@ -115,11 +115,16 @@ class KISService {
       console.log(`✅ KIS batch: ${missing.length - failureCount}/${missing.length} prices fetched (token ${response.data?.tokenReused ? 'reused' : 'new'})`)
     } catch (error) {
       console.error('❌ KIS batch error:', error.response?.data || error.message)
-      // 배치 실패 시 종목별 폴백 — 단일 엔드포인트로 순차 호출
-      for (const symbol of missing) {
-        const price = await this.getStockPrice(symbol)
-        if (price) prices[symbol] = price
-        await new Promise(resolve => setTimeout(resolve, 50))
+      // 배치 실패 시 단일 호출 폴백 — 동시성 5건 병렬로 빠르게 시도 (이전 50ms 순차 → 병렬)
+      const parallelBatches = []
+      for (let i = 0; i < missing.length; i += 5) {
+        parallelBatches.push(missing.slice(i, i + 5))
+      }
+      for (const batch of parallelBatches) {
+        const results = await Promise.all(batch.map(symbol => this.getStockPrice(symbol)))
+        batch.forEach((symbol, idx) => {
+          if (results[idx]) prices[symbol] = results[idx]
+        })
       }
     }
 

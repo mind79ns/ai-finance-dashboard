@@ -76,13 +76,10 @@ const Dashboard = () => {
   const closeDialog = useCallback(() => setDialogState({ isOpen: false, type: null, data: null }), [])
 
   const loadDashboardData = useCallback(async (forceRefresh = false) => {
-    // 백그라운드 자동 갱신인 경우 화면을 멈추거나 로딩바를 띄우지 않음
-    if (forceRefresh) setIsRefreshing(true)
-    else setLoading(true)
+    // [Optimistic UI] 첫 로드/강제 갱신 모두 isRefreshing 인디케이터만 사용. 전체 화면 로딩은 dataSync 완료 직후 해제.
+    setIsRefreshing(true)
     try {
-      // 백그라운드 갱신(forceRefresh) 시 무거운 전체 시장조회(API)를 생략하여 10초 대기를 방지
-      // [무한 깜빡임 방지] marketData 상태 의존성 없이 최신 값 참조를 위해 useRef 사용
-      let market = forceRefresh ? marketDataRef.current : null
+      let market = forceRefresh ? marketDataRef.current : marketDataRef.current
 
       const [loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
         dataSync.loadPortfolioAssets(),
@@ -94,7 +91,10 @@ const Dashboard = () => {
         dataSync.loadUserSetting('asset_expense_categories', [])
       ])
 
-      // 첫 로드 시에만 시장 데이터 초기화
+      // [Optimistic UI] 캐시 데이터 도착 즉시 풀스크린 로딩 분기 해제. 시세는 아래에서 계속 진행.
+      setLoading(false)
+
+      // 시장 데이터가 캐시에 없으면 백그라운드 fetch (Promise.allSettled 로 부분 실패 허용)
       if (!market) {
         market = await marketDataService.getAllMarketData().catch(() => null)
         setMarketData(market)
@@ -294,8 +294,8 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Dashboard load error:', err)
     } finally {
-      if (forceRefresh) setIsRefreshing(false)
-      else setLoading(false)
+      setIsRefreshing(false)
+      setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
