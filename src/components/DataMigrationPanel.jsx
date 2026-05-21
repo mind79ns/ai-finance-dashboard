@@ -169,7 +169,7 @@ const DataMigrationPanel = () => {
           <div className="flex-1">
             <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Supabase 설정 안내</p>
             <ol className="text-xs text-blue-800 dark:text-blue-400 space-y-1 list-decimal list-inside">
-              <li>프로젝트 루트의 <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">supabase-setup.md</code> 파일을 참고하여 Supabase 프로젝트를 생성하세요</li>
+              <li>프로젝트 루트의 <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">CLAUDE.md</code> §8 Supabase 스키마 섹션을 참고하여 Supabase 프로젝트를 생성하세요</li>
               <li><code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env.example</code>을 복사하여 <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env</code> 파일을 만들고 Supabase 인증 정보를 입력하세요</li>
               <li>아래 "연결 테스트" 버튼을 클릭하여 Supabase 연결을 확인하세요</li>
             </ol>
