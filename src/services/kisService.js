@@ -71,20 +71,56 @@ class KISService {
   }
 
   /**
-   * 여러 종목 일괄 조회
+   * 여러 종목 일괄 조회 — Netlify `kis-batch` 함수로 단일 HTTP 호출 + 서버 측 병렬 처리
    * @param {Array<string>} symbols - 종목코드 배열
    */
   async getMultiplePrices(symbols) {
-    const prices = {}
+    if (!symbols || symbols.length === 0) return {}
 
-    // KIS API는 rate limit이 있으므로 순차 처리 (초당 20건)
+    const prices = {}
+    const missing = []
+
+    // 캐시 우선 조회 — 외부 호출 대상만 추려낸다
     for (const symbol of symbols) {
-      const price = await this.getStockPrice(symbol)
-      if (price) {
-        prices[symbol] = price
+      const cached = this.getCached(symbol)
+      if (cached) {
+        prices[symbol] = cached
+      } else {
+        missing.push(symbol)
       }
-      // 50ms delay to respect rate limit (20 calls/sec)
-      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+
+    if (missing.length === 0) return prices
+
+    try {
+      const padded = missing.map(s => String(s).padStart(6, '0'))
+      const response = await axios.get(`${this.baseURL}/kis-batch`, {
+        params: { codes: padded.join(',') },
+        timeout: 15000
+      })
+
+      const results = response.data?.results || {}
+
+      // 응답을 원래 심볼 키로 매핑 (호출 측은 padding 안 한 심볼을 들고 있을 수 있음)
+      missing.forEach((symbol, idx) => {
+        const paddedSymbol = padded[idx]
+        const data = results[paddedSymbol] ?? results[symbol]
+        if (data) {
+          prices[symbol] = data
+          this.setCache(symbol, data)
+        }
+      })
+
+      const failureCount = response.data?.failures?.length || 0
+      console.log(`✅ KIS batch: ${missing.length - failureCount}/${missing.length} prices fetched (token ${response.data?.tokenReused ? 'reused' : 'new'})`)
+    } catch (error) {
+      console.error('❌ KIS batch error:', error.response?.data || error.message)
+      // 배치 실패 시 종목별 폴백 — 단일 엔드포인트로 순차 호출
+      for (const symbol of missing) {
+        const price = await this.getStockPrice(symbol)
+        if (price) prices[symbol] = price
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
     }
 
     return prices
