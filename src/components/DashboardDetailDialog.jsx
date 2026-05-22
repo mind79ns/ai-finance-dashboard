@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { X, TrendingUp, TrendingDown, Wallet, BarChart3, PiggyBank, Target, Globe, Zap, Clock, ArrowUpRight, ArrowDownRight, Info, Activity } from 'lucide-react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import marketDataService from '../services/marketDataService'
 
 const CYBER_COLORS = ['#00d4ff', '#00ff88', '#ffd700', '#ff6b6b', '#a855f7', '#06b6d4', '#f97316']
 
@@ -769,9 +770,81 @@ const YearlyFlowDetail = ({ d }) => {
 }
 
 /* ═══ 8. Market ═══ */
+// 일/주/월 트렌드 차트 + 메타 정보를 보여주는 Market Overview 상세 모달
+const RANGE_PRESETS = {
+  day: { range: '1mo', interval: '1d', label: '일간', desc: '최근 1개월 일별 종가' },
+  week: { range: '6mo', interval: '1wk', label: '주간', desc: '최근 6개월 주별 종가' },
+  month: { range: '5y', interval: '1mo', label: '월간', desc: '최근 5년 월별 종가' }
+}
+
+const formatPriceTick = (value, unit) => {
+  if (value == null || Number.isNaN(value)) return ''
+  const num = Number(value)
+  if (unit === 'USD') {
+    if (num >= 10000) return `$${(num / 1000).toFixed(1)}K`
+    return `$${num.toFixed(0)}`
+  }
+  if (num >= 10000) return `${(num / 1000).toFixed(0)}K`
+  return num.toFixed(0)
+}
+
+const formatPriceFull = (value, unit) => {
+  if (value == null || Number.isNaN(value)) return '-'
+  const num = Number(value)
+  if (unit === 'USD') return `$${num.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+  return num.toLocaleString('ko-KR', { maximumFractionDigits: 2 })
+}
+
 const MarketDetail = ({ d }) => {
-  const { label = '', value = '', change = 0 } = d
-  
+  const { label = '', value = '', change = 0, symbol = '', unit = 'USD' } = d || {}
+
+  const [preset, setPreset] = useState('day')
+  const [series, setSeries] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!symbol) {
+      setLoading(false)
+      return
+    }
+    let cancelled = false
+    const cfg = RANGE_PRESETS[preset]
+    setLoading(true)
+    setError(null)
+    marketDataService
+      .getHistoricalPrices(symbol, cfg.range, cfg.interval)
+      .then(res => {
+        if (cancelled) return
+        const list = Array.isArray(res?.series) ? res.series : []
+        setSeries(list)
+        if (list.length === 0) setError('데이터를 받지 못했습니다.')
+      })
+      .catch(err => {
+        if (cancelled) return
+        setError(err?.message || '시계열 조회 실패')
+        setSeries([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [symbol, preset])
+
+  // 시계열 통계 계산
+  const stats = (() => {
+    if (!series || series.length < 2) return null
+    const closes = series.map(s => Number(s.close)).filter(n => Number.isFinite(n))
+    if (closes.length < 2) return null
+    const first = closes[0]
+    const last = closes[closes.length - 1]
+    const min = Math.min(...closes)
+    const max = Math.max(...closes)
+    const totalChange = last - first
+    const totalChangePercent = first > 0 ? ((last - first) / first) * 100 : 0
+    return { first, last, min, max, totalChange, totalChangePercent }
+  })()
+
   let insight = ''
   if (change >= 2) insight = '강한 매수세가 유입되는 급등 구간입니다.'
   else if (change > 0) insight = '안정적인 상승 흐름을 유지하고 있습니다.'
@@ -779,17 +852,127 @@ const MarketDetail = ({ d }) => {
   else insight = '매도세가 강한 하락 구간입니다. 리스크 관리에 유의하세요.'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <AIInsightBadge icon={Globe} title="Market Sentiment" message={insight} type={change >= 0 ? 'success' : 'danger'} />
-      <div className="cyber-stat-item text-center py-12 bg-slate-800/30">
-        <p className="text-cyan-300/60 text-sm mb-3 uppercase tracking-widest">{label} INDEX</p>
-        <p className="text-white font-black text-5xl mb-4 tracking-tight">{value}</p>
-        <div className="inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-700">
-          {change >= 0 ? <ArrowUpRight className="w-5 h-5 text-emerald-400" /> : <ArrowDownRight className="w-5 h-5 text-rose-400" />}
-          <span className={`text-xl font-bold ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+
+      {/* 현재 값 요약 */}
+      <div className="cyber-stat-item text-center py-6 bg-slate-800/30">
+        <p className="text-cyan-300/60 text-xs mb-2 uppercase tracking-widest">{label} {symbol && `(${symbol})`}</p>
+        <p className="text-white font-black text-4xl sm:text-5xl mb-3 tracking-tight">{value}</p>
+        <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700">
+          {change >= 0 ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-rose-400" />}
+          <span className={`text-base font-bold ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
             {Math.abs(change).toFixed(2)}%
           </span>
+          <span className="text-xs text-slate-500">vs prev close</span>
         </div>
+      </div>
+
+      {/* 일/주/월 토글 */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-cyan-400" />
+          <h4 className="text-sm font-semibold text-cyan-300">트렌드 차트</h4>
+          <span className="text-xs text-slate-500">— {RANGE_PRESETS[preset].desc}</span>
+        </div>
+        <div className="flex items-center gap-1 bg-slate-800/50 border border-cyan-400/30 p-1 rounded-lg">
+          {Object.entries(RANGE_PRESETS).map(([key, cfg]) => (
+            <button
+              key={key}
+              onClick={() => setPreset(key)}
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                preset === key
+                  ? 'bg-cyan-500/20 text-cyan-300'
+                  : 'text-cyan-300/60 hover:text-cyan-300'
+              }`}
+            >
+              {cfg.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 차트 */}
+      <div className="cyber-card p-4">
+        {loading ? (
+          <div className="flex items-center justify-center h-[260px] text-cyan-300/60 text-sm">로딩 중...</div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-[260px] text-rose-300/80 text-sm">{error}</div>
+        ) : series.length < 2 ? (
+          <div className="flex items-center justify-center h-[260px] text-slate-400 text-sm">표시할 데이터가 없습니다</div>
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={series} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="marketGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.6} />
+                    <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.1)" />
+                <XAxis
+                  dataKey="date"
+                  stroke="#4a6d7c"
+                  fontSize={10}
+                  tickFormatter={(v) => {
+                    if (!v || v.length < 7) return v
+                    return preset === 'month' ? v.substring(0, 7) : v.substring(5)
+                  }}
+                  minTickGap={20}
+                />
+                <YAxis
+                  stroke="#4a6d7c"
+                  fontSize={10}
+                  domain={['auto', 'auto']}
+                  tickFormatter={(v) => formatPriceTick(v, unit)}
+                />
+                <Tooltip
+                  contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+                  labelStyle={{ color: '#00d4ff' }}
+                  formatter={(v) => [formatPriceFull(v, unit), label]}
+                />
+                {stats?.first != null && (
+                  <ReferenceLine y={stats.first} stroke="rgba(148,163,184,0.4)" strokeDasharray="3 3" />
+                )}
+                <Line
+                  type="monotone"
+                  dataKey="close"
+                  stroke="#00d4ff"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+
+            {/* 통계 요약 */}
+            {stats && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 text-xs">
+                <div className="bg-slate-800/30 rounded p-2">
+                  <p className="text-cyan-300/60 mb-1">시작</p>
+                  <p className="font-bold text-white">{formatPriceFull(stats.first, unit)}</p>
+                </div>
+                <div className="bg-slate-800/30 rounded p-2">
+                  <p className="text-cyan-300/60 mb-1">현재</p>
+                  <p className="font-bold text-white">{formatPriceFull(stats.last, unit)}</p>
+                </div>
+                <div className="bg-slate-800/30 rounded p-2">
+                  <p className="text-cyan-300/60 mb-1">최저 / 최고</p>
+                  <p className="font-bold text-white text-[11px]">
+                    {formatPriceFull(stats.min, unit)} / {formatPriceFull(stats.max, unit)}
+                  </p>
+                </div>
+                <div className="bg-slate-800/30 rounded p-2">
+                  <p className="text-cyan-300/60 mb-1">기간 변화</p>
+                  <p className={`font-bold ${stats.totalChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {stats.totalChange >= 0 ? '+' : ''}{stats.totalChangePercent.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

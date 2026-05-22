@@ -982,10 +982,11 @@ const buildRecentActivities = (logs, dividends, assetsMap, usdToKrw) => {
 const buildMarketHighlights = (marketData) => {
   if (!marketData) return null
   const hl = []
-  if (marketData.stocks?.sp500) hl.push({ label: 'S&P 500', value: `$${marketData.stocks.sp500.price?.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, change: marketData.stocks.sp500.changePercent || 0 })
-  if (marketData.stocks?.kospi) hl.push({ label: 'KOSPI', value: marketData.stocks.kospi.price?.toLocaleString('ko-KR', { maximumFractionDigits: 0 }), change: marketData.stocks.kospi.changePercent || 0 })
-  if (marketData.crypto?.bitcoin) hl.push({ label: 'Bitcoin', value: `$${marketData.crypto.bitcoin.price?.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, change: marketData.crypto.bitcoin.change24h || 0 })
-  if (marketData.currency?.usdKrw) hl.push({ label: 'USD/KRW', value: marketData.currency.usdKrw.rate?.toLocaleString('ko-KR'), change: ((marketData.currency.usdKrw.rate - DEFAULT_USD_KRW) / DEFAULT_USD_KRW) * 100 })
+  // symbol — yahoo-historical 조회용 (모달 트렌드 차트). unit — 표시 통화.
+  if (marketData.stocks?.sp500) hl.push({ label: 'S&P 500', symbol: '^GSPC', unit: 'USD', value: `$${marketData.stocks.sp500.price?.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, change: marketData.stocks.sp500.changePercent || 0 })
+  if (marketData.stocks?.kospi) hl.push({ label: 'KOSPI', symbol: '^KS11', unit: 'KRW', value: marketData.stocks.kospi.price?.toLocaleString('ko-KR', { maximumFractionDigits: 0 }), change: marketData.stocks.kospi.changePercent || 0 })
+  if (marketData.crypto?.bitcoin) hl.push({ label: 'Bitcoin', symbol: 'BTC-USD', unit: 'USD', value: `$${marketData.crypto.bitcoin.price?.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, change: marketData.crypto.bitcoin.change24h || 0 })
+  if (marketData.currency?.usdKrw) hl.push({ label: 'USD/KRW', symbol: 'KRW=X', unit: 'KRW', value: marketData.currency.usdKrw.rate?.toLocaleString('ko-KR'), change: ((marketData.currency.usdKrw.rate - DEFAULT_USD_KRW) / DEFAULT_USD_KRW) * 100 })
   return hl.length ? hl : null
 }
 
