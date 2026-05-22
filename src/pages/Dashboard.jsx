@@ -39,6 +39,7 @@ import marketDataService from '../services/marketDataService'
 import dataSync from '../utils/dataSync'
 import DashboardDetailDialog from '../components/DashboardDetailDialog'
 import BenchmarkChart from '../components/BenchmarkChart'
+import MonthlyReturnChart from '../components/MonthlyReturnChart'
 const DEFAULT_USD_KRW = 1340
 
 const Dashboard = () => {
@@ -736,14 +737,15 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Benchmark Comparison — 메인 그리드 아래 full width 로 배치하여 가독성·정렬 확보 */}
-      <div className="mt-6">
+      {/* Benchmark Comparison + Monthly Return — 2-col 그리드 (모바일 1열) */}
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <BenchmarkChart
           snapshots={portfolioSnapshots}
           spyHistorical={benchmarkData.spy}
           kospiHistorical={benchmarkData.kospi}
           loading={benchmarkData.loading}
         />
+        <MonthlyReturnChart snapshots={portfolioSnapshots} />
       </div>
 
       {/* Bottom Section - Recent Activities */}
