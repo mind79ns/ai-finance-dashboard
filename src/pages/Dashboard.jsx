@@ -38,6 +38,7 @@ import { ko } from 'date-fns/locale'
 import marketDataService from '../services/marketDataService'
 import dataSync from '../utils/dataSync'
 import DashboardDetailDialog from '../components/DashboardDetailDialog'
+import BenchmarkChart from '../components/BenchmarkChart'
 const DEFAULT_USD_KRW = 1340
 
 const Dashboard = () => {
@@ -56,6 +57,8 @@ const Dashboard = () => {
   const [assetStatusTotal, setAssetStatusTotal] = useState(0)
   const [allocationData, setAllocationData] = useState([])
   const [portfolioHistory, setPortfolioHistory] = useState([])
+  const [portfolioSnapshots, setPortfolioSnapshots] = useState([])
+  const [benchmarkData, setBenchmarkData] = useState({ spy: null, kospi: null, loading: false })
   const [goalSummary, setGoalSummary] = useState({ goals: [] })
   const [topPerformers, setTopPerformers] = useState({ gainers: [], losers: [] })
   const [recentActivities, setRecentActivities] = useState([])
@@ -205,6 +208,9 @@ const Dashboard = () => {
       // 비동기 저장 (UI 블로킹 방지)
       dataSync.saveUserSetting(snapshotKey, snapshots).catch(console.error)
 
+      // 벤치마크 차트용으로 전체 스냅샷도 노출
+      setIfChanged(setPortfolioSnapshots, portfolioSnapshots, snapshots)
+
       // 차트용 데이터: 최근 6개월 스냅샷 (Growth Rate)
       const history = buildSnapshotHistory(snapshots)
 
@@ -302,6 +308,33 @@ const Dashboard = () => {
 
   useEffect(() => { loadDashboardData() }, [loadDashboardData])
 
+  // 벤치마크 시계열 (SPY / KOSPI) — 마운트 시 1회 + 1시간 주기 갱신
+  useEffect(() => {
+    let cancelled = false
+    const loadBenchmarks = async () => {
+      setBenchmarkData(prev => ({ ...prev, loading: true }))
+      try {
+        const [spy, kospi] = await Promise.all([
+          marketDataService.getHistoricalPrices('SPY', '1y', '1mo').catch(() => null),
+          marketDataService.getHistoricalPrices('^KS11', '1y', '1mo').catch(() => null)
+        ])
+        if (!cancelled) {
+          setBenchmarkData({ spy, kospi, loading: false })
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setBenchmarkData(prev => ({ ...prev, loading: false }))
+        }
+      }
+    }
+    loadBenchmarks()
+    const interval = setInterval(loadBenchmarks, 60 * 60 * 1000) // 1시간
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
   // 실시간 캐시 자동 갱신 (1분 주기)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -384,6 +417,14 @@ const Dashboard = () => {
               </AreaChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Benchmark Chart — 내 포트폴리오 vs SPY vs KOSPI 누적 수익률(base 100) */}
+          <BenchmarkChart
+            snapshots={portfolioSnapshots}
+            spyHistorical={benchmarkData.spy}
+            kospiHistorical={benchmarkData.kospi}
+            loading={benchmarkData.loading}
+          />
 
           {/* Account Summary Table */}
           <div className="cyber-card cyber-card-glow p-4 shrink-0">

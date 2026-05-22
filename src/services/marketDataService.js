@@ -820,6 +820,63 @@ class MarketDataService {
   }
 
   /**
+   * ✅ Yahoo Historical — 벤치마크(SPY/^KS11/QQQ 등)의 시계열 종가 조회
+   * Netlify Function(/.netlify/functions/yahoo-historical) 경유.
+   * 1시간 캐시 — 벤치마크는 일별/월별 수준이라 분 단위 변동 불필요.
+   *
+   * @param {string} symbol Yahoo symbol (예: 'SPY', '^KS11', '^GSPC')
+   * @param {string} range '1mo' | '3mo' | '6mo' | '1y' | '2y' | '5y' | 'max'
+   * @param {string} interval '1d' | '1wk' | '1mo'
+   * @returns {Promise<{ symbol, currency, series: [{date, close}] }>}
+   */
+  async getHistoricalPrices(symbol, range = '1y', interval = '1mo') {
+    const cacheKey = `historical_${symbol}_${range}_${interval}`
+    const cached = this.cache[cacheKey]
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data
+    }
+
+    try {
+      const isDev = import.meta.env.DEV
+      const url = isDev
+        ? `/api/yahoo/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`
+        : `/.netlify/functions/yahoo-historical?symbol=${encodeURIComponent(symbol)}&range=${range}&interval=${interval}`
+
+      const response = await axios.get(url, { timeout: 10000 })
+
+      // 개발 환경에선 raw Yahoo 응답이 오므로 동일 형태로 변환
+      let data
+      if (isDev && response.data?.chart?.result?.[0]) {
+        const result = response.data.chart.result[0]
+        const timestamps = result.timestamp || []
+        const closes = result.indicators?.quote?.[0]?.close || []
+        const series = timestamps
+          .map((ts, idx) => {
+            const close = closes[idx]
+            if (ts == null || close == null) return null
+            const d = new Date(ts * 1000)
+            return {
+              date: `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`,
+              close: Number(close)
+            }
+          })
+          .filter(Boolean)
+        data = { symbol, currency: result.meta?.currency, series }
+      } else {
+        data = response.data
+      }
+
+      // 1시간 캐시
+      this.cache[cacheKey] = { data, expiry: Date.now() + 60 * 60 * 1000 }
+      console.log(`✅ Historical: ${symbol} ${range}/${interval} — ${data?.series?.length || 0} points`)
+      return data
+    } catch (error) {
+      console.error(`❌ Historical fetch failed for ${symbol}:`, error.response?.data || error.message)
+      return null
+    }
+  }
+
+  /**
    * Fallback data - Only used when APIs are unavailable
    */
   getFallbackStockData() {
