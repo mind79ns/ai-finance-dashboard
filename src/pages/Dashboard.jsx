@@ -744,8 +744,16 @@ const Dashboard = () => {
           spyHistorical={benchmarkData.spy}
           kospiHistorical={benchmarkData.kospi}
           loading={benchmarkData.loading}
+          onOpenDetail={() => openDialog('benchmark', {
+            snapshots: portfolioSnapshots,
+            spy: benchmarkData.spy,
+            kospi: benchmarkData.kospi
+          })}
         />
-        <MonthlyReturnChart snapshots={portfolioSnapshots} />
+        <MonthlyReturnChart
+          snapshots={portfolioSnapshots}
+          onOpenDetail={() => openDialog('monthlyReturn', { snapshots: portfolioSnapshots })}
+        />
       </div>
 
       {/* Bottom Section - Recent Activities */}

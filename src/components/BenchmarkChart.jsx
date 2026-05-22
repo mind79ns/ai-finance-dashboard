@@ -34,7 +34,8 @@ const BenchmarkChart = ({
   snapshots = [],
   spyHistorical = null,
   kospiHistorical = null,
-  loading = false
+  loading = false,
+  onOpenDetail = null
 }) => {
   // 시계열 정규화 — useMemo 로 props 변경 시에만 재계산
   const { chartData, alphaVsSpy, alphaVsKospi, hasData } = useMemo(() => {
@@ -83,8 +84,16 @@ const BenchmarkChart = ({
     )
   }
 
+  const cardClass = onOpenDetail
+    ? 'cyber-card cyber-card-glow cyber-card-clickable p-4'
+    : 'cyber-card cyber-card-glow p-4'
+
   return (
-    <div className="cyber-card cyber-card-glow p-4">
+    <div
+      className={cardClass}
+      onClick={onOpenDetail ? () => onOpenDetail() : undefined}
+      role={onOpenDetail ? 'button' : undefined}
+    >
       {/* 헤더 + α 배지 */}
       <div className="flex items-start justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2">

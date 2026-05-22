@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react'
 import { X, TrendingUp, TrendingDown, Wallet, BarChart3, PiggyBank, Target, Globe, Zap, Clock, ArrowUpRight, ArrowDownRight, Info, Activity } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import marketDataService from '../services/marketDataService'
+import {
+  normalizeToBase100,
+  portfolioSnapshotsToSeries,
+  downsampleToMonthly,
+  mergeForChart,
+  calculateAlpha
+} from '../utils/benchmarkUtils'
 
 const CYBER_COLORS = ['#00d4ff', '#00ff88', '#ffd700', '#ff6b6b', '#a855f7', '#06b6d4', '#f97316']
 
@@ -41,7 +48,9 @@ const DashboardDetailDialog = ({ isOpen, onClose, dialogType, dialogData }) => {
     allocation: '🎯 자산 배분 위험도 평가',
     goals: '🎯 목표 달성 현황 리포트',
     netChange: '📊 월별 순변동 흐름',
-    activities: '🕐 전체 활동 내역'
+    activities: '🕐 전체 활동 내역',
+    benchmark: '📈 벤치마크 비교 심층 분석 (포트폴리오 vs SPY / KOSPI)',
+    monthlyReturn: '💵 월간 종합 수익 심층 분석 (자본 + 배당)'
   }[dialogType] || '상세 현황'
 
   return (
@@ -84,6 +93,8 @@ const DialogContent = ({ type, data }) => {
     case 'goals': return <GoalsDetail d={data} />
     case 'netChange': return <NetChangeDetail d={data} />
     case 'activities': return <ActivitiesDetail d={data} />
+    case 'benchmark': return <BenchmarkDetail d={data} />
+    case 'monthlyReturn': return <MonthlyReturnDetail d={data} />
     default: return <p className="text-cyan-300/50">알 수 없는 타입</p>
   }
 }
@@ -1279,6 +1290,239 @@ const ActivitiesDetail = ({ d }) => {
           </div>,
           <PnlText value={a.amount} suffix="원" />,
           <span className="text-cyan-300/60 text-xs">{a.date}</span>
+        ])}
+      />
+    </div>
+  )
+}
+
+/* ═══ Benchmark 심층 분석 ═══ */
+const BenchmarkDetail = ({ d }) => {
+  const { snapshots = [], spy = null, kospi = null } = d || {}
+
+  const portfolioSeries = normalizeToBase100(portfolioSnapshotsToSeries(snapshots))
+  const spySeries = normalizeToBase100(downsampleToMonthly(spy?.series || []))
+  const kospiSeries = normalizeToBase100(downsampleToMonthly(kospi?.series || []))
+  const merged = mergeForChart({ portfolio: portfolioSeries, spy: spySeries, kospi: kospiSeries })
+
+  const alphaSpy = calculateAlpha(portfolioSeries, spySeries)
+  const alphaKospi = calculateAlpha(portfolioSeries, kospiSeries)
+
+  // 시작 / 현재 누적 수익률
+  const lastIndexed = (series) => [...series].reverse().find(p => p?.indexed != null)?.indexed ?? null
+  const pLast = lastIndexed(portfolioSeries)
+  const sLast = lastIndexed(spySeries)
+  const kLast = lastIndexed(kospiSeries)
+
+  const periodLabel = portfolioSeries.length > 0
+    ? `${portfolioSeries[0].date} ~ ${portfolioSeries[portfolioSeries.length - 1].date}`
+    : '데이터 부족'
+
+  let insight = ''
+  if (alphaSpy != null && alphaKospi != null) {
+    if (alphaSpy >= 0 && alphaKospi >= 0) insight = `글로벌·국내 벤치마크 모두 상회. 종목 선택이 양 시장의 시세를 끌어내고 있습니다 (SPY +${alphaSpy}%p, KOSPI +${alphaKospi}%p).`
+    else if (alphaSpy < 0 && alphaKospi < 0) insight = `두 벤치마크 모두 미달. 비중·종목 구성을 재점검하세요 (SPY ${alphaSpy}%p, KOSPI ${alphaKospi}%p).`
+    else if (alphaSpy >= 0) insight = `미국 시장은 상회(SPY +${alphaSpy}%p)하지만 국내 대비(${alphaKospi}%p)는 약함. KRW 자산 비중 확대 검토 가능.`
+    else insight = `국내 시장 상회(KOSPI +${alphaKospi}%p), 미국 대비(${alphaSpy}%p) 약함. USD 자산 비중 강화 검토.`
+  } else insight = '벤치마크 비교에 필요한 데이터가 누적되면 더 정확한 분석이 가능합니다.'
+
+  if (portfolioSeries.length < 2) {
+    return (
+      <div className="text-center py-12">
+        <Activity className="w-10 h-10 text-cyan-400/40 mx-auto mb-3" />
+        <p className="text-cyan-300/60">월별 스냅샷이 최소 2개 이상 누적되어야 분석이 가능합니다.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <AIInsightBadge icon={TrendingUp} title="Benchmark Sentiment" message={insight} type={(alphaSpy ?? 0) >= 0 && (alphaKospi ?? 0) >= 0 ? 'success' : 'danger'} />
+
+      {/* α 요약 카드 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="cyber-stat-item p-3 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-[10px] uppercase tracking-wider mb-1">기간</p>
+          <p className="text-cyan-200 text-xs font-mono">{periodLabel}</p>
+        </div>
+        <div className="cyber-stat-item p-3 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-[10px] uppercase tracking-wider mb-1">α vs SPY</p>
+          <p className={`text-lg font-bold ${(alphaSpy ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {alphaSpy != null ? `${alphaSpy >= 0 ? '+' : ''}${alphaSpy}%p` : '-'}
+          </p>
+        </div>
+        <div className="cyber-stat-item p-3 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-[10px] uppercase tracking-wider mb-1">α vs KOSPI</p>
+          <p className={`text-lg font-bold ${(alphaKospi ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {alphaKospi != null ? `${alphaKospi >= 0 ? '+' : ''}${alphaKospi}%p` : '-'}
+          </p>
+        </div>
+      </div>
+
+      {/* 큰 차트 */}
+      <div className="cyber-card p-4">
+        <ResponsiveContainer width="100%" height={360}>
+          <LineChart data={merged} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.1)" />
+            <XAxis dataKey="month" stroke="#4a6d7c" fontSize={11} />
+            <YAxis stroke="#4a6d7c" fontSize={11} domain={['auto', 'auto']} />
+            <Tooltip
+              contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+              labelStyle={{ color: '#00d4ff' }}
+              formatter={(v, name) => {
+                const labels = { portfolio: '내 포트폴리오', spy: 'S&P 500', kospi: 'KOSPI' }
+                if (v == null) return ['-', labels[name] || name]
+                return [`${v} (${(v - 100).toFixed(2)}%)`, labels[name] || name]
+              }}
+            />
+            <ReferenceLine y={100} stroke="rgba(148,163,184,0.4)" strokeDasharray="3 3" />
+            <Line type="monotone" dataKey="portfolio" stroke="#00d4ff" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey="spy" stroke="#34d399" strokeWidth={2} dot={false} connectNulls />
+            <Line type="monotone" dataKey="kospi" stroke="#fb7185" strokeWidth={2} dot={false} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+        <p className="text-[10px] text-slate-500 mt-2 text-center">
+          시작 시점을 100 으로 두고 이후 누적 수익률 비율을 비교합니다.
+        </p>
+      </div>
+
+      {/* 누적 수익률 표 */}
+      <CyberTable
+        headers={['지표', { label: '시작', align: 'right' }, { label: '현재', align: 'right' }, { label: '누적 수익률', align: 'right' }]}
+        rows={[
+          ['🟦 내 포트폴리오', '100.00', pLast != null ? pLast.toFixed(2) : '-', pLast != null ? <PnlText value={pLast - 100} suffix="%" /> : '-'],
+          ['🟢 SPY', '100.00', sLast != null ? sLast.toFixed(2) : '-', sLast != null ? <PnlText value={sLast - 100} suffix="%" /> : '-'],
+          ['🟥 KOSPI', '100.00', kLast != null ? kLast.toFixed(2) : '-', kLast != null ? <PnlText value={kLast - 100} suffix="%" /> : '-']
+        ]}
+      />
+    </div>
+  )
+}
+
+/* ═══ 월간 종합 수익 심층 분석 ═══ */
+const MonthlyReturnDetail = ({ d }) => {
+  const { snapshots = [] } = d || {}
+
+  // BenchmarkChart 와 동일한 계산 로직 — 매월 자본수익 + 배당 delta
+  const series = (() => {
+    if (!Array.isArray(snapshots) || snapshots.length === 0) return []
+    const sorted = [...snapshots].filter(s => s?.date).sort((a, b) => a.date.localeCompare(b.date))
+    return sorted.map((s, idx) => {
+      const prev = idx > 0 ? sorted[idx - 1] : null
+      const cg = idx === 0 ? 0 : (Number(s.totalProfit) || 0) - (Number(prev?.totalProfit) || 0)
+      const dv = idx === 0 ? 0 : (Number(s.dividendTotal) || 0) - (Number(prev?.dividendTotal) || 0)
+      const total = cg + dv
+      const monthLabel = s.date.length >= 7 ? `${parseInt(s.date.substring(5, 7), 10)}월` : s.date
+      return { date: s.date, month: monthLabel, capitalGain: cg, dividend: dv, total }
+    })
+  })()
+
+  if (series.length < 2) {
+    return (
+      <div className="text-center py-12">
+        <BarChart3 className="w-10 h-10 text-cyan-400/40 mx-auto mb-3" />
+        <p className="text-cyan-300/60">월별 스냅샷이 최소 2개 이상 누적되어야 분석이 가능합니다.</p>
+      </div>
+    )
+  }
+
+  // 누적 라인용 데이터
+  const cumulative = (() => {
+    let acc = 0
+    return series.map(s => {
+      acc += s.total
+      return { month: s.month, date: s.date, cumulative: acc }
+    })
+  })()
+
+  // 통계
+  const totalReturn = series.reduce((s, d) => s + d.total, 0)
+  const totalCapital = series.reduce((s, d) => s + d.capitalGain, 0)
+  const totalDividend = series.reduce((s, d) => s + d.dividend, 0)
+  const positiveMonths = series.filter(d => d.total > 0).length
+  const negativeMonths = series.filter(d => d.total < 0).length
+  const bestMonth = series.reduce((best, cur) => cur.total > (best?.total ?? -Infinity) ? cur : best, null)
+  const worstMonth = series.reduce((worst, cur) => cur.total < (worst?.total ?? Infinity) ? cur : worst, null)
+  const avgMonthly = series.length > 0 ? totalReturn / series.length : 0
+
+  let insight = ''
+  if (totalReturn > 0) {
+    insight = `기간 누적 ${fmtC(totalReturn)} 의 종합 수익을 확보. 자본수익 ${fmtC(totalCapital)} + 배당 ${fmtC(totalDividend)}.`
+  } else {
+    insight = `기간 누적 ${fmtC(totalReturn)} 의 손실. 배당 ${fmtC(totalDividend)} 으로 자본손실(${fmtC(totalCapital)})을 일부 상쇄 중.`
+  }
+
+  return (
+    <div className="space-y-5">
+      <AIInsightBadge icon={BarChart3} title="Monthly Return Sentiment" message={insight} type={totalReturn >= 0 ? 'success' : 'danger'} />
+
+      {/* 통계 카드 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="cyber-stat-item p-3 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-[10px] uppercase mb-1">기간 누적</p>
+          <p className={`text-base font-bold ${totalReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {totalReturn >= 0 ? '+' : ''}{fmtC(totalReturn)}
+          </p>
+        </div>
+        <div className="cyber-stat-item p-3 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-[10px] uppercase mb-1">월 평균</p>
+          <p className={`text-base font-bold ${avgMonthly >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {avgMonthly >= 0 ? '+' : ''}{fmtC(avgMonthly)}
+          </p>
+        </div>
+        <div className="cyber-stat-item p-3 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-[10px] uppercase mb-1">+ / − 월</p>
+          <p className="text-base font-bold text-white">
+            <span className="text-emerald-400">{positiveMonths}</span> / <span className="text-rose-400">{negativeMonths}</span>
+          </p>
+        </div>
+        <div className="cyber-stat-item p-3 bg-slate-800/40">
+          <p className="text-cyan-300/60 text-[10px] uppercase mb-1">최고 / 최저 월</p>
+          <p className="text-[11px] font-bold text-white">
+            <span className="text-emerald-400">{bestMonth?.date?.substring(5)}({fmtC(bestMonth?.total || 0)})</span><br />
+            <span className="text-rose-400">{worstMonth?.date?.substring(5)}({fmtC(worstMonth?.total || 0)})</span>
+          </p>
+        </div>
+      </div>
+
+      {/* 누적 수익 라인차트 */}
+      <div className="cyber-card p-4">
+        <p className="text-sm font-semibold text-cyan-300 mb-2 flex items-center gap-2">
+          <Activity className="w-4 h-4 text-cyan-400" /> 누적 종합 수익 추이
+        </p>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={cumulative}>
+            <defs>
+              <linearGradient id="cumGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.5} />
+                <stop offset="95%" stopColor="#00d4ff" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.1)" />
+            <XAxis dataKey="month" stroke="#4a6d7c" fontSize={11} />
+            <YAxis stroke="#4a6d7c" fontSize={11} tickFormatter={fmtC} />
+            <Tooltip
+              contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
+              labelStyle={{ color: '#00d4ff' }}
+              formatter={(v) => [fmtC(v), '누적 수익']}
+            />
+            <ReferenceLine y={0} stroke="rgba(148,163,184,0.4)" />
+            <Area type="monotone" dataKey="cumulative" stroke="#00d4ff" strokeWidth={2} fill="url(#cumGrad)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 월별 상세 표 */}
+      <CyberTable
+        headers={['월', { label: '자본수익', align: 'right' }, { label: '배당', align: 'right' }, { label: '종합', align: 'right' }]}
+        rows={series.map(s => [
+          <div className="flex flex-col">
+            <span className="font-bold text-cyan-200">{s.month}</span>
+            <span className="text-[10px] text-cyan-300/40">{s.date}</span>
+          </div>,
+          <PnlText value={s.capitalGain} suffix="원" />,
+          <span className="text-amber-300">{fmtC(s.dividend)}</span>,
+          <PnlText value={s.total} suffix="원" />
         ])}
       />
     </div>

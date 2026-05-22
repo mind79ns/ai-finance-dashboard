@@ -56,7 +56,7 @@ const formatCompact = (value) => {
   return `${sign}${abs.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`
 }
 
-const MonthlyReturnChart = ({ snapshots = [] }) => {
+const MonthlyReturnChart = ({ snapshots = [], onOpenDetail = null }) => {
   const { data, totals, hasData } = useMemo(() => {
     const series = buildMonthlyReturns(snapshots)
     const totalReturn = series.reduce((sum, d) => sum + (d.total || 0), 0)
@@ -86,8 +86,16 @@ const MonthlyReturnChart = ({ snapshots = [] }) => {
     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40'
     : 'bg-rose-500/20 text-rose-300 border-rose-400/40'
 
+  const cardClass = onOpenDetail
+    ? 'cyber-card cyber-card-glow cyber-card-clickable p-4'
+    : 'cyber-card cyber-card-glow p-4'
+
   return (
-    <div className="cyber-card cyber-card-glow p-4">
+    <div
+      className={cardClass}
+      onClick={onOpenDetail ? () => onOpenDetail() : undefined}
+      role={onOpenDetail ? 'button' : undefined}
+    >
       <div className="flex items-start justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-cyan-400" />
