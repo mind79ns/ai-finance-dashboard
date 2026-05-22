@@ -78,6 +78,39 @@
    - `GEMINI_FLASH_MODEL` = `gemini-2.5-flash` (선택)
 3. 기존 `VITE_OPENAI_API_KEY`, `VITE_GEMINI_API_KEY`, `VITE_AI_PROVIDER` 등은 더 이상 사용 안 됨 — 제거 권장 (선택).
 
+### 2026-05-21 — Step 1 사후 보강 (Gemini 호출 강화)
+
+**사용자 보고**
+- 콘솔: `⚠️ AI fallback used → gemini/gemini-2.5-flash` 매 호출 발생.
+- 별 호출에서 `✅ AI response (openai/gpt-4.1)` 도 나옴 → 사용자가 OPENAI_MODEL=gpt-4.1 으로 환경변수 등록한 것 확인.
+- Gemini 응답 품질 형편없음.
+
+**진단**
+- Gemini Pro (`gemini-2.5-pro`) 호출이 무료 tier 에서 반복 거부되어 Flash 로 항상 fallback 되는 패턴.
+- callGemini 가 systemPrompt 를 user content 에 합치고 있어 모델의 역할 인지가 약함 → 품질 저하.
+- generationConfig 가 temperature 만 있고 topP/topK 미설정 → 응답 다양성·구조화 부족.
+- safetySettings 미설정 → 금융 키워드에서 안전 필터 차단 가능.
+
+**적용한 4가지 개선**
+1. `systemInstruction` 필드로 systemPrompt 분리 (v1beta 지원).
+2. `generationConfig` 강화 — topP 0.95, topK 40, maxOutputTokens 최소 1024 보장, responseMimeType text/plain.
+3. `safetySettings` 4개 카테고리 모두 BLOCK_ONLY_HIGH (금융 분석 시 차단 최소화).
+4. 응답 추출 안전화 — parts 배열 모두 합치고, finishReason 확인. 빈 응답 시 에러로 throw 하여 fallback chain 진입.
+
+**Gemini fallback chain 재설계**
+- 이전: Pro → Flash → GPT-4o
+- 변경: Pro → 2.0-flash-exp → 1.5-pro → Flash → GPT-4o
+- 무료 tier 에서 안정적인 모델을 Flash 보다 먼저 시도하여 품질 유지.
+- 환경변수 `GEMINI_FALLBACK_1`, `GEMINI_FALLBACK_2` 로 오버라이드 가능.
+
+**캐시 무효화**
+- `CACHE_VERSION = 'v2'` 추가. hash 키에 prefix → 기존 v1 캐시 자동 무효화.
+- 사용자가 localStorage 수동 삭제 불필요.
+
+**미확인 가설**
+- gpt-4.1 모델 ID 가 OpenAI 에 등록되어 있다는 점 확인. 사용자 의도면 유지 (gpt-4o 대비 약간 저렴 + 컨텍스트 길음).
+- Gemini 2.5 Pro 무료 tier 거부 원인이 RPM 인지 모델 미지원인지 불명확. fallback chain 으로 우회.
+
 ### 미해결 / 차후 확인
 - Gemini explicit caching (paid tier) 도입 여부 — 무료 tier 사용 중이면 적용 불가, 유료 전환 시 추가 절감.
 - 채팅 인터페이스의 연속 대화 컨텍스트 — Step 2 (Phase 1) 작업.

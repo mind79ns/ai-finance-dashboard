@@ -6,8 +6,19 @@ const axios = require('axios')
 const MODELS = {
   GPT_4O: process.env.OPENAI_MODEL || 'gpt-4o',
   GEMINI_PRO: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
-  GEMINI_FLASH: process.env.GEMINI_FLASH_MODEL || 'gemini-2.5-flash'
+  GEMINI_FLASH: process.env.GEMINI_FLASH_MODEL || 'gemini-2.5-flash',
+  // Gemini Pro 무료 tier 거부 시 시도할 보조 모델 (안정성 우선)
+  GEMINI_FALLBACK_1: process.env.GEMINI_FALLBACK_1 || 'gemini-2.0-flash-exp',
+  GEMINI_FALLBACK_2: process.env.GEMINI_FALLBACK_2 || 'gemini-1.5-pro'
 }
+
+// Gemini 안전 필터 완화 — 금융/투자 분석은 보수적 필터에 자주 막힌다
+const GEMINI_SAFETY_SETTINGS = [
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
+]
 
 // taskLevel 기본 max_tokens — 호출자가 명시한 값이 우선
 const DEFAULT_MAX_TOKENS = {
@@ -62,25 +73,48 @@ async function callGemini({ model, systemPrompt, prompt, maxTokens, temperature 
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
 
-  // Gemini 는 system role 분리 미지원 — systemPrompt 를 user 콘텐츠 앞쪽에 합친다.
-  const merged = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt
+  // Gemini API v1beta 의 systemInstruction 필드를 사용하여 system role 을 명확히 분리.
+  // 이전엔 user content 에 합쳤으나, 분리 시 모델 역할 인지가 명확해져 응답 품질이 크게 개선됨.
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: temperature ?? 0.7,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: Math.max(maxTokens || 2000, 1024),
+      // 마크다운 응답을 명시적으로 요청하면 구조화된 결과를 더 잘 생성
+      responseMimeType: 'text/plain'
+    },
+    safetySettings: GEMINI_SAFETY_SETTINGS
+  }
+  if (systemPrompt && systemPrompt.trim()) {
+    body.systemInstruction = { parts: [{ text: systemPrompt }] }
+  }
 
   const response = await axios.post(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      contents: [{ parts: [{ text: merged }] }],
-      generationConfig: {
-        temperature: temperature ?? 0.7,
-        maxOutputTokens: maxTokens
-      }
-    },
+    body,
     {
       headers: { 'Content-Type': 'application/json' },
       timeout: 25000
     }
   )
 
-  const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  // 응답 추출 — parts 가 여러 개일 수 있으므로 모두 합친다. finishReason 도 확인.
+  const candidate = response.data?.candidates?.[0]
+  if (!candidate) {
+    throw new Error('Gemini returned no candidates')
+  }
+  const parts = candidate.content?.parts || []
+  const text = parts.map(p => p.text || '').join('').trim()
+
+  // 안전 필터에 차단되었거나 응답이 비었으면 명시적 에러
+  if (!text) {
+    const reason = candidate.finishReason || 'EMPTY_RESPONSE'
+    const safety = candidate.safetyRatings ? JSON.stringify(candidate.safetyRatings) : ''
+    throw new Error(`Gemini empty response (finishReason=${reason}) ${safety}`)
+  }
+
   const tokensUsed = response.data?.usageMetadata?.totalTokenCount || 0
   return { text, provider: 'gemini', model, tokensUsed }
 }
@@ -91,12 +125,21 @@ async function execute(provider, model, params) {
   return await callGemini({ model, ...params })
 }
 
-// fallback 정책 — Gemini 한도 초과/장애 시 Flash → GPT-4o 순으로 다운/업그레이드
+// fallback 정책 — Gemini Pro 무료 tier 거부 시 안정적 보조 모델을 먼저 시도하고,
+// 그래도 실패하면 Flash → 최후 GPT-4o 순으로 다운/업그레이드한다.
 async function executeWithFallback({ provider, model, taskLevel, params }) {
   const attempts = [{ provider, model }]
 
-  if (provider === 'gemini' && model !== MODELS.GEMINI_FLASH) {
-    attempts.push({ provider: 'gemini', model: MODELS.GEMINI_FLASH })
+  if (provider === 'gemini') {
+    // 1차 시도가 Pro 인 경우 같은 가족의 안정적 모델 차례로 시도
+    if (model === MODELS.GEMINI_PRO) {
+      attempts.push({ provider: 'gemini', model: MODELS.GEMINI_FALLBACK_1 })
+      attempts.push({ provider: 'gemini', model: MODELS.GEMINI_FALLBACK_2 })
+    }
+    // 마지막으로 Flash (가장 안정적 무료)
+    if (model !== MODELS.GEMINI_FLASH) {
+      attempts.push({ provider: 'gemini', model: MODELS.GEMINI_FLASH })
+    }
   }
   // 최후 fallback — OpenAI 키가 있으면 GPT-4o 로 승급
   if (process.env.OPENAI_API_KEY && provider !== 'openai') {

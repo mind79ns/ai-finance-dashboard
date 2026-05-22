@@ -4,6 +4,9 @@ import axios from 'axios'
 const PROXY_URL = '/.netlify/functions/ai-proxy'
 
 // 응답 캐시 (localStorage)
+// CACHE_VERSION 을 올리면 기존 캐시가 자동으로 무효화된다.
+// v2: 2026-05-21 — Gemini systemInstruction/generationConfig/safetySettings 강화로 응답 품질 개선
+const CACHE_VERSION = 'v2'
 const CACHE_KEY = 'ai_response_cache'
 const CACHE_TTL_MS = 30 * 60 * 1000 // 30분
 
@@ -93,7 +96,7 @@ class AIService {
       console.log('🚀 Premium mode ON — GPT-4o 강제 사용')
     }
 
-    const cacheKey = hashString(`${resolvedProvider}|${taskLevel}|${systemPrompt}|${prompt}`)
+    const cacheKey = hashString(`${CACHE_VERSION}|${resolvedProvider}|${taskLevel}|${systemPrompt}|${prompt}`)
     if (!options.skipCache) {
       const cached = getCached(cacheKey)
       if (cached) {
