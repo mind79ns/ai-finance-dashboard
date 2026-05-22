@@ -5,6 +5,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Legend,
   ReferenceLine,
   ResponsiveContainer,
@@ -141,7 +142,34 @@ const MonthlyReturnChart = ({ snapshots = [] }) => {
             ))}
           </Bar>
           {/* 배당은 항상 양수에 가까움 (감소가 거의 없음) — 단일 amber 색 */}
-          <Bar dataKey="dividend" stackId="return" fill="#fbbf24" fillOpacity={0.9} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="dividend" stackId="return" fill="#fbbf24" fillOpacity={0.9} radius={[4, 4, 0, 0]}>
+            {/* 막대 끝에 종합 수익 값을 항상 표시 — 양수면 위, 음수면 아래로 자동 배치 */}
+            <LabelList
+              dataKey="total"
+              position="top"
+              content={({ x, y, width, value, index }) => {
+                if (value === 0 || value === null || value === undefined) return null
+                const total = Number(value)
+                const isPositive = total >= 0
+                // 음수 막대일 경우 capitalGain 막대 아래쪽에 표시
+                const entry = data[index]
+                const isNegativeStack = entry && (entry.capitalGain < 0 && entry.dividend === 0)
+                const labelY = isNegativeStack ? y + 14 : y - 6
+                return (
+                  <text
+                    x={x + width / 2}
+                    y={labelY}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fontWeight={600}
+                    fill={isPositive ? '#67e8f9' : '#fda4af'}
+                  >
+                    {formatCompact(total)}
+                  </text>
+                )
+              }}
+            />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
 
