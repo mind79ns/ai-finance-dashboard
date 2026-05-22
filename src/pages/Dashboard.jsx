@@ -417,14 +417,6 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Benchmark Chart — 내 포트폴리오 vs SPY vs KOSPI 누적 수익률(base 100) */}
-          <BenchmarkChart
-            snapshots={portfolioSnapshots}
-            spyHistorical={benchmarkData.spy}
-            kospiHistorical={benchmarkData.kospi}
-            loading={benchmarkData.loading}
-          />
-
           {/* Account Summary Table */}
           <div className="cyber-card cyber-card-glow p-4 shrink-0">
             <div className="flex items-center gap-2 mb-4">
@@ -742,6 +734,16 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Benchmark Comparison — 메인 그리드 아래 full width 로 배치하여 가독성·정렬 확보 */}
+      <div className="mt-6">
+        <BenchmarkChart
+          snapshots={portfolioSnapshots}
+          spyHistorical={benchmarkData.spy}
+          kospiHistorical={benchmarkData.kospi}
+          loading={benchmarkData.loading}
+        />
       </div>
 
       {/* Bottom Section - Recent Activities */}
