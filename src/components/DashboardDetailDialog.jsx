@@ -802,6 +802,10 @@ const MarketDetail = ({ d }) => {
   const [series, setSeries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  // 사용자가 차트의 점을 클릭하여 고른 시점. null 이면 최근 시점을 자동 표시.
+  const [selectedPoint, setSelectedPoint] = useState(null)
+  // 호버 중인 시점 (실시간 미리보기) — 클릭 핀과 별개.
+  const [hoverPoint, setHoverPoint] = useState(null)
 
   useEffect(() => {
     if (!symbol) {
@@ -830,6 +834,12 @@ const MarketDetail = ({ d }) => {
       })
     return () => { cancelled = true }
   }, [symbol, preset])
+
+  // 프리셋(기간) 변경 시 핀/호버 선택 초기화
+  useEffect(() => {
+    setSelectedPoint(null)
+    setHoverPoint(null)
+  }, [preset])
 
   // 시계열 통계 계산
   const stats = (() => {
@@ -902,8 +912,57 @@ const MarketDetail = ({ d }) => {
           <div className="flex items-center justify-center h-[260px] text-slate-400 text-sm">표시할 데이터가 없습니다</div>
         ) : (
           <>
+            {/* 선택된 시점 패널 — 클릭으로 핀, 호버 시 임시 미리보기. 둘 다 없으면 최근 값 */}
+            {(() => {
+              const activePoint = hoverPoint || selectedPoint || series[series.length - 1]
+              const firstClose = stats?.first ?? activePoint.close
+              const diff = activePoint.close - firstClose
+              const diffPct = firstClose > 0 ? (diff / firstClose) * 100 : 0
+              const isPinned = !!selectedPoint && !hoverPoint
+              return (
+                <div className={`flex items-center justify-between gap-3 mb-3 p-2 rounded-lg border ${isPinned ? 'bg-cyan-500/10 border-cyan-400/40' : 'bg-slate-800/40 border-slate-700'} flex-wrap`}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-[10px] uppercase tracking-wider ${isPinned ? 'text-cyan-300' : 'text-slate-400'}`}>
+                      {isPinned ? '📍 선택' : hoverPoint ? '👁️ 미리보기' : '최근'}
+                    </span>
+                    <span className="text-xs text-cyan-200 font-mono">{activePoint.date}</span>
+                    <span className="text-base sm:text-lg font-bold text-white">{formatPriceFull(activePoint.close, unit)}</span>
+                    <span className={`text-xs font-semibold ${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {diff >= 0 ? '+' : ''}{diffPct.toFixed(2)}% (vs 시작)
+                    </span>
+                  </div>
+                  {selectedPoint && (
+                    <button
+                      onClick={() => setSelectedPoint(null)}
+                      className="text-[10px] text-slate-400 hover:text-rose-300 px-2 py-0.5 rounded border border-slate-700 hover:border-rose-400/40 transition-colors"
+                    >
+                      핀 해제
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
+
+            <p className="text-[10px] text-slate-500 mb-1 text-center">
+              💡 차트의 점을 클릭하면 해당 시점이 고정됩니다. 모바일은 탭으로 선택.
+            </p>
+
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={series} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <LineChart
+                data={series}
+                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                onClick={(state) => {
+                  const payload = state?.activePayload?.[0]?.payload
+                  if (payload) {
+                    setSelectedPoint(payload)
+                  }
+                }}
+                onMouseMove={(state) => {
+                  const payload = state?.activePayload?.[0]?.payload
+                  setHoverPoint(payload || null)
+                }}
+                onMouseLeave={() => setHoverPoint(null)}
+              >
                 <defs>
                   <linearGradient id="marketGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.6} />
@@ -935,13 +994,17 @@ const MarketDetail = ({ d }) => {
                 {stats?.first != null && (
                   <ReferenceLine y={stats.first} stroke="rgba(148,163,184,0.4)" strokeDasharray="3 3" />
                 )}
+                {/* 클릭으로 고정된 시점 강조선 */}
+                {selectedPoint && (
+                  <ReferenceLine x={selectedPoint.date} stroke="#67e8f9" strokeWidth={1.5} strokeDasharray="2 4" />
+                )}
                 <Line
                   type="monotone"
                   dataKey="close"
                   stroke="#00d4ff"
                   strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4 }}
+                  dot={{ r: 1.5, fill: '#00d4ff', strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: '#67e8f9', stroke: '#0e7490', strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
