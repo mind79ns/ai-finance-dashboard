@@ -502,8 +502,8 @@ const Dashboard = () => {
         {/* Center - Hub */}
         <div className="col-span-12 lg:col-span-6">
           {/* Center Hub */}
-          <div className="cyber-card cyber-card-glow p-5 mb-4">
-            <div className="flex flex-col lg:flex-row items-stretch gap-4 lg:h-[320px]">
+          <div className="cyber-card cyber-card-glow p-4 mb-4">
+            <div className="flex flex-col lg:flex-row items-stretch gap-3 lg:h-[240px]">
               {/* Left Stats */}
               <div className="flex-1 flex flex-col gap-3 w-full lg:w-auto h-full justify-between min-w-0">
                 <div onClick={() => openDialog('portfolio', { accountSummary, portfolioSummary })} className="h-1/2">
@@ -529,18 +529,18 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Center Ring — 좌우 4 카드 폭 확보를 위해 컴팩트 크기 유지 */}
+              {/* Center Ring — wrapper 높이에 맞춰 컴팩트 크기 */}
               <div className="cyber-hub flex-shrink-0 flex flex-col justify-center items-center h-full">
-                <div className="relative flex justify-center items-center" style={{ width: '200px', height: '200px' }}>
+                <div className="relative flex justify-center items-center" style={{ width: '180px', height: '180px' }}>
                   <div className="cyber-hub-ring cyber-hub-ring-outer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                   <div className="cyber-hub-ring cyber-hub-ring-middle" style={{ position: 'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }} />
                   <div className="cyber-hub-ring cyber-hub-ring-inner" style={{ position: 'absolute', top: '20%', left: '20%', width: '60%', height: '60%' }} />
                   <div className="cyber-hub-center relative z-10 flex flex-col justify-center items-center">
-                    <span className="text-cyan-400 text-xs uppercase tracking-wider mb-1">Portfolio</span>
+                    <span className="text-cyan-400 text-[11px] uppercase tracking-wider mb-0.5">Portfolio</span>
                     <span className={`text-2xl font-bold ${portfolioSummary.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                       {portfolioSummary.profitPercent >= 0 ? '+' : ''}{portfolioSummary.profitPercent.toFixed(2)}%
                     </span>
-                    <span className="text-cyan-300/60 text-xs mt-1">Total Return</span>
+                    <span className="text-cyan-300/60 text-[11px] mt-0.5">Total Return</span>
                   </div>
                 </div>
               </div>
@@ -808,7 +808,7 @@ const StatBox = ({ icon: Icon, label, value, sub, positive, color = 'default', t
     (positive !== undefined ? (positive ? 'neon-text-green' : 'neon-text-red') : 'text-white')
 
   return (
-    <div className="cyber-stat-item relative overflow-hidden flex-1 flex flex-col justify-center min-h-[130px] px-2 py-2">
+    <div className="cyber-stat-item relative overflow-hidden flex-1 flex flex-col justify-center min-h-[105px] px-2 py-2">
       <div className="flex items-center gap-2 relative z-10 w-full">
         <div className="cyber-icon-circle shrink-0 w-11 h-11 flex items-center justify-center">
           <Icon className="w-5 h-5 text-cyan-400" />
