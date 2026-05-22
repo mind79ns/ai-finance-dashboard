@@ -259,8 +259,8 @@ const Dashboard = () => {
       setIfChanged(setAllocationData, allocationData, allocation)
       setIfChanged(setAccountSummary, accountSummary, portfolioAccounts)
       setIfChanged(setTopPerformers, topPerformers, {
-        gainers: sorted.filter(p => p.profitPercent > 0).slice(0, 5),
-        losers: sorted.filter(p => p.profitPercent < 0).slice(-5).reverse()
+        gainers: sorted.filter(p => p.profitPercent > 0).slice(0, 7),
+        losers: sorted.filter(p => p.profitPercent < 0).slice(-7).reverse()
       })
       setIfChanged(setPerformanceList, performanceList, sorted)
       setIfChanged(setDividendTotal, dividendTotal, totalDividend)
