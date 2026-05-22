@@ -778,9 +778,10 @@ class MarketDataService {
   }
 
   /**
-   * ✅ Yahoo Finance — KOSPI 지수 단발 시세 (^KS11)
-   * Netlify Function `/.netlify/functions/yahoo-finance` 경유. 1분 캐시.
-   * Finnhub 은 KOSPI 지수를 지원하지 않으므로 Yahoo 무료 endpoint 활용.
+   * ✅ KOSPI 지수 단발 시세 (^KS11)
+   * yahoo-historical Function 의 1mo/1d 시계열에서 마지막 2개 종가를 추출하여 가격·변화율 계산.
+   * 이전 yahoo-finance quote 경로는 응답 비어있는 경우가 잦아 안정성 높은 historical 로 통일.
+   * 캐시 — getHistoricalPrices 내부 1시간 캐시에 더해 가공된 결과를 1분 추가 캐시.
    */
   async fetchKospiQuote() {
     const cacheKey = 'kospi_quote'
@@ -788,26 +789,35 @@ class MarketDataService {
     if (cached) return cached
 
     try {
-      const isDev = import.meta.env.DEV
-      // ^KS11 은 URL 인코딩 필요 (%5EKS11)
-      const url = isDev
-        ? '/api/yahoo/v7/finance/quote?symbols=%5EKS11'
-        : '/.netlify/functions/yahoo-finance?symbol=%5EKS11'
-      const response = await axios.get(url, { timeout: 5000 })
-      const data = response.data?.quoteResponse?.result?.[0]
-      if (!data || data.regularMarketPrice == null) return null
+      const historical = await this.getHistoricalPrices('^KS11', '1mo', '1d')
+      const series = historical?.series || []
+      if (series.length < 2) {
+        console.warn('❌ KOSPI series insufficient:', series.length)
+        return null
+      }
+
+      const last = series[series.length - 1]
+      const prev = series[series.length - 2]
+      if (!last?.close || !prev?.close) {
+        console.warn('❌ KOSPI close missing in series')
+        return null
+      }
+
+      const change = last.close - prev.close
+      const changePercent = (change / prev.close) * 100
 
       const result = {
         symbol: '^KS11',
         name: 'KOSPI',
-        price: data.regularMarketPrice,
-        change: data.regularMarketChange,
-        changePercent: data.regularMarketChangePercent,
-        isPositive: (data.regularMarketChange || 0) >= 0,
-        previousClose: data.regularMarketPreviousClose
+        price: last.close,
+        change,
+        changePercent,
+        isPositive: change >= 0,
+        previousClose: prev.close,
+        asOf: last.date
       }
       this.setCache(cacheKey, result)
-      console.log(`✅ Yahoo KOSPI: ${result.price} (${result.changePercent?.toFixed(2)}%)`)
+      console.log(`✅ KOSPI: ${result.price.toFixed(2)} (${changePercent.toFixed(2)}%) as of ${last.date}`)
       return result
     } catch (error) {
       console.warn('❌ KOSPI quote failed:', error.message)
