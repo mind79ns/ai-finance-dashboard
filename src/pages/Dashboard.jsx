@@ -208,9 +208,6 @@ const Dashboard = () => {
       // 비동기 저장 (UI 블로킹 방지)
       dataSync.saveUserSetting(snapshotKey, snapshots).catch(console.error)
 
-      // 벤치마크 차트용으로 전체 스냅샷도 노출
-      setIfChanged(setPortfolioSnapshots, portfolioSnapshots, snapshots)
-
       // 차트용 데이터: 최근 6개월 스냅샷 (Growth Rate)
       const history = buildSnapshotHistory(snapshots)
 
@@ -255,6 +252,8 @@ const Dashboard = () => {
         }
       }
 
+      // 벤치마크 차트용으로 전체 월별 스냅샷 노출
+      setIfChanged(setPortfolioSnapshots, portfolioSnapshots, snapshots)
       setIfChanged(setPortfolioSummary, portfolioSummary, totals)
       setIfChanged(setAllocationData, allocationData, allocation)
       setIfChanged(setAccountSummary, accountSummary, portfolioAccounts)
