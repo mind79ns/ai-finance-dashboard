@@ -556,24 +556,88 @@ const Portfolio = () => {
     reader.readAsArrayBuffer(file)
   }
 
-  // CSV Export Handler
+  // CSV Export Handler — LIST에 보이는 컬럼/필터/정렬을 그대로 따라 내보낸다.
+  // 평가액·수익금·수익률·원화환산까지 포함하고 마지막 행에 합계를 추가.
   const handleCSVExport = () => {
-    const headers = ['Symbol', 'Name', 'Type', 'Quantity', 'AvgPrice', 'Currency', 'Account', 'Category']
-    const csvData = assets.map(asset => [
-      asset.symbol,
-      asset.name,
-      asset.type,
-      asset.quantity,
-      asset.avgPrice,
-      asset.currency || 'USD',
-      asset.account || '기본계좌',
-      asset.category || '해외주식'
-    ])
+    const escapeCell = (value) => {
+      if (value === null || value === undefined) return ''
+      const str = String(value)
+      if (/[",\r\n]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }
+
+    const fmt = (n, digits = 2) => {
+      if (n === null || n === undefined || Number.isNaN(Number(n))) return ''
+      return Number(n).toFixed(digits)
+    }
+
+    const headers = [
+      '심볼', '종목명', '종류', '계좌', '통화', '카테고리',
+      '수량', '평균단가', '현재가',
+      '평가액', '평가액(원화환산)', '평가액(USD환산)',
+      '수익금', '수익률(%)', '일일변동률(%)'
+    ]
+
+    const rate = exchangeRate || 1340
+
+    const csvData = filteredAssets.map(asset => {
+      const currency = asset.currency || 'USD'
+      const currentPrice = Number(asset.currentPrice) || Number(asset.avgPrice) || 0
+      const quantity = Number(asset.quantity) || 0
+      const avgPrice = Number(asset.avgPrice) || 0
+      const totalValue = Number(asset.totalValue) || (quantity * currentPrice)
+      const profit = Number(asset.profit) || (totalValue - quantity * avgPrice)
+      const profitPercent = avgPrice > 0 ? ((currentPrice - avgPrice) / avgPrice) * 100 : 0
+      const dailyChangePercent = Number(asset.dailyChangePercent || 0)
+
+      const totalValueKRW = currency === 'USD' ? totalValue * rate : totalValue
+      const totalValueUSD = currency === 'USD' ? totalValue : totalValue / rate
+
+      return [
+        asset.symbol,
+        asset.name,
+        asset.type,
+        asset.account || '기본계좌',
+        currency,
+        asset.category || '해외주식',
+        fmt(quantity, 8).replace(/\.?0+$/, ''),
+        fmt(avgPrice, 4),
+        fmt(currentPrice, 4),
+        fmt(totalValue, 2),
+        fmt(totalValueKRW, 0),
+        fmt(totalValueUSD, 2),
+        fmt(profit, 2),
+        fmt(profitPercent, 2),
+        fmt(dailyChangePercent, 2)
+      ]
+    })
+
+    // 합계 행 — KRW 통합 기준
+    const totals = filteredAssets.reduce((acc, asset) => {
+      const currency = asset.currency || 'USD'
+      const value = Number(asset.totalValue) || 0
+      const profit = Number(asset.profit) || 0
+      acc.valueKRW += currency === 'USD' ? value * rate : value
+      acc.profitKRW += currency === 'USD' ? profit * rate : profit
+      return acc
+    }, { valueKRW: 0, profitKRW: 0 })
+
+    const investedKRW = totals.valueKRW - totals.profitKRW
+    const totalProfitPercent = investedKRW > 0 ? (totals.profitKRW / investedKRW) * 100 : 0
+
+    const totalRow = [
+      '합계', '', '', '', 'KRW', '', '', '', '',
+      '', fmt(totals.valueKRW, 0), fmt(totals.valueKRW / rate, 2),
+      fmt(totals.profitKRW, 0), fmt(totalProfitPercent, 2), ''
+    ]
 
     const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => row.join(','))
-    ].join('\n')
+      headers.map(escapeCell).join(','),
+      ...csvData.map(row => row.map(escapeCell).join(',')),
+      totalRow.map(escapeCell).join(',')
+    ].join('\r\n')
 
     // Add UTF-8 BOM for Excel Korean support
     const BOM = '\uFEFF'
@@ -588,6 +652,7 @@ const Portfolio = () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   // JSON Export Handler
