@@ -529,18 +529,18 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Center Ring — wrapper 높이에 맞춰 컴팩트 크기 */}
-              <div className="cyber-hub flex-shrink-0 flex flex-col justify-center items-center h-full">
-                <div className="relative flex justify-center items-center" style={{ width: '180px', height: '180px' }}>
+              {/* Center Ring — wrapper 높이(240px)에 맞춘 최대 크기 + 강화된 중앙 정렬 */}
+              <div className="cyber-hub flex-shrink-0 flex flex-col justify-center items-center self-stretch px-2">
+                <div className="relative flex justify-center items-center" style={{ width: '220px', height: '220px' }}>
                   <div className="cyber-hub-ring cyber-hub-ring-outer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                   <div className="cyber-hub-ring cyber-hub-ring-middle" style={{ position: 'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }} />
                   <div className="cyber-hub-ring cyber-hub-ring-inner" style={{ position: 'absolute', top: '20%', left: '20%', width: '60%', height: '60%' }} />
-                  <div className="cyber-hub-center relative z-10 flex flex-col justify-center items-center">
-                    <span className="text-cyan-400 text-[11px] uppercase tracking-wider mb-0.5">Portfolio</span>
-                    <span className={`text-2xl font-bold ${portfolioSummary.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                  <div className="cyber-hub-center absolute inset-0 z-10 flex flex-col justify-center items-center text-center">
+                    <span className="text-cyan-400 text-sm uppercase tracking-widest mb-1 whitespace-nowrap">Portfolio</span>
+                    <span className={`text-4xl font-bold leading-none ${portfolioSummary.profitPercent >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
                       {portfolioSummary.profitPercent >= 0 ? '+' : ''}{portfolioSummary.profitPercent.toFixed(2)}%
                     </span>
-                    <span className="text-cyan-300/60 text-[11px] mt-0.5">Total Return</span>
+                    <span className="text-cyan-300/60 text-xs mt-2 whitespace-nowrap tracking-wider">Total Return</span>
                   </div>
                 </div>
               </div>
