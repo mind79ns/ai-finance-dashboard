@@ -757,18 +757,61 @@ class MarketDataService {
       this.fetchGoldPrice(),
       this.getCryptoPrices(),
       this.getExchangeRates(),
-      this.fetchInterestRates()
+      this.fetchInterestRates(),
+      this.fetchKospiQuote()
     ])
 
     const pick = (idx, fallback) => settled[idx].status === 'fulfilled' ? settled[idx].value : fallback
 
+    const stocks = pick(0, this.getFallbackStockData())
+    const kospi = pick(5, null)
+    if (kospi) stocks.kospi = kospi
+
     return {
-      stocks: pick(0, this.getFallbackStockData()),
+      stocks,
       gold: pick(1, this.getFallbackGoldData ? this.getFallbackGoldData() : null),
       crypto: pick(2, this.getFallbackCryptoData()),
       currency: pick(3, this.getFallbackCurrencyData()),
       interestRates: pick(4, this.getFallbackInterestRateData()),
       lastUpdated: new Date().toISOString()
+    }
+  }
+
+  /**
+   * ✅ Yahoo Finance — KOSPI 지수 단발 시세 (^KS11)
+   * Netlify Function `/.netlify/functions/yahoo-finance` 경유. 1분 캐시.
+   * Finnhub 은 KOSPI 지수를 지원하지 않으므로 Yahoo 무료 endpoint 활용.
+   */
+  async fetchKospiQuote() {
+    const cacheKey = 'kospi_quote'
+    const cached = this.getCached(cacheKey)
+    if (cached) return cached
+
+    try {
+      const isDev = import.meta.env.DEV
+      // ^KS11 은 URL 인코딩 필요 (%5EKS11)
+      const url = isDev
+        ? '/api/yahoo/v7/finance/quote?symbols=%5EKS11'
+        : '/.netlify/functions/yahoo-finance?symbol=%5EKS11'
+      const response = await axios.get(url, { timeout: 5000 })
+      const data = response.data?.quoteResponse?.result?.[0]
+      if (!data || data.regularMarketPrice == null) return null
+
+      const result = {
+        symbol: '^KS11',
+        name: 'KOSPI',
+        price: data.regularMarketPrice,
+        change: data.regularMarketChange,
+        changePercent: data.regularMarketChangePercent,
+        isPositive: (data.regularMarketChange || 0) >= 0,
+        previousClose: data.regularMarketPreviousClose
+      }
+      this.setCache(cacheKey, result)
+      console.log(`✅ Yahoo KOSPI: ${result.price} (${result.changePercent?.toFixed(2)}%)`)
+      return result
+    } catch (error) {
+      console.warn('❌ KOSPI quote failed:', error.message)
+      return null
     }
   }
 

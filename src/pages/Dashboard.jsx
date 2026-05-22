@@ -572,20 +572,20 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Market Strip */}
+          {/* Market Strip — 4 카드 (S&P 500 / KOSPI / Bitcoin / USD/KRW). 컴팩트 스타일 */}
           {marketHighlights && (
-            <div className="cyber-card cyber-card-glow p-4 mb-4">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="cyber-card cyber-card-glow p-3 mb-4">
+              <div className="flex items-center gap-2 mb-2">
                 <Globe className="w-4 h-4 text-cyan-400" />
                 <span className="text-cyan-400 font-semibold text-sm uppercase tracking-wide">Market Overview</span>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {marketHighlights.map(item => (
-                  <div key={item.label} className="cyber-stat-item text-center cyber-stat-clickable" onClick={() => openDialog('market', item)}>
-                    <p className="text-cyan-300/60 text-xs mb-1">{item.label}</p>
-                    <p className="text-white font-bold text-sm">{item.value}</p>
-                    <p className={`text-xs flex items-center justify-center gap-1 mt-1 ${item.change >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
-                      {item.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  <div key={item.label} className="cyber-stat-item text-center cyber-stat-clickable px-2 py-2" onClick={() => openDialog('market', item)}>
+                    <p className="text-cyan-300/60 text-[10px] mb-0.5 truncate">{item.label}</p>
+                    <p className="text-white font-bold text-xs sm:text-sm truncate" title={item.value}>{item.value}</p>
+                    <p className={`text-[10px] flex items-center justify-center gap-0.5 mt-0.5 ${item.change >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                      {item.change >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
                       {Math.abs(item.change).toFixed(2)}%
                     </p>
                   </div>
@@ -983,6 +983,7 @@ const buildMarketHighlights = (marketData) => {
   if (!marketData) return null
   const hl = []
   if (marketData.stocks?.sp500) hl.push({ label: 'S&P 500', value: `$${marketData.stocks.sp500.price?.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, change: marketData.stocks.sp500.changePercent || 0 })
+  if (marketData.stocks?.kospi) hl.push({ label: 'KOSPI', value: marketData.stocks.kospi.price?.toLocaleString('ko-KR', { maximumFractionDigits: 0 }), change: marketData.stocks.kospi.changePercent || 0 })
   if (marketData.crypto?.bitcoin) hl.push({ label: 'Bitcoin', value: `$${marketData.crypto.bitcoin.price?.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, change: marketData.crypto.bitcoin.change24h || 0 })
   if (marketData.currency?.usdKrw) hl.push({ label: 'USD/KRW', value: marketData.currency.usdKrw.rate?.toLocaleString('ko-KR'), change: ((marketData.currency.usdKrw.rate - DEFAULT_USD_KRW) / DEFAULT_USD_KRW) * 100 })
   return hl.length ? hl : null
