@@ -66,7 +66,15 @@ const AIReport = () => {
   const [chatInput, setChatInput] = useState('')
   const [marketData, setMarketData] = useState(null)
   const [portfolioData, setPortfolioData] = useState(null)
-  const [selectedAI, setSelectedAI] = useState('auto') // 'auto', 'gpt', 'gemini'
+  // 'auto' = Gemini Pro 기본, 'gpt' = GPT-4o 심층모드(유료), 'gemini' = Gemini Pro 강제
+  // 'gpt' 선택 시 다른 페이지(Goals, StockAgent) 호출도 GPT-4o 사용되도록 premiumMode 동기화
+  const [selectedAI, setSelectedAIState] = useState(() => {
+    return aiService.isPremiumMode() ? 'gpt' : 'auto'
+  })
+  const setSelectedAI = (value) => {
+    setSelectedAIState(value)
+    aiService.setPremiumMode(value === 'gpt')
+  }
   const [goalsSummary, setGoalsSummary] = useState(null)
   const [analysisHistory, setAnalysisHistory] = useState([])
   const [historyViewer, setHistoryViewer] = useState({ open: false, entry: null })
@@ -1396,11 +1404,11 @@ ${assetsList}
                     }`}
                 >
                   <div>
-                    <p className="font-semibold text-sm text-white group-hover:text-purple-300 transition-colors">🤖 자동 선택</p>
+                    <p className="font-semibold text-sm text-white group-hover:text-purple-300 transition-colors">🤖 자동 (Gemini Pro 기본)</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      작업에 맞게 AI 자동 배정
+                      요약은 Flash, 분석은 Pro 로 자동 라우팅
                     </p>
-                    <p className="text-xs text-purple-400 mt-1">💰 비용 최적화</p>
+                    <p className="text-xs text-emerald-400 mt-1">💰 무료 tier 활용</p>
                   </div>
                 </button>
 
@@ -1412,11 +1420,11 @@ ${assetsList}
                     }`}
                 >
                   <div>
-                    <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🧠 GPT-4.1</p>
+                    <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🚀 심층모드 (GPT-4o)</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      최신 플래그십 (API/Context)
+                      모든 페이지에서 GPT-4o 강제 사용
                     </p>
-                    <p className="text-xs text-yellow-500 mt-1">⭐ 핵심 분석 엔진</p>
+                    <p className="text-xs text-amber-500 mt-1">⚠️ 유료 — 신중히 사용</p>
                   </div>
                 </button>
 
@@ -1433,18 +1441,18 @@ ${assetsList}
                   <div>
                     <p className="font-semibold text-sm text-white group-hover:text-blue-300 transition-colors">⚡ Gemini 2.5 Pro</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      High Context (Long Token)
+                      1M 토큰 컨텍스트, 한국어 강점
                     </p>
-                    <p className="text-xs text-blue-400 mt-1">🚀 추론 강화</p>
+                    <p className="text-xs text-blue-400 mt-1">💰 무료 tier</p>
                   </div>
                 </button>
               </div>
 
               <div className="text-xs text-gray-400 bg-slate-800/50 p-2 rounded border border-gray-700">
                 <strong className="text-cyan-400">현재 선택:</strong> {
-                  selectedAI === 'auto' ? '🤖 자동 (작업별 최적 AI 선택)' :
-                    selectedAI === 'gpt' ? '🧠 GPT-4.1 (핵심 분석 엔진)' :
-                      '⚡ Gemini 2.5 Pro (High Context)'
+                  selectedAI === 'auto' ? '🤖 자동 — Gemini Pro 기본 라우팅 (무료)' :
+                    selectedAI === 'gpt' ? '🚀 심층모드 — GPT-4o 전역 강제 (유료)' :
+                      '⚡ Gemini 2.5 Pro 강제 (무료)'
                 }
               </div>
             </div>

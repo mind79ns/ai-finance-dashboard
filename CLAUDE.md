@@ -143,29 +143,38 @@ ai-finance-dashboard/
 
 ## 9. 환경 변수 (`.env`)
 
+> `VITE_` 접두사가 있는 변수만 클라이언트(브라우저) 번들에 노출됩니다. AI/거래용 비밀 키는 서버(Netlify Function) 전용으로 분리.
+
 ```env
-# AI
-VITE_OPENAI_API_KEY=
-VITE_OPENAI_MODEL=gpt-4.1-preview     # 선택, 기본값은 config/constants.js 참조
-VITE_GEMINI_API_KEY=
-VITE_GEMINI_MODEL=gemini-2.5-pro
-VITE_AI_PROVIDER=openai               # 'openai' | 'gemini'
+# === 서버 전용 (AI / 거래) — VITE_ 접두사 없음 ===
+# AI Tier 라우팅: basic=Gemini Flash, standard=Gemini Pro (기본), premium=GPT-4o (심층모드 토글 시만)
+OPENAI_API_KEY=                       # premium / fallback
+OPENAI_MODEL=gpt-4o
+GEMINI_API_KEY=                       # 기본 라우팅 (무료 tier 권장)
+GEMINI_PRO_MODEL=gemini-2.5-pro
+GEMINI_FLASH_MODEL=gemini-2.5-flash
 
-# 시세
-VITE_FINNHUB_API_KEY=
-VITE_FRED_API_KEY=
-VITE_KIS_APP_KEY=
-VITE_KIS_APP_SECRET=
+# 한국투자증권 — Netlify Function (kis-token/kis-price/kis-batch) 전용
+KIS_APP_KEY=
+KIS_APP_SECRET=
 
-# Supabase
+# === 클라이언트 노출 OK (무료 / anon) ===
+VITE_FINNHUB_API_KEY=                 # 미국 주식, 무료 tier
+VITE_FRED_API_KEY=                    # 미국 금리, 무료
 VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_SUPABASE_ANON_KEY=               # RLS 적용된 anon key
 ```
 
 미설정 시 동작
 - Supabase 없으면 → `console.warn` 후 localStorage 단독 사용.
 - 시세 키 없으면 → 폴백 더미 데이터 + UI 알림.
-- AI 키 없으면 → 리포트 생성 버튼이 안내 문구 표시.
+- AI 키 없으면 → `/.netlify/functions/ai-proxy` 가 503 응답, UI 는 fallback 안내문 표시.
+
+AI 모델 라우팅 (`src/services/aiService.js`)
+- 모든 호출이 `/.netlify/functions/ai-proxy` 경유 (클라이언트에 키 노출 금지).
+- 기본 라우팅은 Gemini Pro. 사용자가 AIReport 의 "🚀 심층모드" 토글 ON 시만 GPT-4o.
+- Gemini 한도 초과 시 Flash → GPT-4o 순으로 자동 fallback.
+- 동일 (provider+model+prompt) 응답은 30분 localStorage 캐시.
 
 ---
 

@@ -494,7 +494,7 @@ ${JSON.stringify(context, null, 2)}
       setAiSuggestions([
         {
           title: 'AI 서비스 연결 실패',
-          description: 'AI API 키를 확인해주세요. .env 파일에 VITE_OPENAI_API_KEY 또는 VITE_GEMINI_API_KEY를 설정하세요.',
+          description: 'AI 서버 상태를 확인해주세요. Netlify 환경변수 OPENAI_API_KEY 또는 GEMINI_API_KEY 설정이 필요합니다.',
           type: 'error'
         }
       ])
