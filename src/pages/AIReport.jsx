@@ -889,11 +889,13 @@ ${insights.map(i => '- ' + i).join('\n')}
         marketInsights,
         portfolioInsights
       })
+      // 채팅은 시간/시세에 동적 의존 — 매번 새 응답을 받도록 캐시 비활성화
       const response = await aiService.routeAIRequest(
         prompt,
         aiService.TASK_LEVEL.ADVANCED,
         '당신은 최고급 투자 전문가 AI 어시스턴트입니다. 사용자의 포트폴리오와 시장 데이터를 바탕으로 전문적이고 실용적인 답변을 마크다운 형식으로 제공합니다. 이전 대화 맥락을 반드시 고려하여 답변하세요.',
-        selectedAI
+        selectedAI,
+        { skipCache: true }
       )
       setChatMessages(prev => [...prev, { role: 'assistant', content: response }])
     } catch (error) {
@@ -3276,7 +3278,8 @@ ${assetsList}
                                   prompt,
                                   aiService.TASK_LEVEL.ADVANCED,
                                   '당신은 최고급 투자 전문가 AI 어시스턴트입니다. 사용자의 포트폴리오와 시장 데이터를 바탕으로 전문적이고 실용적인 답변을 마크다운 형식으로 제공합니다.',
-                                  selectedAI
+                                  selectedAI,
+                                  { skipCache: true }
                                 ).then(response => {
                                   setChatMessages(prev => [...prev, { role: 'assistant', content: response }])
                                 }).catch(() => {

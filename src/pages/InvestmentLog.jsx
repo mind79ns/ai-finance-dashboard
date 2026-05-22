@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Download, Trash2, MoveDown, MoveUp, Edit } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Filter, X, List, CalendarDays, Download, Trash2, MoveDown, MoveUp, Edit, Sparkles } from 'lucide-react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import ChartCard from '../components/ChartCard'
 import dataSync from '../utils/dataSync'
+import aiService from '../services/aiService'
 
 const InvestmentLog = () => {
   // 통화별 금액 포맷 헬퍼
@@ -26,6 +27,24 @@ const InvestmentLog = () => {
   }
   const [logs, setLogs] = useState([])
   const [portfolioAssets, setPortfolioAssets] = useState([])
+
+  // 매수/매도 저장 시 AI 한줄 코멘트 자동 생성 여부 — localStorage 토글
+  const [aiCommentEnabled, setAiCommentEnabledState] = useState(() => {
+    try {
+      const stored = localStorage.getItem('ai_log_comment_enabled')
+      return stored === null ? true : stored === 'true'
+    } catch {
+      return true
+    }
+  })
+  const setAiCommentEnabled = (enabled) => {
+    setAiCommentEnabledState(enabled)
+    try {
+      localStorage.setItem('ai_log_comment_enabled', enabled ? 'true' : 'false')
+    } catch {
+      // ignore
+    }
+  }
 
   const updateLogsState = useCallback(async (updater) => {
     return new Promise((resolve, reject) => {
@@ -229,6 +248,52 @@ const InvestmentLog = () => {
     })
   }
 
+  // 매수/매도 거래에 대한 AI 한줄 코멘트 생성 — Gemini Flash (BASIC tier, 무료) 사용
+  // 저장 완료 후 비동기로 호출. 결과 도착 시 log.metadata.aiComment 에 주입.
+  const generateAIComment = useCallback(async (log) => {
+    if (!aiCommentEnabled || !log || !log.id) return
+    try {
+      const asset = portfolioAssets.find(a => a.symbol === log.asset)
+      const ctx = {
+        종목: log.asset,
+        종목명: asset?.name || log.asset,
+        거래종류: log.type === 'buy' ? '매수' : '매도',
+        수량: log.quantity,
+        거래가격: log.price,
+        통화: log.currency,
+        평균단가: asset?.avgPrice,
+        현재시세: asset?.currentPrice,
+        현재수익률: asset?.profitPercent != null ? `${Number(asset.profitPercent).toFixed(2)}%` : null
+      }
+      const prompt = `다음 거래에 대해 한국 투자자 관점에서 1~2문장의 짧고 객관적인 코멘트를 작성해주세요.
+- 거래의 객관적 사실 한 가지 + 짧은 시사점/리스크 한 가지.
+- 매수가가 현재 평단/시세와 어떻게 다른지 언급 가능.
+- 단정적 매도 권유는 피하고, 균형 잡힌 시각.
+- 60자 이내로 짧게.
+
+거래 정보:
+${JSON.stringify(ctx, null, 2)}`
+
+      const text = await aiService.routeAIRequest(
+        prompt,
+        aiService.TASK_LEVEL.BASIC,
+        '당신은 한국 투자자를 위한 간결한 매매 코멘트 어시스턴트입니다. 1~2문장의 짧고 균형 잡힌 시각을 제공합니다.',
+        'auto',
+        { maxTokens: 200, skipCache: true }
+      )
+
+      if (text && text.trim()) {
+        await updateLogsState(prev => prev.map(l =>
+          l.id === log.id
+            ? { ...l, metadata: { ...(l.metadata || {}), aiComment: text.trim(), aiCommentAt: new Date().toISOString() } }
+            : l
+        ))
+      }
+    } catch (err) {
+      console.warn('AI quick comment failed:', err.message)
+    }
+  }, [aiCommentEnabled, portfolioAssets, updateLogsState])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -322,6 +387,9 @@ const InvestmentLog = () => {
     }
 
     handleCloseModal()
+
+    // 저장 완료 후 AI 한줄 코멘트 비동기 생성 (UI 블로킹 없음, 토글 OFF 시 스킵)
+    generateAIComment(newLog)
   }
 
   // 거래 내역으로 포트폴리오 업데이트
@@ -735,6 +803,19 @@ const InvestmentLog = () => {
             </button>
           </div>
 
+          {/* AI 코멘트 자동 생성 토글 — 매수/매도 저장 시 Gemini Flash 무료 호출 */}
+          <button
+            onClick={() => setAiCommentEnabled(!aiCommentEnabled)}
+            className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-colors border ${aiCommentEnabled
+              ? 'bg-purple-500/20 text-purple-300 border-purple-400/50 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+              : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:text-slate-200'
+              }`}
+            title={aiCommentEnabled ? 'AI 한줄 코멘트 자동 생성 ON (Gemini Flash, 무료)' : 'AI 한줄 코멘트 OFF'}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="text-xs">AI 코멘트 {aiCommentEnabled ? 'ON' : 'OFF'}</span>
+          </button>
+
           {/* Filters (only in list view) */}
           {viewMode === 'list' && (
             <>
@@ -850,6 +931,16 @@ const InvestmentLog = () => {
                     </div>
                   )}
 
+                  {/* AI 한줄 코멘트 */}
+                  {log.metadata?.aiComment && (
+                    <div className="pt-2 border-t border-cyan-500/20 mt-2 bg-purple-500/5 border border-purple-500/20 rounded-lg p-2">
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-purple-200/90 leading-relaxed flex-1">{log.metadata.aiComment}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Edit/Delete buttons for Mobile */}
                   <div className="pt-3 border-t border-cyan-500/20 mt-3 flex gap-2">
                     <button
@@ -920,7 +1011,13 @@ const InvestmentLog = () => {
                       {formatCurrency(log.total, getLogCurrency(log))}
                     </td>
                     <td className="py-4 px-4 text-sm text-slate-400">
-                      {log.note}
+                      {log.note && <div>{log.note}</div>}
+                      {log.metadata?.aiComment && (
+                        <div className="flex items-start gap-1.5 mt-1 text-purple-300/90">
+                          <Sparkles className="w-3 h-3 text-purple-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-xs leading-snug">{log.metadata.aiComment}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 px-4 text-center">
                       <div className="flex items-center justify-center gap-2">
