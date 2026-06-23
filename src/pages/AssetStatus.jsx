@@ -857,8 +857,7 @@ const AssetStatus = () => {
       </table>
     `
 
-    // 보고서 본문 — div 1개 안에 모든 콘텐츠. 스타일은 컨테이너 inline 으로 직접 주입.
-    // (전체 html/head/body 문서 형식은 innerHTML 로 삽입 시 wrapper 태그가 무시되어 style 미적용 → 백지 PDF 원인)
+    // 보고서 본문 — iframe 내부에 전체 HTML 문서로 띄움. 독립 문서라 스타일 충돌 없이 안정.
     const reportBody = `
       <div class="ar-header">
         <div>
@@ -924,81 +923,119 @@ const AssetStatus = () => {
       </div>
     `
 
-    // 스타일을 <style> 태그로 본문 앞에 함께 삽입. 컨테이너 안에 두면 캡처되는 화면에만 적용.
-    const styleBlock = `
-      <style>
-        .ar-root { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; background: #ffffff; color: #0f172a; padding: 20px; width: 1120px; box-sizing: border-box; }
-        .ar-root * { box-sizing: border-box; }
-        .ar-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0e7490; padding-bottom: 10px; margin-bottom: 18px; }
-        .ar-title { margin: 0; font-size: 24px; color: #0c4a6e; font-weight: 800; }
-        .ar-subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
-        .ar-meta { font-size: 11px; color: #64748b; text-align: right; line-height: 1.6; }
-        .ar-section { margin-bottom: 22px; page-break-inside: avoid; }
-        .ar-section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #0e7490; }
-        .ar-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
-        .ar-summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; background: #f8fafc; }
-        .ar-summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-        .ar-summary-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
-        .ar-pos { color: #047857; }
-        .ar-neg { color: #be123c; }
-        .ar-root .report-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .ar-root .report-table caption { text-align: left; font-size: 13px; font-weight: 700; color: #0e7490; padding: 6px 0; caption-side: top; }
-        .ar-root .report-table th, .ar-root .report-table td { border: 1px solid #cbd5e1; padding: 5px 7px; }
-        .ar-root .report-table th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; text-align: center; }
-        .ar-root .report-table td.name { background: #f1f5f9; font-weight: 600; }
-        .ar-root .report-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
-        .ar-root .report-table td.total { font-weight: 700; background: #ecfeff; color: #0e7490; }
-        .ar-root .report-table td.pct { font-weight: 600; color: #64748b; text-align: right; }
-        .ar-root .report-table tr.subtotal td { background: #f1f5f9; font-weight: 700; color: #334155; }
-        .ar-root .report-table tr.grand td { background: #cffafe; font-weight: 700; color: #0c4a6e; }
-        .ar-root .report-table tr.accumulated td { background: #eef2ff; color: #4338ca; font-style: italic; }
-        .ar-root .report-table tr.accumulated td.name { color: #4338ca; font-weight: 600; }
-        .ar-root .report-table .badge { display: inline-block; font-size: 8px; padding: 1px 4px; border-radius: 3px; background: #c7d2fe; color: #3730a3; margin-left: 4px; font-style: normal; }
-        .ar-root .report-table .hint { font-size: 9px; color: #94a3b8; font-weight: 400; }
-        .ar-root .income caption { color: #047857; }
-        .ar-root .income tr.subtotal td.total { color: #047857; background: #d1fae5; }
-        .ar-root .expense caption { color: #be123c; }
-        .ar-root .expense tr.subtotal td.total { color: #be123c; background: #fee2e2; }
-        .ar-net-row { margin-top: 8px; padding: 8px 12px; background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 4px; font-size: 11px; }
-        .ar-net-row strong { color: #0c4a6e; margin-right: 6px; }
-        .ar-footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center; }
-      </style>
-    `
-
-    // visibility: hidden 이지만 화면 안에 두어 html2canvas 가 정상 렌더 (off-screen 음수 좌표는 일부 환경에서 백지 PDF 원인)
-    const container = document.createElement('div')
-    container.className = 'ar-root'
-    container.style.position = 'fixed'
-    container.style.left = '0'
-    container.style.top = '0'
-    container.style.zIndex = '-1'
-    container.style.opacity = '0'
-    container.style.pointerEvents = 'none'
-    container.innerHTML = styleBlock + reportBody
-    document.body.appendChild(container)
+    // 전체 HTML 문서 — iframe 안에서 독립 렌더
+    const fullHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>자산 현황 보고서 ${selectedYear}년</title>
+<style>
+  body { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; background: #ffffff; color: #0f172a; margin: 0; padding: 20px; width: 1120px; box-sizing: border-box; }
+  * { box-sizing: border-box; }
+  .ar-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0e7490; padding-bottom: 10px; margin-bottom: 18px; }
+  .ar-title { margin: 0; font-size: 24px; color: #0c4a6e; font-weight: 800; }
+  .ar-subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .ar-meta { font-size: 11px; color: #64748b; text-align: right; line-height: 1.6; }
+  .ar-section { margin-bottom: 22px; page-break-inside: avoid; }
+  .ar-section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #0e7490; }
+  .ar-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .ar-summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; background: #f8fafc; }
+  .ar-summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+  .ar-summary-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+  .ar-pos { color: #047857; }
+  .ar-neg { color: #be123c; }
+  .report-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  .report-table caption { text-align: left; font-size: 13px; font-weight: 700; color: #0e7490; padding: 6px 0; caption-side: top; }
+  .report-table th, .report-table td { border: 1px solid #cbd5e1; padding: 5px 7px; }
+  .report-table th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; text-align: center; }
+  .report-table td.name { background: #f1f5f9; font-weight: 600; }
+  .report-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .report-table td.total { font-weight: 700; background: #ecfeff; color: #0e7490; }
+  .report-table td.pct { font-weight: 600; color: #64748b; text-align: right; }
+  .report-table tr.subtotal td { background: #f1f5f9; font-weight: 700; color: #334155; }
+  .report-table tr.grand td { background: #cffafe; font-weight: 700; color: #0c4a6e; }
+  .report-table tr.accumulated td { background: #eef2ff; color: #4338ca; font-style: italic; }
+  .report-table tr.accumulated td.name { color: #4338ca; font-weight: 600; }
+  .report-table .badge { display: inline-block; font-size: 8px; padding: 1px 4px; border-radius: 3px; background: #c7d2fe; color: #3730a3; margin-left: 4px; font-style: normal; }
+  .report-table .hint { font-size: 9px; color: #94a3b8; font-weight: 400; }
+  .income caption { color: #047857; }
+  .income tr.subtotal td.total { color: #047857; background: #d1fae5; }
+  .expense caption { color: #be123c; }
+  .expense tr.subtotal td.total { color: #be123c; background: #fee2e2; }
+  .ar-net-row { margin-top: 8px; padding: 8px 12px; background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 4px; font-size: 11px; }
+  .ar-net-row strong { color: #0c4a6e; margin-right: 6px; }
+  .ar-footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+${reportBody}
+</body>
+</html>`
 
     const filename = `자산현황보고서_${selectedYear}_${new Date().toISOString().slice(0, 10)}.pdf`
-    const options = {
-      margin: [8, 8, 8, 8],
-      filename,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+
+    // iframe 으로 독립 렌더 — div container + html2canvas 조합이 일부 환경에서 백지 PDF 를 만드는 문제 회피
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.left = '0'
+    iframe.style.top = '0'
+    iframe.style.width = '1160px'
+    iframe.style.height = '1640px'
+    iframe.style.border = 'none'
+    iframe.style.zIndex = '-9999'
+    iframe.style.opacity = '0.01'  // 0 이면 일부 브라우저에서 캡처 실패 — 거의 0 이지만 렌더는 됨
+    iframe.style.pointerEvents = 'none'
+    document.body.appendChild(iframe)
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+    iframeDoc.open()
+    iframeDoc.write(fullHtml)
+    iframeDoc.close()
+
+    const cleanup = () => {
+      try { document.body.removeChild(iframe) } catch { /* noop */ }
     }
 
-    html2pdf()
-      .set(options)
-      .from(container)
-      .save()
-      .then(() => {
-        document.body.removeChild(container)
-      })
-      .catch((err) => {
-        console.error('PDF 생성 실패:', err)
-        document.body.removeChild(container)
-        alert('PDF 생성에 실패했습니다. 잠시 후 다시 시도해주세요.')
-      })
+    // 폰트/레이아웃 안정화 위해 약간 대기 후 변환
+    const waitForReady = () => new Promise(resolve => {
+      const check = () => {
+        if (iframeDoc.readyState === 'complete' && iframeDoc.body && iframeDoc.body.scrollHeight > 0) {
+          setTimeout(resolve, 150)
+        } else {
+          setTimeout(check, 50)
+        }
+      }
+      check()
+    })
+
+    waitForReady().then(() => {
+      const options = {
+        margin: [8, 8, 8, 8],
+        filename,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          windowWidth: 1160,
+          // iframe 의 contentWindow 를 명시하여 안에서 캡처
+          windowHeight: iframeDoc.body.scrollHeight
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      }
+
+      return html2pdf()
+        .set(options)
+        .from(iframeDoc.body)
+        .save()
+    })
+    .then(cleanup)
+    .catch((err) => {
+      console.error('PDF 생성 실패:', err)
+      cleanup()
+      alert('PDF 생성에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    })
   }, [selectedYear, incomeCategories, expenseCategories, calculateMonthlyData, accountBreakdown, categoryTotals, totalAccountValue])
 
   // Handlers
