@@ -857,121 +857,124 @@ const AssetStatus = () => {
       </table>
     `
 
-    const html = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<title>자산 현황 보고서 ${selectedYear}년</title>
-<style>
-  @page { size: A4 landscape; margin: 12mm; }
-  * { box-sizing: border-box; }
-  body { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #0f172a; }
-  header { display: flex; justify-content: space-between; align-items: end; border-bottom: 2px solid #0e7490; padding-bottom: 8px; margin-bottom: 16px; }
-  h1 { margin: 0; font-size: 22px; color: #0c4a6e; }
-  .meta { font-size: 11px; color: #64748b; text-align: right; }
-  .section { margin-bottom: 22px; page-break-inside: avoid; }
-  .section-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: #0e7490; }
-  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-  .summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; background: #f8fafc; }
-  .summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-  .summary-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
-  .summary-value.pos { color: #047857; }
-  .summary-value.neg { color: #be123c; }
-  .report-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-  .report-table caption { text-align: left; font-size: 13px; font-weight: 700; color: #0e7490; padding: 6px 0; caption-side: top; }
-  .report-table th, .report-table td { border: 1px solid #cbd5e1; padding: 4px 6px; }
-  .report-table th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; text-align: center; }
-  .report-table td.name { background: #f1f5f9; font-weight: 600; }
-  .report-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .report-table td.total { font-weight: 700; background: #ecfeff; color: #0e7490; }
-  .report-table td.pct { font-weight: 600; color: #64748b; text-align: right; }
-  .report-table tr.subtotal td { background: #f1f5f9; font-weight: 700; color: #334155; }
-  .report-table tr.grand td { background: #cffafe; font-weight: 700; color: #0c4a6e; }
-  .report-table tr.accumulated td { background: #eef2ff; color: #4338ca; font-style: italic; }
-  .report-table tr.accumulated td.name { color: #4338ca; font-weight: 600; }
-  .report-table .badge { display: inline-block; font-size: 8px; padding: 1px 4px; border-radius: 3px; background: #c7d2fe; color: #3730a3; margin-left: 4px; font-style: normal; }
-  .report-table .hint { font-size: 9px; color: #94a3b8; font-weight: 400; }
-  .income caption { color: #047857; }
-  .income tr.subtotal td.total { color: #047857; background: #d1fae5; }
-  .expense caption { color: #be123c; }
-  .expense tr.subtotal td.total { color: #be123c; background: #fee2e2; }
-  .net-row { margin-top: 6px; padding: 6px 10px; background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 4px; font-size: 11px; }
-  .net-row strong { color: #0c4a6e; }
-</style>
-</head>
-<body>
-  <header>
-    <div>
-      <h1>📊 자산 현황 보고서 — ${selectedYear}년</h1>
-      <div style="font-size: 11px; color: #64748b; margin-top: 4px;">월별 수입/지출 + 계좌별 자산 통합</div>
-    </div>
-    <div class="meta">
-      출력: ${new Date().toLocaleString('ko-KR')}<br>
-      통화: KRW
-    </div>
-  </header>
+    // 보고서 본문 — div 1개 안에 모든 콘텐츠. 스타일은 컨테이너 inline 으로 직접 주입.
+    // (전체 html/head/body 문서 형식은 innerHTML 로 삽입 시 wrapper 태그가 무시되어 style 미적용 → 백지 PDF 원인)
+    const reportBody = `
+      <div class="ar-header">
+        <div>
+          <h1 class="ar-title">📊 자산 현황 보고서 — ${selectedYear}년</h1>
+          <div class="ar-subtitle">월별 수입/지출 + 계좌별 자산 통합</div>
+        </div>
+        <div class="ar-meta">
+          출력: ${escape(new Date().toLocaleString('ko-KR'))}<br>
+          통화: KRW
+        </div>
+      </div>
 
-  <div class="summary">
-    <div class="summary-card">
-      <div class="summary-label">연간 총 수입</div>
-      <div class="summary-value pos">${fmt(yearIncomeTotal)}원</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">연간 총 지출</div>
-      <div class="summary-value neg">${fmt(yearExpenseTotal)}원</div>
-    </div>
-    <div class="summary-card">
-      <div class="summary-label">연간 순변동</div>
-      <div class="summary-value ${yearNetTotal >= 0 ? 'pos' : 'neg'}">${yearNetTotal >= 0 ? '+' : ''}${fmt(yearNetTotal)}원</div>
-    </div>
-  </div>
+      <div class="ar-summary">
+        <div class="ar-summary-card">
+          <div class="ar-summary-label">연간 총 수입</div>
+          <div class="ar-summary-value ar-pos">${fmt(yearIncomeTotal)}원</div>
+        </div>
+        <div class="ar-summary-card">
+          <div class="ar-summary-label">연간 총 지출</div>
+          <div class="ar-summary-value ar-neg">${fmt(yearExpenseTotal)}원</div>
+        </div>
+        <div class="ar-summary-card">
+          <div class="ar-summary-label">연간 순변동</div>
+          <div class="ar-summary-value ${yearNetTotal >= 0 ? 'ar-pos' : 'ar-neg'}">${yearNetTotal >= 0 ? '+' : ''}${fmt(yearNetTotal)}원</div>
+        </div>
+      </div>
 
-  <div class="section">
-    <div class="section-title">① 월별 수입 현황</div>
-    ${renderMonthlyTable('수입 (KRW)', incomeRows, monthlyIncomeTotals, 'income')}
-  </div>
+      <div class="ar-section">
+        <div class="ar-section-title">① 월별 수입 현황</div>
+        ${renderMonthlyTable('수입 (KRW)', incomeRows, monthlyIncomeTotals, 'income')}
+      </div>
 
-  <div class="section">
-    <div class="section-title">② 월별 지출 현황</div>
-    ${renderMonthlyTable('지출 (KRW)', expenseRows, monthlyExpenseTotals, 'expense')}
-    <div class="net-row">
-      <strong>월별 순변동 (수입 − 지출):</strong>
-      ${MONTH_LABELS.map((m, i) => `${m} ${monthlyNetTotals[i] >= 0 ? '+' : ''}${fmt(monthlyNetTotals[i])}`).join(' · ')}
-    </div>
-  </div>
+      <div class="ar-section">
+        <div class="ar-section-title">② 월별 지출 현황</div>
+        ${renderMonthlyTable('지출 (KRW)', expenseRows, monthlyExpenseTotals, 'expense')}
+        <div class="ar-net-row">
+          <strong>월별 순변동 (수입 − 지출):</strong>
+          ${MONTH_LABELS.map((m, i) => `${m} ${monthlyNetTotals[i] >= 0 ? '+' : ''}${fmt(monthlyNetTotals[i])}`).join(' · ')}
+        </div>
+      </div>
 
-  <div class="section">
-    <div class="section-title">③ 계좌별 자산 현황</div>
-    <table class="report-table">
-      <caption>계좌별 보유 자산 (KRW)</caption>
-      <thead>
-        <tr>
-          <th class="name">계좌</th>
-          ${ASSET_CATEGORIES.map(cat => `<th>${escape(cat.name)}</th>`).join('')}
-          <th class="total">합계</th>
-          <th>비중</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${accountRowsHtml}
-        ${accountTotalsRow}
-      </tbody>
-    </table>
-  </div>
+      <div class="ar-section">
+        <div class="ar-section-title">③ 계좌별 자산 현황</div>
+        <table class="report-table">
+          <caption>계좌별 보유 자산 (KRW)</caption>
+          <thead>
+            <tr>
+              <th class="name">계좌</th>
+              ${ASSET_CATEGORIES.map(cat => `<th>${escape(cat.name)}</th>`).join('')}
+              <th class="total">합계</th>
+              <th>비중</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${accountRowsHtml}
+            ${accountTotalsRow}
+          </tbody>
+        </table>
+      </div>
 
-  <footer style="margin-top: 20px; padding-top: 8px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center;">
-    AI Finance Dashboard — ${selectedYear}년 자산 현황 보고서 · 본 자료는 사용자 입력 데이터 기반이며 투자 권유가 아닙니다.
-  </footer>
-</body>
-</html>`
+      <div class="ar-footer">
+        AI Finance Dashboard — ${selectedYear}년 자산 현황 보고서 · 본 자료는 사용자 입력 데이터 기반이며 투자 권유가 아닙니다.
+      </div>
+    `
 
-    // 화면 밖 임시 컨테이너에 보고서 HTML 렌더 → html2pdf 로 즉시 PDF 다운로드
+    // 스타일을 <style> 태그로 본문 앞에 함께 삽입. 컨테이너 안에 두면 캡처되는 화면에만 적용.
+    const styleBlock = `
+      <style>
+        .ar-root { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; background: #ffffff; color: #0f172a; padding: 20px; width: 1120px; box-sizing: border-box; }
+        .ar-root * { box-sizing: border-box; }
+        .ar-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0e7490; padding-bottom: 10px; margin-bottom: 18px; }
+        .ar-title { margin: 0; font-size: 24px; color: #0c4a6e; font-weight: 800; }
+        .ar-subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
+        .ar-meta { font-size: 11px; color: #64748b; text-align: right; line-height: 1.6; }
+        .ar-section { margin-bottom: 22px; page-break-inside: avoid; }
+        .ar-section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #0e7490; }
+        .ar-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+        .ar-summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; background: #f8fafc; }
+        .ar-summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+        .ar-summary-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+        .ar-pos { color: #047857; }
+        .ar-neg { color: #be123c; }
+        .ar-root .report-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .ar-root .report-table caption { text-align: left; font-size: 13px; font-weight: 700; color: #0e7490; padding: 6px 0; caption-side: top; }
+        .ar-root .report-table th, .ar-root .report-table td { border: 1px solid #cbd5e1; padding: 5px 7px; }
+        .ar-root .report-table th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; text-align: center; }
+        .ar-root .report-table td.name { background: #f1f5f9; font-weight: 600; }
+        .ar-root .report-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .ar-root .report-table td.total { font-weight: 700; background: #ecfeff; color: #0e7490; }
+        .ar-root .report-table td.pct { font-weight: 600; color: #64748b; text-align: right; }
+        .ar-root .report-table tr.subtotal td { background: #f1f5f9; font-weight: 700; color: #334155; }
+        .ar-root .report-table tr.grand td { background: #cffafe; font-weight: 700; color: #0c4a6e; }
+        .ar-root .report-table tr.accumulated td { background: #eef2ff; color: #4338ca; font-style: italic; }
+        .ar-root .report-table tr.accumulated td.name { color: #4338ca; font-weight: 600; }
+        .ar-root .report-table .badge { display: inline-block; font-size: 8px; padding: 1px 4px; border-radius: 3px; background: #c7d2fe; color: #3730a3; margin-left: 4px; font-style: normal; }
+        .ar-root .report-table .hint { font-size: 9px; color: #94a3b8; font-weight: 400; }
+        .ar-root .income caption { color: #047857; }
+        .ar-root .income tr.subtotal td.total { color: #047857; background: #d1fae5; }
+        .ar-root .expense caption { color: #be123c; }
+        .ar-root .expense tr.subtotal td.total { color: #be123c; background: #fee2e2; }
+        .ar-net-row { margin-top: 8px; padding: 8px 12px; background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 4px; font-size: 11px; }
+        .ar-net-row strong { color: #0c4a6e; margin-right: 6px; }
+        .ar-footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center; }
+      </style>
+    `
+
+    // visibility: hidden 이지만 화면 안에 두어 html2canvas 가 정상 렌더 (off-screen 음수 좌표는 일부 환경에서 백지 PDF 원인)
     const container = document.createElement('div')
+    container.className = 'ar-root'
     container.style.position = 'fixed'
-    container.style.left = '-10000px'
+    container.style.left = '0'
     container.style.top = '0'
-    container.style.width = '1120px' // A4 landscape (297mm * 3.78px/mm ≈ 1122px)
-    container.innerHTML = html
+    container.style.zIndex = '-1'
+    container.style.opacity = '0'
+    container.style.pointerEvents = 'none'
+    container.innerHTML = styleBlock + reportBody
     document.body.appendChild(container)
 
     const filename = `자산현황보고서_${selectedYear}_${new Date().toISOString().slice(0, 10)}.pdf`
