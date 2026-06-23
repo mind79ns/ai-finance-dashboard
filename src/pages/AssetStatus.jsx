@@ -30,7 +30,6 @@ import {
 } from 'recharts'
 import dataSync from '../utils/dataSync'
 import marketDataService from '../services/marketDataService'
-import html2pdf from 'html2pdf.js'
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
@@ -923,30 +922,32 @@ const AssetStatus = () => {
       </div>
     `
 
-    // 전체 HTML 문서 — iframe 안에서 독립 렌더
+    // 새 창에 전체 HTML 문서 띄우고 자동 인쇄 다이얼로그 호출.
+    // 사용자는 "PDF로 저장" 1회 클릭으로 다운로드 — 가장 안정적이고 결과물 깔끔.
     const fullHtml = `<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>자산 현황 보고서 ${selectedYear}년</title>
+<title>자산현황보고서_${selectedYear}_${new Date().toISOString().slice(0, 10)}</title>
 <style>
-  body { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; background: #ffffff; color: #0f172a; margin: 0; padding: 20px; width: 1120px; box-sizing: border-box; }
+  @page { size: A4 landscape; margin: 10mm; }
   * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; background: #ffffff; color: #0f172a; margin: 0; padding: 20px; }
   .ar-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0e7490; padding-bottom: 10px; margin-bottom: 18px; }
-  .ar-title { margin: 0; font-size: 24px; color: #0c4a6e; font-weight: 800; }
-  .ar-subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
-  .ar-meta { font-size: 11px; color: #64748b; text-align: right; line-height: 1.6; }
-  .ar-section { margin-bottom: 22px; page-break-inside: avoid; }
-  .ar-section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #0e7490; }
-  .ar-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
-  .ar-summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; background: #f8fafc; }
+  .ar-title { margin: 0; font-size: 22px; color: #0c4a6e; font-weight: 800; }
+  .ar-subtitle { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .ar-meta { font-size: 10px; color: #64748b; text-align: right; line-height: 1.6; }
+  .ar-section { margin-bottom: 18px; page-break-inside: avoid; }
+  .ar-section-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #0e7490; }
+  .ar-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .ar-summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; background: #f8fafc; }
   .ar-summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-  .ar-summary-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+  .ar-summary-value { font-size: 18px; font-weight: 800; margin-top: 4px; }
   .ar-pos { color: #047857; }
   .ar-neg { color: #be123c; }
   .report-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-  .report-table caption { text-align: left; font-size: 13px; font-weight: 700; color: #0e7490; padding: 6px 0; caption-side: top; }
-  .report-table th, .report-table td { border: 1px solid #cbd5e1; padding: 5px 7px; }
+  .report-table caption { text-align: left; font-size: 12px; font-weight: 700; color: #0e7490; padding: 4px 0; caption-side: top; }
+  .report-table th, .report-table td { border: 1px solid #cbd5e1; padding: 4px 6px; }
   .report-table th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; text-align: center; }
   .report-table td.name { background: #f1f5f9; font-weight: 600; }
   .report-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -962,80 +963,39 @@ const AssetStatus = () => {
   .income tr.subtotal td.total { color: #047857; background: #d1fae5; }
   .expense caption { color: #be123c; }
   .expense tr.subtotal td.total { color: #be123c; background: #fee2e2; }
-  .ar-net-row { margin-top: 8px; padding: 8px 12px; background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 4px; font-size: 11px; }
+  .ar-net-row { margin-top: 6px; padding: 6px 10px; background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 4px; font-size: 10px; }
   .ar-net-row strong { color: #0c4a6e; margin-right: 6px; }
-  .ar-footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center; }
+  .ar-footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center; }
+  .toolbar { position: fixed; top: 8px; right: 8px; display: flex; gap: 8px; z-index: 1000; }
+  .toolbar button { padding: 8px 16px; border: 1px solid #0e7490; background: #0e7490; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .toolbar button.secondary { background: white; color: #0e7490; }
+  .toolbar button:hover { opacity: 0.9; }
+  @media print { .toolbar { display: none !important; } body { padding: 0; } }
 </style>
 </head>
 <body>
+  <div class="toolbar">
+    <button onclick="window.print()">🖨️ PDF 로 저장 / 인쇄</button>
+    <button class="secondary" onclick="window.close()">닫기</button>
+  </div>
 ${reportBody}
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 400);
+  });
+</script>
 </body>
 </html>`
 
-    const filename = `자산현황보고서_${selectedYear}_${new Date().toISOString().slice(0, 10)}.pdf`
-
-    // iframe 으로 독립 렌더 — div container + html2canvas 조합이 일부 환경에서 백지 PDF 를 만드는 문제 회피
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'fixed'
-    iframe.style.left = '0'
-    iframe.style.top = '0'
-    iframe.style.width = '1160px'
-    iframe.style.height = '1640px'
-    iframe.style.border = 'none'
-    iframe.style.zIndex = '-9999'
-    iframe.style.opacity = '0.01'  // 0 이면 일부 브라우저에서 캡처 실패 — 거의 0 이지만 렌더는 됨
-    iframe.style.pointerEvents = 'none'
-    document.body.appendChild(iframe)
-
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
-    iframeDoc.open()
-    iframeDoc.write(fullHtml)
-    iframeDoc.close()
-
-    const cleanup = () => {
-      try { document.body.removeChild(iframe) } catch { /* noop */ }
+    const win = window.open('', '_blank', 'width=1200,height=900')
+    if (!win) {
+      alert('팝업이 차단되었습니다. 브라우저 팝업을 허용해주세요.')
+      return
     }
-
-    // 폰트/레이아웃 안정화 위해 약간 대기 후 변환
-    const waitForReady = () => new Promise(resolve => {
-      const check = () => {
-        if (iframeDoc.readyState === 'complete' && iframeDoc.body && iframeDoc.body.scrollHeight > 0) {
-          setTimeout(resolve, 150)
-        } else {
-          setTimeout(check, 50)
-        }
-      }
-      check()
-    })
-
-    waitForReady().then(() => {
-      const options = {
-        margin: [8, 8, 8, 8],
-        filename,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          windowWidth: 1160,
-          // iframe 의 contentWindow 를 명시하여 안에서 캡처
-          windowHeight: iframeDoc.body.scrollHeight
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      }
-
-      return html2pdf()
-        .set(options)
-        .from(iframeDoc.body)
-        .save()
-    })
-    .then(cleanup)
-    .catch((err) => {
-      console.error('PDF 생성 실패:', err)
-      cleanup()
-      alert('PDF 생성에 실패했습니다. 잠시 후 다시 시도해주세요.')
-    })
+    win.document.open()
+    win.document.write(fullHtml)
+    win.document.close()
+    win.focus()
   }, [selectedYear, incomeCategories, expenseCategories, calculateMonthlyData, accountBreakdown, categoryTotals, totalAccountValue])
 
   // Handlers
@@ -1292,10 +1252,10 @@ ${reportBody}
           <button
             onClick={handleExportReport}
             className="cyber-btn bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border-indigo-500/50 flex items-center gap-2"
-            title="월별 수입/지출 + 계좌별 자산을 한 페이지 PDF 로 즉시 다운로드"
+            title="새 창에서 PDF 다운로드 / 인쇄"
           >
             <Printer className="w-4 h-4" />
-            PDF 다운로드
+            PDF 보고서
           </button>
 
           <button
