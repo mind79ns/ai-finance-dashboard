@@ -30,6 +30,7 @@ import {
 } from 'recharts'
 import dataSync from '../utils/dataSync'
 import marketDataService from '../services/marketDataService'
+import html2pdf from 'html2pdf.js'
 
 const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
@@ -776,8 +777,8 @@ const AssetStatus = () => {
     return categoryTotals.grandTotal
   }, [categoryTotals])
 
-  // 월별 수입/지출 표 + 계좌별 자산 표를 한 페이지 인쇄용 HTML 보고서로 새 창에 열기
-  // 사용자가 Ctrl+P 로 PDF 저장 또는 종이 인쇄 가능. 사이버펑크 톤을 유지하되 인쇄 친화적 흰 배경.
+  // 월별 수입/지출 표 + 계좌별 자산 표를 한 페이지 보고서(A4 가로)로 묶고 html2pdf 로 즉시 PDF 다운로드.
+  // 누적금액(isAccumulated=true) 카테고리는 이월금이라 수입 합계·소계에서 제외하고 별도 정보로만 표시.
   const handleExportReport = useCallback(() => {
     const fmt = (n) => {
       const num = Number(n) || 0
@@ -787,18 +788,24 @@ const AssetStatus = () => {
     const escape = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
     // --- 1) 월별 수입/지출 표 데이터 ---
+    // 누적금액(이월) 행은 표시는 하되 합계에서 제외하기 위해 분리 보관
     const incomeRows = incomeCategories.map(cat => {
       const monthlyVals = MONTH_LABELS.map((_, i) => (calculateMonthlyData[i + 1]?.[cat.id]) || 0)
       const total = monthlyVals.reduce((s, v) => s + v, 0)
-      return { name: cat.name, monthly: monthlyVals, total }
+      return { name: cat.name, monthly: monthlyVals, total, isAccumulated: !!cat.isAccumulated }
     })
     const expenseRows = expenseCategories.map(cat => {
       const monthlyVals = MONTH_LABELS.map((_, i) => (calculateMonthlyData[i + 1]?.[cat.id]) || 0)
       const total = monthlyVals.reduce((s, v) => s + v, 0)
-      return { name: cat.name, monthly: monthlyVals, total }
+      return { name: cat.name, monthly: monthlyVals, total, isAccumulated: !!cat.isAccumulated }
     })
-    const monthlyIncomeTotals = MONTH_LABELS.map((_, i) => incomeRows.reduce((s, r) => s + r.monthly[i], 0))
-    const monthlyExpenseTotals = MONTH_LABELS.map((_, i) => expenseRows.reduce((s, r) => s + r.monthly[i], 0))
+    // 합계는 누적금액 제외
+    const monthlyIncomeTotals = MONTH_LABELS.map((_, i) =>
+      incomeRows.filter(r => !r.isAccumulated).reduce((s, r) => s + r.monthly[i], 0)
+    )
+    const monthlyExpenseTotals = MONTH_LABELS.map((_, i) =>
+      expenseRows.filter(r => !r.isAccumulated).reduce((s, r) => s + r.monthly[i], 0)
+    )
     const monthlyNetTotals = monthlyIncomeTotals.map((inc, i) => inc - monthlyExpenseTotals[i])
     const yearIncomeTotal = monthlyIncomeTotals.reduce((s, v) => s + v, 0)
     const yearExpenseTotal = monthlyExpenseTotals.reduce((s, v) => s + v, 0)
@@ -835,14 +842,14 @@ const AssetStatus = () => {
         </thead>
         <tbody>
           ${rows.map(r => `
-            <tr>
-              <td class="name">${escape(r.name)}</td>
+            <tr class="${r.isAccumulated ? 'accumulated' : ''}">
+              <td class="name">${escape(r.name)}${r.isAccumulated ? ' <span class="badge">이월</span>' : ''}</td>
               ${r.monthly.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
               <td class="num total">${fmt(r.total)}</td>
             </tr>
           `).join('')}
           <tr class="subtotal">
-            <td class="name">소계</td>
+            <td class="name">소계 <span class="hint">(이월 제외)</span></td>
             ${totals.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
             <td class="num total">${fmt(totals.reduce((s, v) => s + v, 0))}</td>
           </tr>
@@ -880,24 +887,19 @@ const AssetStatus = () => {
   .report-table td.pct { font-weight: 600; color: #64748b; text-align: right; }
   .report-table tr.subtotal td { background: #f1f5f9; font-weight: 700; color: #334155; }
   .report-table tr.grand td { background: #cffafe; font-weight: 700; color: #0c4a6e; }
+  .report-table tr.accumulated td { background: #eef2ff; color: #4338ca; font-style: italic; }
+  .report-table tr.accumulated td.name { color: #4338ca; font-weight: 600; }
+  .report-table .badge { display: inline-block; font-size: 8px; padding: 1px 4px; border-radius: 3px; background: #c7d2fe; color: #3730a3; margin-left: 4px; font-style: normal; }
+  .report-table .hint { font-size: 9px; color: #94a3b8; font-weight: 400; }
   .income caption { color: #047857; }
   .income tr.subtotal td.total { color: #047857; background: #d1fae5; }
   .expense caption { color: #be123c; }
   .expense tr.subtotal td.total { color: #be123c; background: #fee2e2; }
   .net-row { margin-top: 6px; padding: 6px 10px; background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 4px; font-size: 11px; }
   .net-row strong { color: #0c4a6e; }
-  .toolbar { position: fixed; top: 8px; right: 8px; display: flex; gap: 8px; }
-  .toolbar button { padding: 6px 12px; border: 1px solid #0e7490; background: #0e7490; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; }
-  .toolbar button.secondary { background: white; color: #0e7490; }
-  @media print { .toolbar { display: none; } body { padding: 0; } }
 </style>
 </head>
 <body>
-  <div class="toolbar">
-    <button onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
-    <button class="secondary" onclick="window.close()">닫기</button>
-  </div>
-
   <header>
     <div>
       <h1>📊 자산 현황 보고서 — ${selectedYear}년</h1>
@@ -963,15 +965,37 @@ const AssetStatus = () => {
 </body>
 </html>`
 
-    const win = window.open('', '_blank', 'width=1200,height=900')
-    if (!win) {
-      alert('팝업이 차단되었습니다. 브라우저 팝업을 허용해주세요.')
-      return
+    // 화면 밖 임시 컨테이너에 보고서 HTML 렌더 → html2pdf 로 즉시 PDF 다운로드
+    const container = document.createElement('div')
+    container.style.position = 'fixed'
+    container.style.left = '-10000px'
+    container.style.top = '0'
+    container.style.width = '1120px' // A4 landscape (297mm * 3.78px/mm ≈ 1122px)
+    container.innerHTML = html
+    document.body.appendChild(container)
+
+    const filename = `자산현황보고서_${selectedYear}_${new Date().toISOString().slice(0, 10)}.pdf`
+    const options = {
+      margin: [8, 8, 8, 8],
+      filename,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     }
-    win.document.open()
-    win.document.write(html)
-    win.document.close()
-    win.focus()
+
+    html2pdf()
+      .set(options)
+      .from(container)
+      .save()
+      .then(() => {
+        document.body.removeChild(container)
+      })
+      .catch((err) => {
+        console.error('PDF 생성 실패:', err)
+        document.body.removeChild(container)
+        alert('PDF 생성에 실패했습니다. 잠시 후 다시 시도해주세요.')
+      })
   }, [selectedYear, incomeCategories, expenseCategories, calculateMonthlyData, accountBreakdown, categoryTotals, totalAccountValue])
 
   // Handlers
@@ -1228,10 +1252,10 @@ const AssetStatus = () => {
           <button
             onClick={handleExportReport}
             className="cyber-btn bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border-indigo-500/50 flex items-center gap-2"
-            title="월별 수입/지출 + 계좌별 자산을 한 페이지 인쇄용 보고서로 내보내기"
+            title="월별 수입/지출 + 계좌별 자산을 한 페이지 PDF 로 즉시 다운로드"
           >
             <Printer className="w-4 h-4" />
-            보고서 내보내기
+            PDF 다운로드
           </button>
 
           <button
