@@ -13,7 +13,8 @@ import {
   Check,
   X,
   Trash2,
-  LineChart
+  LineChart,
+  Printer
 } from 'lucide-react'
 import {
   Line,
@@ -775,6 +776,204 @@ const AssetStatus = () => {
     return categoryTotals.grandTotal
   }, [categoryTotals])
 
+  // 월별 수입/지출 표 + 계좌별 자산 표를 한 페이지 인쇄용 HTML 보고서로 새 창에 열기
+  // 사용자가 Ctrl+P 로 PDF 저장 또는 종이 인쇄 가능. 사이버펑크 톤을 유지하되 인쇄 친화적 흰 배경.
+  const handleExportReport = useCallback(() => {
+    const fmt = (n) => {
+      const num = Number(n) || 0
+      return num.toLocaleString('ko-KR', { maximumFractionDigits: 0 })
+    }
+
+    const escape = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+    // --- 1) 월별 수입/지출 표 데이터 ---
+    const incomeRows = incomeCategories.map(cat => {
+      const monthlyVals = MONTH_LABELS.map((_, i) => (calculateMonthlyData[i + 1]?.[cat.id]) || 0)
+      const total = monthlyVals.reduce((s, v) => s + v, 0)
+      return { name: cat.name, monthly: monthlyVals, total }
+    })
+    const expenseRows = expenseCategories.map(cat => {
+      const monthlyVals = MONTH_LABELS.map((_, i) => (calculateMonthlyData[i + 1]?.[cat.id]) || 0)
+      const total = monthlyVals.reduce((s, v) => s + v, 0)
+      return { name: cat.name, monthly: monthlyVals, total }
+    })
+    const monthlyIncomeTotals = MONTH_LABELS.map((_, i) => incomeRows.reduce((s, r) => s + r.monthly[i], 0))
+    const monthlyExpenseTotals = MONTH_LABELS.map((_, i) => expenseRows.reduce((s, r) => s + r.monthly[i], 0))
+    const monthlyNetTotals = monthlyIncomeTotals.map((inc, i) => inc - monthlyExpenseTotals[i])
+    const yearIncomeTotal = monthlyIncomeTotals.reduce((s, v) => s + v, 0)
+    const yearExpenseTotal = monthlyExpenseTotals.reduce((s, v) => s + v, 0)
+    const yearNetTotal = yearIncomeTotal - yearExpenseTotal
+
+    // --- 2) 계좌별 자산 표 데이터 ---
+    const accountRowsHtml = accountBreakdown.map(acc => {
+      const cells = ASSET_CATEGORIES.map(cat => `<td class="num">${fmt(acc.categories[cat.id] || 0)}</td>`).join('')
+      const pct = totalAccountValue > 0 ? (acc.total / totalAccountValue * 100).toFixed(1) : '0.0'
+      return `<tr>
+        <td class="name">${escape(acc.name)}</td>
+        ${cells}
+        <td class="num total">${fmt(acc.total)}</td>
+        <td class="num pct">${pct}%</td>
+      </tr>`
+    }).join('')
+
+    const accountTotalsRow = `<tr class="grand">
+      <td class="name">합계</td>
+      ${ASSET_CATEGORIES.map(cat => `<td class="num">${fmt(categoryTotals[cat.id] || 0)}</td>`).join('')}
+      <td class="num total">${fmt(categoryTotals.grandTotal)}</td>
+      <td class="num pct">100.0%</td>
+    </tr>`
+
+    const renderMonthlyTable = (title, rows, totals, colorClass) => `
+      <table class="report-table ${colorClass}">
+        <caption>${title}</caption>
+        <thead>
+          <tr>
+            <th class="name">카테고리</th>
+            ${MONTH_LABELS.map(m => `<th>${m}</th>`).join('')}
+            <th class="total">연 합계</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td class="name">${escape(r.name)}</td>
+              ${r.monthly.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
+              <td class="num total">${fmt(r.total)}</td>
+            </tr>
+          `).join('')}
+          <tr class="subtotal">
+            <td class="name">소계</td>
+            ${totals.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
+            <td class="num total">${fmt(totals.reduce((s, v) => s + v, 0))}</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+
+    const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>자산 현황 보고서 ${selectedYear}년</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #0f172a; }
+  header { display: flex; justify-content: space-between; align-items: end; border-bottom: 2px solid #0e7490; padding-bottom: 8px; margin-bottom: 16px; }
+  h1 { margin: 0; font-size: 22px; color: #0c4a6e; }
+  .meta { font-size: 11px; color: #64748b; text-align: right; }
+  .section { margin-bottom: 22px; page-break-inside: avoid; }
+  .section-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: #0e7490; }
+  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; background: #f8fafc; }
+  .summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+  .summary-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
+  .summary-value.pos { color: #047857; }
+  .summary-value.neg { color: #be123c; }
+  .report-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  .report-table caption { text-align: left; font-size: 13px; font-weight: 700; color: #0e7490; padding: 6px 0; caption-side: top; }
+  .report-table th, .report-table td { border: 1px solid #cbd5e1; padding: 4px 6px; }
+  .report-table th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; text-align: center; }
+  .report-table td.name { background: #f1f5f9; font-weight: 600; }
+  .report-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .report-table td.total { font-weight: 700; background: #ecfeff; color: #0e7490; }
+  .report-table td.pct { font-weight: 600; color: #64748b; text-align: right; }
+  .report-table tr.subtotal td { background: #f1f5f9; font-weight: 700; color: #334155; }
+  .report-table tr.grand td { background: #cffafe; font-weight: 700; color: #0c4a6e; }
+  .income caption { color: #047857; }
+  .income tr.subtotal td.total { color: #047857; background: #d1fae5; }
+  .expense caption { color: #be123c; }
+  .expense tr.subtotal td.total { color: #be123c; background: #fee2e2; }
+  .net-row { margin-top: 6px; padding: 6px 10px; background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 4px; font-size: 11px; }
+  .net-row strong { color: #0c4a6e; }
+  .toolbar { position: fixed; top: 8px; right: 8px; display: flex; gap: 8px; }
+  .toolbar button { padding: 6px 12px; border: 1px solid #0e7490; background: #0e7490; color: white; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .toolbar button.secondary { background: white; color: #0e7490; }
+  @media print { .toolbar { display: none; } body { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+    <button class="secondary" onclick="window.close()">닫기</button>
+  </div>
+
+  <header>
+    <div>
+      <h1>📊 자산 현황 보고서 — ${selectedYear}년</h1>
+      <div style="font-size: 11px; color: #64748b; margin-top: 4px;">월별 수입/지출 + 계좌별 자산 통합</div>
+    </div>
+    <div class="meta">
+      출력: ${new Date().toLocaleString('ko-KR')}<br>
+      통화: KRW
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="summary-card">
+      <div class="summary-label">연간 총 수입</div>
+      <div class="summary-value pos">${fmt(yearIncomeTotal)}원</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">연간 총 지출</div>
+      <div class="summary-value neg">${fmt(yearExpenseTotal)}원</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">연간 순변동</div>
+      <div class="summary-value ${yearNetTotal >= 0 ? 'pos' : 'neg'}">${yearNetTotal >= 0 ? '+' : ''}${fmt(yearNetTotal)}원</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">① 월별 수입 현황</div>
+    ${renderMonthlyTable('수입 (KRW)', incomeRows, monthlyIncomeTotals, 'income')}
+  </div>
+
+  <div class="section">
+    <div class="section-title">② 월별 지출 현황</div>
+    ${renderMonthlyTable('지출 (KRW)', expenseRows, monthlyExpenseTotals, 'expense')}
+    <div class="net-row">
+      <strong>월별 순변동 (수입 − 지출):</strong>
+      ${MONTH_LABELS.map((m, i) => `${m} ${monthlyNetTotals[i] >= 0 ? '+' : ''}${fmt(monthlyNetTotals[i])}`).join(' · ')}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">③ 계좌별 자산 현황</div>
+    <table class="report-table">
+      <caption>계좌별 보유 자산 (KRW)</caption>
+      <thead>
+        <tr>
+          <th class="name">계좌</th>
+          ${ASSET_CATEGORIES.map(cat => `<th>${escape(cat.name)}</th>`).join('')}
+          <th class="total">합계</th>
+          <th>비중</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${accountRowsHtml}
+        ${accountTotalsRow}
+      </tbody>
+    </table>
+  </div>
+
+  <footer style="margin-top: 20px; padding-top: 8px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center;">
+    AI Finance Dashboard — ${selectedYear}년 자산 현황 보고서 · 본 자료는 사용자 입력 데이터 기반이며 투자 권유가 아닙니다.
+  </footer>
+</body>
+</html>`
+
+    const win = window.open('', '_blank', 'width=1200,height=900')
+    if (!win) {
+      alert('팝업이 차단되었습니다. 브라우저 팝업을 허용해주세요.')
+      return
+    }
+    win.document.open()
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+  }, [selectedYear, incomeCategories, expenseCategories, calculateMonthlyData, accountBreakdown, categoryTotals, totalAccountValue])
+
   // Handlers
   const handleOpenEditModal = (monthIndex) => {
     setEditingMonth(monthIndex)
@@ -1025,6 +1224,15 @@ const AssetStatus = () => {
               ))}
             </select>
           </div>
+
+          <button
+            onClick={handleExportReport}
+            className="cyber-btn bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border-indigo-500/50 flex items-center gap-2"
+            title="월별 수입/지출 + 계좌별 자산을 한 페이지 인쇄용 보고서로 내보내기"
+          >
+            <Printer className="w-4 h-4" />
+            보고서 내보내기
+          </button>
 
           <button
             onClick={() => setShowAddYearModal(true)}
