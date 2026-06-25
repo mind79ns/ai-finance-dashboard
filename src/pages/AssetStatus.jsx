@@ -778,6 +778,29 @@ const AssetStatus = () => {
     return categoryTotals.grandTotal
   }, [categoryTotals])
 
+  // Dashboard 가 정확한 자산현황 값(totalAccountValue/incomeTotal/expenseTotal/monthlyData)을
+  // 참조할 수 있도록 캐시 저장. localStorage + Supabase 양쪽에 동기화.
+  // (기존엔 Dashboard 가 자체 단순 합산을 해 ASSET_CATEGORIES/accountTypes 정의 변경 후
+  // 잔존 키까지 합산하거나 입출금/배당 자동연동을 누락하여 값 불일치 발생.)
+  useEffect(() => {
+    const cache = {
+      year: selectedYear,
+      totalAccountValue,
+      incomeTotal: yearlyTotals.incomeTotal,
+      expenseTotal: yearlyTotals.expenseTotal,
+      netTotal: yearlyTotals.netTotal,
+      monthlyData: calculateMonthlyData.map(m => ({
+        month: m.month,
+        income: Number(m.income) || 0,
+        expense: Number(m.expense) || 0,
+        netChange: Number(m.netChange) || 0,
+        accumulated: Number(m.accumulated) || 0
+      })),
+      updatedAt: Date.now()
+    }
+    dataSync.saveUserSetting('asset_status_dashboard_cache', cache).catch(console.error)
+  }, [selectedYear, totalAccountValue, yearlyTotals, calculateMonthlyData])
+
   // 월별 수입/지출 표 + 계좌별 자산 표를 한 페이지 보고서(A4 가로)로 묶고 html2pdf 로 즉시 PDF 다운로드.
   // 누적금액(isAccumulated=true) 카테고리는 이월금이라 수입 합계·소계에서 제외하고 별도 정보로만 표시.
   const handleExportReport = useCallback(() => {

@@ -85,14 +85,16 @@ const Dashboard = () => {
     try {
       let market = forceRefresh ? marketDataRef.current : marketDataRef.current
 
-      const [loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories] = await Promise.all([
+      const [loadedAssets, loadedLogs, loadedGoals, assetAccountData, assetStatusData, incomeCategories, expenseCategories, assetStatusCache] = await Promise.all([
         dataSync.loadPortfolioAssets(),
         dataSync.loadInvestmentLogs(),
         dataSync.loadGoals(),
         dataSync.loadUserSetting('asset_account_data'),
         dataSync.loadUserSetting('asset_status_data', {}),
         dataSync.loadUserSetting('asset_income_categories', []),
-        dataSync.loadUserSetting('asset_expense_categories', [])
+        dataSync.loadUserSetting('asset_expense_categories', []),
+        // AssetStatus 페이지가 저장한 정확한 계산 결과 — 있으면 우선 사용 (Dashboard 자체 단순 합산보다 신뢰)
+        dataSync.loadUserSetting('asset_status_dashboard_cache')
       ])
 
       // [Optimistic UI] 캐시 데이터 도착 즉시 풀스크린 로딩 분기 해제. 시세는 아래에서 계속 진행.
@@ -120,11 +122,20 @@ const Dashboard = () => {
       const goalsRaw = Array.isArray(loadedGoals) ? loadedGoals : []
 
       const currentYear = new Date().getFullYear()
-      const yearAccounts = assetAccountData?.[currentYear] || {}
-      let assetTotalValue = 0
-      Object.values(yearAccounts).forEach(cats => {
-        Object.values(cats).forEach(v => { assetTotalValue += Number(v || 0) })
-      })
+      const useAssetCache = assetStatusCache && Number(assetStatusCache.year) === currentYear
+
+      let assetTotalValue
+      if (useAssetCache) {
+        // AssetStatus 페이지가 계산한 정확한 값 사용 (ASSET_CATEGORIES/accountTypes 정의 기준)
+        assetTotalValue = Number(assetStatusCache.totalAccountValue) || 0
+      } else {
+        // Fallback: yearAccounts 단순 합산 (캐시 없을 때만)
+        const yearAccounts = assetAccountData?.[currentYear] || {}
+        assetTotalValue = 0
+        Object.values(yearAccounts).forEach(cats => {
+          Object.values(cats).forEach(v => { assetTotalValue += Number(v || 0) })
+        })
+      }
       setAssetStatusTotal(assetTotalValue)
 
       const { totals, allocation, assetsMap, performance, accountBreakdown } = buildPortfolioSummary(assetsRaw, usdToKrw)
@@ -225,25 +236,41 @@ const Dashboard = () => {
         return { month: label, value: monthTotal }
       })
 
-      // 월별 순변동 계산 (Asset Status 데이터 기반)
-      const currentYearStatus = (assetStatusData || {})[currentYear] || {}
-      const incomeCats = Array.isArray(incomeCategories) && incomeCategories.length > 0 ? incomeCategories : []
-      const expenseCats = Array.isArray(expenseCategories) && expenseCategories.length > 0 ? expenseCategories : []
+      // 월별 순변동 — AssetStatus 캐시 우선 사용 (입출금/배당 자동연동 + isAccumulated 처리 모두 반영된 정확한 값)
       const MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
       const netChanges = []
       let totalYrIncome = 0
       let totalYrExpense = 0
-      for (let i = 0; i < 12; i++) {
-        const monthKey = i + 1
-        const mData = currentYearStatus[monthKey] || {}
-        const incomeTotal = incomeCats.reduce((sum, cat) => {
-          if (cat.isAccumulated) return sum
-          return sum + Number(mData[cat.id] || 0)
-        }, 0)
-        const expenseTotal = expenseCats.reduce((sum, cat) => sum + Number(mData[cat.id] || 0), 0)
-        totalYrIncome += incomeTotal
-        totalYrExpense += expenseTotal
-        netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal, income: incomeTotal, expense: expenseTotal })
+
+      if (useAssetCache && Array.isArray(assetStatusCache.monthlyData)) {
+        // 캐시값 = AssetStatus 페이지 표와 동일한 정확한 수치
+        totalYrIncome = Number(assetStatusCache.incomeTotal) || 0
+        totalYrExpense = Number(assetStatusCache.expenseTotal) || 0
+        assetStatusCache.monthlyData.forEach((m, i) => {
+          netChanges.push({
+            month: m.month || MONTH_LABELS[i],
+            value: Number(m.netChange) || 0,
+            income: Number(m.income) || 0,
+            expense: Number(m.expense) || 0
+          })
+        })
+      } else {
+        // Fallback: statusData 만으로 단순 합산 (입출금/배당 자동연동 누락 — 캐시 없을 때만)
+        const currentYearStatus = (assetStatusData || {})[currentYear] || {}
+        const incomeCats = Array.isArray(incomeCategories) && incomeCategories.length > 0 ? incomeCategories : []
+        const expenseCats = Array.isArray(expenseCategories) && expenseCategories.length > 0 ? expenseCategories : []
+        for (let i = 0; i < 12; i++) {
+          const monthKey = i + 1
+          const mData = currentYearStatus[monthKey] || {}
+          const incomeTotal = incomeCats.reduce((sum, cat) => {
+            if (cat.isAccumulated) return sum
+            return sum + Number(mData[cat.id] || 0)
+          }, 0)
+          const expenseTotal = expenseCats.reduce((sum, cat) => sum + Number(mData[cat.id] || 0), 0)
+          totalYrIncome += incomeTotal
+          totalYrExpense += expenseTotal
+          netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal, income: incomeTotal, expense: expenseTotal })
+        }
       }
 
       // --- [최적화] 상태 업데이트 전 값 변경 여부(JSON.stringify)를 확인하여 리렌더링 폭풍(깜빡임) 방지 ---
