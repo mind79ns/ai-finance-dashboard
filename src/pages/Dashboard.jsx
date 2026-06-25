@@ -242,6 +242,10 @@ const Dashboard = () => {
       let totalYrIncome = 0
       let totalYrExpense = 0
 
+      // 다년도 비교(아래 yearCompare)에서도 사용되므로 분기 외부에서 항상 선언.
+      const incomeCats = Array.isArray(incomeCategories) && incomeCategories.length > 0 ? incomeCategories : []
+      const expenseCats = Array.isArray(expenseCategories) && expenseCategories.length > 0 ? expenseCategories : []
+
       if (useAssetCache && Array.isArray(assetStatusCache.monthlyData)) {
         // 캐시값 = AssetStatus 페이지 표와 동일한 정확한 수치
         totalYrIncome = Number(assetStatusCache.incomeTotal) || 0
@@ -257,8 +261,6 @@ const Dashboard = () => {
       } else {
         // Fallback: statusData 만으로 단순 합산 (입출금/배당 자동연동 누락 — 캐시 없을 때만)
         const currentYearStatus = (assetStatusData || {})[currentYear] || {}
-        const incomeCats = Array.isArray(incomeCategories) && incomeCategories.length > 0 ? incomeCategories : []
-        const expenseCats = Array.isArray(expenseCategories) && expenseCategories.length > 0 ? expenseCategories : []
         for (let i = 0; i < 12; i++) {
           const monthKey = i + 1
           const mData = currentYearStatus[monthKey] || {}
