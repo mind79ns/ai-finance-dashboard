@@ -398,7 +398,12 @@ const ProfitDetail = ({ d }) => {
 /* ═══ 4. Dividend ═══ */
 const DividendDetail = ({ d }) => {
   const { dividendTotal = 0, trendDividend = [] } = d
-  
+
+  // 월 평균은 "이미 경과한 월수" 로 나눠야 정확. 12 고정은 6월에 절반 수준으로 표시되는 버그.
+  const currentMonthNumber = new Date().getMonth() + 1 // 1~12
+  const monthsElapsed = Math.max(1, currentMonthNumber)
+  const avgMonthlyDividend = dividendTotal / monthsElapsed
+
   // 최고 배당월 찾기
   const bestMonth = [...trendDividend].sort((a, b) => b.value - a.value)[0]
 
@@ -428,8 +433,8 @@ const DividendDetail = ({ d }) => {
           <p className="neon-text-gold font-bold text-2xl">{fmt(dividendTotal)}</p>
         </div>
         <div className="cyber-stat-item text-center p-4 bg-slate-800/40">
-          <p className="text-cyan-300/60 text-xs mb-1">월 평균 배당액</p>
-          <p className="text-amber-400 font-bold text-xl">{fmt(dividendTotal / 12)}</p>
+          <p className="text-cyan-300/60 text-xs mb-1">월 평균 배당액 (1~{currentMonthNumber}월)</p>
+          <p className="text-amber-400 font-bold text-xl">{fmt(avgMonthlyDividend)}</p>
         </div>
         <div className="cyber-stat-item text-center p-4 bg-slate-800/40">
           <p className="text-cyan-300/60 text-xs mb-1">최고 수령액 ({bestMonth?.month})</p>

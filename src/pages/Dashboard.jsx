@@ -591,7 +591,7 @@ const Dashboard = () => {
                     icon={PiggyBank}
                     label="Annual Dividend"
                     value={formatCurrency(dividendTotal, 'KRW')}
-                    sub={`Monthly ${formatCurrency(dividendTotal / 12, 'KRW')}`}
+                    sub={`Monthly ${formatCurrency(dividendTotal / Math.max(1, new Date().getMonth() + 1), 'KRW')}`}
                     color="gold"
                     trendData={trendDividend}
                     trendColor="#ffd700"
