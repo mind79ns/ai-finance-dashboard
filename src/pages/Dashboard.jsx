@@ -959,7 +959,13 @@ const buildRecentActivities = (logs, dividends, assetsMap, usdToKrw) => {
   logs.slice(0, 20).forEach(log => {
     const asset = assetsMap[log.asset]
     const total = Number(log.total || 0)
-    const amountKRW = (asset?.currency || 'USD') === 'USD' ? total * usdToKrw : total
+    // 통화 우선순위: log 자체 저장값 > 보유 자산 currency > 심볼이 6자리 숫자면 KRW > 마지막 USD.
+    // 매도 후 보유 자산에서 사라진 경우 assetsMap 미스 → 이전엔 USD 로 잘못 fallback 되어
+    // 원화 거래가 환율 곱해져 엄청난 금액으로 표시되던 버그.
+    const symbolStr = String(log.asset || '')
+    const inferredFromSymbol = /^\d{5,6}$/.test(symbolStr) ? 'KRW' : null
+    const currency = (log.currency || asset?.currency || inferredFromSymbol || 'USD').toUpperCase()
+    const amountKRW = currency === 'USD' ? total * usdToKrw : total
     const assetName = asset?.name || ''
     activities.push({
       type: log.type,
