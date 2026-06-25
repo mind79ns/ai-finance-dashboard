@@ -606,13 +606,15 @@ const AssetStatus = () => {
         }
       }
 
-      // 입출금 이력 연동: 재테크 수입 자동 반영 (krw, vnd, usd 합산)
+      // 입출금 이력 연동: 재테크 수익/손실 자동 반영 (krw, vnd, usd 합산)
+      // 재테크는 +(수익) / -(손실) 둘 다 발생 가능하므로 0 이 아닌 모든 값을 반영해야 함.
+      // 이전엔 `> 0` 만 검사하여 손실(음수)이 무시되던 버그.
       const krwTech = getTransactionMonthlyTotal(selectedYear, monthKey, 'krw', 'tech_income')
       const vndTech = getTransactionMonthlyTotal(selectedYear, monthKey, 'vnd', 'tech_income')
       const usdTech = getTransactionMonthlyTotal(selectedYear, monthKey, 'usd', 'tech_income')
       const techTotal = krwTech + vndTech + usdTech
-      
-      if (techTotal > 0) {
+
+      if (techTotal !== 0) {
         // Find category by name '재테크', '재테크 수입' or id 'other'
         const techCat = incomeCategories.find(c => c.name === '재테크' || c.name === '재테크 수입' || c.id === 'other')
         if (techCat) {
