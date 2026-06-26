@@ -812,14 +812,16 @@ const AssetStatus = () => {
     const escape = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
     // --- 1) 월별 수입/지출 표 데이터 ---
-    // 누적금액(이월) 행은 표시는 하되 합계에서 제외하기 위해 분리 보관
+    // 누적금액(이월) 행은 표시는 하되 합계에서 제외하기 위해 분리 보관.
+    // calculateMonthlyData 는 0-indexed (배열 [0]=1월, [1]=2월 ... [11]=12월).
+    // 이전 i+1 인덱스 사용으로 1칸씩 밀려 1월 누락 + 12월 0 으로 출력되던 버그 수정.
     const incomeRows = incomeCategories.map(cat => {
-      const monthlyVals = MONTH_LABELS.map((_, i) => (calculateMonthlyData[i + 1]?.[cat.id]) || 0)
+      const monthlyVals = MONTH_LABELS.map((_, i) => (calculateMonthlyData[i]?.[cat.id]) || 0)
       const total = monthlyVals.reduce((s, v) => s + v, 0)
       return { name: cat.name, monthly: monthlyVals, total, isAccumulated: !!cat.isAccumulated }
     })
     const expenseRows = expenseCategories.map(cat => {
-      const monthlyVals = MONTH_LABELS.map((_, i) => (calculateMonthlyData[i + 1]?.[cat.id]) || 0)
+      const monthlyVals = MONTH_LABELS.map((_, i) => (calculateMonthlyData[i]?.[cat.id]) || 0)
       const total = monthlyVals.reduce((s, v) => s + v, 0)
       return { name: cat.name, monthly: monthlyVals, total, isAccumulated: !!cat.isAccumulated }
     })
