@@ -29,7 +29,8 @@ import {
   CreditCard,
   MoreHorizontal,
   PieChart,
-  Shield
+  Shield,
+  Printer
 } from 'lucide-react'
 import {
   BarChart,
@@ -633,6 +634,271 @@ const TransactionHistory = () => {
     return []
   }
 
+  // 입출금 이력 + 배당금을 selectedYear 기준으로 한 페이지 보고서로 묶어 새 창에서 자동 인쇄 → PDF 저장.
+  // 통화별 (VND/USD/KRW) 카테고리 합계, 월별 합계, 거래 리스트 + 배당금 종목별·월별 합계를 모두 포함.
+  const handleExportReport = useCallback(() => {
+    const fmt = (n) => {
+      const num = Number(n) || 0
+      return num.toLocaleString('ko-KR', { maximumFractionDigits: 0 })
+    }
+    const fmtCur = (n, cur) => {
+      const formatted = fmt(n)
+      if (cur === 'USD') return `$${formatted}`
+      if (cur === 'VND') return `₫${formatted}`
+      return `₩${formatted}`
+    }
+    const escape = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+    const MONTH_NAMES = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+
+    // 통화별 데이터 — selectedYear 기준
+    const buildCurrencySection = (currency, transactions) => {
+      const yearTxs = transactions.filter(t => new Date(t.date).getFullYear() === selectedYear)
+      const categoryTotals = {}
+      CATEGORIES.forEach(cat => { categoryTotals[cat.id] = { count: 0, sum: 0 } })
+      const monthlyTotals = Array.from({ length: 12 }, () => 0)
+      let total = 0
+      yearTxs.forEach(tx => {
+        const amt = Number(tx.amount || 0)
+        const catId = tx.category || 'other'
+        if (!categoryTotals[catId]) categoryTotals[catId] = { count: 0, sum: 0 }
+        categoryTotals[catId].count += 1
+        categoryTotals[catId].sum += amt
+        const m = new Date(tx.date).getMonth()
+        if (m >= 0 && m < 12) monthlyTotals[m] += amt
+        total += amt
+      })
+      const krwEquiv = currency === 'KRW' ? total
+        : currency === 'USD' ? total * (exchangeRates.usdToKrw || 1340)
+        : total * (exchangeRates.vndToKrw || 0.055)
+      return { transactions: yearTxs, categoryTotals, monthlyTotals, total, krwEquiv, count: yearTxs.length }
+    }
+
+    const krwData = buildCurrencySection('KRW', krwTransactions)
+    const usdData = buildCurrencySection('USD', usdTransactions)
+    const vndData = buildCurrencySection('VND', vndTransactions)
+    const grandKrwEquiv = krwData.krwEquiv + usdData.krwEquiv + vndData.krwEquiv
+
+    // 배당금 데이터
+    const yearDividends = dividendTransactions.filter(d => new Date(d.date).getFullYear() === selectedYear)
+    const symbolTotals = {}
+    const dividendMonthly = Array.from({ length: 12 }, () => 0)
+    let dividendKrwTotal = 0
+    yearDividends.forEach(d => {
+      const amount = Number(d.amount || 0)
+      const krwAmount = d.currency === 'USD' ? amount * (exchangeRates.usdToKrw || 1340) : amount
+      if (!symbolTotals[d.symbol]) {
+        symbolTotals[d.symbol] = { count: 0, krwTotal: 0, originalCurrency: d.currency }
+      }
+      symbolTotals[d.symbol].count += 1
+      symbolTotals[d.symbol].krwTotal += krwAmount
+      const m = new Date(d.date).getMonth()
+      if (m >= 0 && m < 12) dividendMonthly[m] += krwAmount
+      dividendKrwTotal += krwAmount
+    })
+    const symbolRows = Object.entries(symbolTotals).sort((a, b) => b[1].krwTotal - a[1].krwTotal)
+
+    // 카테고리 표 — 사용된 카테고리만 (count > 0)
+    const buildCategoryTable = (data, currency) => {
+      const usedRows = Object.entries(data.categoryTotals)
+        .filter(([, v]) => v.count > 0)
+        .sort((a, b) => b[1].sum - a[1].sum)
+      if (usedRows.length === 0) return '<p class="empty">거래 내역이 없습니다.</p>'
+      return `
+        <table class="report-table compact">
+          <thead><tr><th>카테고리</th><th class="num">건수</th><th class="num">합계</th><th class="num">비중</th></tr></thead>
+          <tbody>
+            ${usedRows.map(([catId, v]) => {
+              const cat = CATEGORIES.find(c => c.id === catId)
+              const pct = data.total > 0 ? (v.sum / data.total * 100).toFixed(1) : '0.0'
+              return `<tr>
+                <td class="name">${escape(cat?.name || catId)}</td>
+                <td class="num">${fmt(v.count)}</td>
+                <td class="num">${fmtCur(v.sum, currency)}</td>
+                <td class="num pct">${pct}%</td>
+              </tr>`
+            }).join('')}
+            <tr class="grand"><td class="name">합계</td><td class="num">${fmt(data.count)}</td><td class="num">${fmtCur(data.total, currency)}</td><td class="num pct">100.0%</td></tr>
+          </tbody>
+        </table>
+      `
+    }
+
+    const buildMonthlyTable = (monthlyTotals, currency) => `
+      <table class="report-table compact">
+        <thead><tr>${MONTH_NAMES.map(m => `<th>${m}</th>`).join('')}<th class="total">합계</th></tr></thead>
+        <tbody>
+          <tr>
+            ${monthlyTotals.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
+            <td class="num total">${fmtCur(monthlyTotals.reduce((s, v) => s + v, 0), currency)}</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+
+    const renderCurrencyBlock = (label, data, currency, accent) => `
+      <div class="ar-section">
+        <div class="currency-header ${accent}">
+          <h3>${label} (${currency})</h3>
+          <div class="currency-meta">
+            거래 ${fmt(data.count)}건 · 합계 ${fmtCur(data.total, currency)}
+            ${currency !== 'KRW' ? ` · 원화 환산 ${fmtCur(data.krwEquiv, 'KRW')}` : ''}
+          </div>
+        </div>
+        <div class="ar-subsection-title">카테고리 분석</div>
+        ${buildCategoryTable(data, currency)}
+        <div class="ar-subsection-title">월별 합계</div>
+        ${buildMonthlyTable(data.monthlyTotals, currency)}
+      </div>
+    `
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>입출금이력_배당금_보고서_${selectedYear}_${new Date().toISOString().slice(0, 10)}</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; background: #ffffff; color: #0f172a; margin: 0; padding: 20px; }
+  .ar-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0e7490; padding-bottom: 10px; margin-bottom: 18px; }
+  .ar-title { margin: 0; font-size: 22px; color: #0c4a6e; font-weight: 800; }
+  .ar-subtitle { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .ar-meta { font-size: 10px; color: #64748b; text-align: right; line-height: 1.6; }
+  .ar-section { margin-bottom: 22px; page-break-inside: avoid; }
+  .ar-subsection-title { font-size: 11px; font-weight: 700; margin: 12px 0 4px; color: #475569; }
+  .ar-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .ar-summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; background: #f8fafc; }
+  .ar-summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+  .ar-summary-value { font-size: 16px; font-weight: 800; margin-top: 4px; color: #0f172a; }
+  .ar-summary-sub { font-size: 9px; color: #94a3b8; margin-top: 2px; }
+  .currency-header { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 12px; border-radius: 6px; margin-bottom: 4px; }
+  .currency-header h3 { margin: 0; font-size: 14px; font-weight: 700; }
+  .currency-meta { font-size: 11px; }
+  .currency-header.krw { background: #e0f2fe; }
+  .currency-header.krw h3 { color: #0c4a6e; }
+  .currency-header.krw .currency-meta { color: #0e7490; }
+  .currency-header.usd { background: #ecfccb; }
+  .currency-header.usd h3 { color: #365314; }
+  .currency-header.usd .currency-meta { color: #4d7c0f; }
+  .currency-header.vnd { background: #fce7f3; }
+  .currency-header.vnd h3 { color: #831843; }
+  .currency-header.vnd .currency-meta { color: #be185d; }
+  .currency-header.dividend { background: #fef3c7; }
+  .currency-header.dividend h3 { color: #78350f; }
+  .currency-header.dividend .currency-meta { color: #b45309; }
+  .report-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 2px; }
+  .report-table.compact { font-size: 10px; }
+  .report-table th, .report-table td { border: 1px solid #cbd5e1; padding: 4px 6px; }
+  .report-table th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; text-align: center; }
+  .report-table td.name { background: #f1f5f9; font-weight: 600; }
+  .report-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .report-table td.pct { color: #64748b; font-weight: 600; }
+  .report-table td.total { font-weight: 700; background: #ecfeff; color: #0e7490; }
+  .report-table tr.grand td { background: #cffafe; font-weight: 700; color: #0c4a6e; }
+  .empty { font-size: 10px; color: #94a3b8; padding: 6px 0; font-style: italic; }
+  .ar-footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center; }
+  .toolbar { position: fixed; top: 8px; right: 8px; display: flex; gap: 8px; z-index: 1000; }
+  .toolbar button { padding: 8px 16px; border: 1px solid #0e7490; background: #0e7490; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .toolbar button.secondary { background: white; color: #0e7490; }
+  @media print { .toolbar { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">🖨️ PDF 로 저장 / 인쇄</button>
+    <button class="secondary" onclick="window.close()">닫기</button>
+  </div>
+
+  <div class="ar-header">
+    <div>
+      <h1 class="ar-title">💰 입출금 이력 + 배당금 보고서 — ${selectedYear}년</h1>
+      <div class="ar-subtitle">통화별 카테고리 분석 · 월별 합계 · 배당금 종목별 집계</div>
+    </div>
+    <div class="ar-meta">
+      출력: ${escape(new Date().toLocaleString('ko-KR'))}<br>
+      환율 기준: USD ${fmt(exchangeRates.usdToKrw)}원 / VND ${exchangeRates.vndToKrw} 원
+    </div>
+  </div>
+
+  <div class="ar-summary">
+    <div class="ar-summary-card">
+      <div class="ar-summary-label">KRW 합계</div>
+      <div class="ar-summary-value">${fmtCur(krwData.total, 'KRW')}</div>
+      <div class="ar-summary-sub">${fmt(krwData.count)}건</div>
+    </div>
+    <div class="ar-summary-card">
+      <div class="ar-summary-label">USD 합계</div>
+      <div class="ar-summary-value">${fmtCur(usdData.total, 'USD')}</div>
+      <div class="ar-summary-sub">${fmt(usdData.count)}건 · ${fmtCur(usdData.krwEquiv, 'KRW')} 환산</div>
+    </div>
+    <div class="ar-summary-card">
+      <div class="ar-summary-label">VND 합계</div>
+      <div class="ar-summary-value">${fmtCur(vndData.total, 'VND')}</div>
+      <div class="ar-summary-sub">${fmt(vndData.count)}건 · ${fmtCur(vndData.krwEquiv, 'KRW')} 환산</div>
+    </div>
+    <div class="ar-summary-card">
+      <div class="ar-summary-label">원화 통합</div>
+      <div class="ar-summary-value">${fmtCur(grandKrwEquiv, 'KRW')}</div>
+      <div class="ar-summary-sub">3 통화 합산</div>
+    </div>
+  </div>
+
+  ${renderCurrencyBlock('① 원화', krwData, 'KRW', 'krw')}
+  ${renderCurrencyBlock('② 달러', usdData, 'USD', 'usd')}
+  ${renderCurrencyBlock('③ 동(VND)', vndData, 'VND', 'vnd')}
+
+  <div class="ar-section">
+    <div class="currency-header dividend">
+      <h3>④ 배당금 (원화 환산 기준)</h3>
+      <div class="currency-meta">거래 ${fmt(yearDividends.length)}건 · 누적 ${fmtCur(dividendKrwTotal, 'KRW')}</div>
+    </div>
+
+    <div class="ar-subsection-title">종목별 집계</div>
+    ${symbolRows.length === 0 ? '<p class="empty">배당금 내역이 없습니다.</p>' : `
+      <table class="report-table compact">
+        <thead><tr><th>종목</th><th class="num">건수</th><th class="num">원화 환산 합계</th><th class="num">비중</th></tr></thead>
+        <tbody>
+          ${symbolRows.map(([sym, v]) => {
+            const pct = dividendKrwTotal > 0 ? (v.krwTotal / dividendKrwTotal * 100).toFixed(1) : '0.0'
+            return `<tr>
+              <td class="name">${escape(sym)} <span style="font-size:9px;color:#94a3b8">(${v.originalCurrency})</span></td>
+              <td class="num">${fmt(v.count)}</td>
+              <td class="num">${fmtCur(v.krwTotal, 'KRW')}</td>
+              <td class="num pct">${pct}%</td>
+            </tr>`
+          }).join('')}
+          <tr class="grand"><td class="name">합계</td><td class="num">${fmt(yearDividends.length)}</td><td class="num">${fmtCur(dividendKrwTotal, 'KRW')}</td><td class="num pct">100.0%</td></tr>
+        </tbody>
+      </table>
+    `}
+
+    <div class="ar-subsection-title">월별 배당 (원화 환산)</div>
+    ${buildMonthlyTable(dividendMonthly, 'KRW')}
+  </div>
+
+  <div class="ar-footer">
+    AI Finance Dashboard — ${selectedYear}년 입출금이력 · 배당금 통합 보고서 · 사용자 입력 데이터 기반.
+  </div>
+
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 400);
+  });
+</script>
+</body>
+</html>`
+
+    const win = window.open('', '_blank', 'width=1200,height=900')
+    if (!win) {
+      alert('팝업이 차단되었습니다. 브라우저 팝업을 허용해주세요.')
+      return
+    }
+    win.document.open()
+    win.document.write(fullHtml)
+    win.document.close()
+    win.focus()
+  }, [selectedYear, vndTransactions, usdTransactions, krwTransactions, dividendTransactions, exchangeRates])
+
   // 월별로 필터링된 거래 내역
   const getFilteredTransactions = useMemo(() => {
     const transactions = getTransactionsByCurrency(selectedCurrency)
@@ -1044,7 +1310,7 @@ const TransactionHistory = () => {
   return (
     <div className="cyber-dashboard min-h-screen p-4 sm:p-6 relative">
       {/* Header - Cyberpunk Style */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-emerald-500/20 border border-emerald-400/30 rounded-lg">
             <Receipt className="w-6 h-6 text-emerald-400" />
@@ -1054,6 +1320,14 @@ const TransactionHistory = () => {
             <p className="text-sm text-cyan-300/60">화폐별 입력 및 누적 관리 (환율 자동 적용)</p>
           </div>
         </div>
+        <button
+          onClick={handleExportReport}
+          className="cyber-btn bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border-indigo-500/50 flex items-center gap-2"
+          title={`${selectedYear}년 통화별 거래 + 배당금 통합 보고서 PDF 다운로드`}
+        >
+          <Printer className="w-4 h-4" />
+          PDF 보고서
+        </button>
       </div>
 
       {/* 환율 계산기 */}
