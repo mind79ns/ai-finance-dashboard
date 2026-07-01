@@ -650,13 +650,19 @@ const TransactionHistory = () => {
     const escape = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
     const MONTH_NAMES = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
 
-    // 통화별 데이터 — selectedYear 기준
+    // 수입 vs 지출 판별 — CATEGORIES 중 salary/tech_income 만 수입, 나머지는 모두 지출
+    const INCOME_IDS = new Set(['salary', 'tech_income'])
+    const isIncomeCat = (catId) => INCOME_IDS.has(catId)
+
+    // 통화별 데이터 — selectedYear 기준. 수입/지출 분리 집계.
     const buildCurrencySection = (currency, transactions) => {
       const yearTxs = transactions.filter(t => new Date(t.date).getFullYear() === selectedYear)
       const categoryTotals = {}
       CATEGORIES.forEach(cat => { categoryTotals[cat.id] = { count: 0, sum: 0 } })
-      const monthlyTotals = Array.from({ length: 12 }, () => 0)
-      let total = 0
+      const monthlyIncome = Array.from({ length: 12 }, () => 0)
+      const monthlyExpense = Array.from({ length: 12 }, () => 0)
+      let incomeTotal = 0
+      let expenseTotal = 0
       yearTxs.forEach(tx => {
         const amt = Number(tx.amount || 0)
         const catId = tx.category || 'other'
@@ -664,21 +670,41 @@ const TransactionHistory = () => {
         categoryTotals[catId].count += 1
         categoryTotals[catId].sum += amt
         const m = new Date(tx.date).getMonth()
-        if (m >= 0 && m < 12) monthlyTotals[m] += amt
-        total += amt
+        if (isIncomeCat(catId)) {
+          incomeTotal += amt
+          if (m >= 0 && m < 12) monthlyIncome[m] += amt
+        } else {
+          expenseTotal += amt
+          if (m >= 0 && m < 12) monthlyExpense[m] += amt
+        }
       })
-      const krwEquiv = currency === 'KRW' ? total
-        : currency === 'USD' ? total * (exchangeRates.usdToKrw || 1340)
-        : total * (exchangeRates.vndToKrw || 0.055)
-      return { transactions: yearTxs, categoryTotals, monthlyTotals, total, krwEquiv, count: yearTxs.length }
+      const netTotal = incomeTotal - expenseTotal
+      const rate = currency === 'KRW' ? 1
+        : currency === 'USD' ? (exchangeRates.usdToKrw || 1340)
+        : (exchangeRates.vndToKrw || 0.055)
+      return {
+        transactions: yearTxs,
+        categoryTotals,
+        monthlyIncome,
+        monthlyExpense,
+        incomeTotal,
+        expenseTotal,
+        netTotal,
+        incomeKrwEquiv: incomeTotal * rate,
+        expenseKrwEquiv: expenseTotal * rate,
+        netKrwEquiv: netTotal * rate,
+        count: yearTxs.length
+      }
     }
 
     const krwData = buildCurrencySection('KRW', krwTransactions)
     const usdData = buildCurrencySection('USD', usdTransactions)
     const vndData = buildCurrencySection('VND', vndTransactions)
-    const grandKrwEquiv = krwData.krwEquiv + usdData.krwEquiv + vndData.krwEquiv
+    const grandKrwIncome = krwData.incomeKrwEquiv + usdData.incomeKrwEquiv + vndData.incomeKrwEquiv
+    const grandKrwExpense = krwData.expenseKrwEquiv + usdData.expenseKrwEquiv + vndData.expenseKrwEquiv
+    const grandKrwNet = grandKrwIncome - grandKrwExpense
 
-    // 배당금 데이터
+    // 배당금 데이터 — 종목명(asset.name) 포트폴리오에서 매핑
     const yearDividends = dividendTransactions.filter(d => new Date(d.date).getFullYear() === selectedYear)
     const symbolTotals = {}
     const dividendMonthly = Array.from({ length: 12 }, () => 0)
@@ -687,7 +713,13 @@ const TransactionHistory = () => {
       const amount = Number(d.amount || 0)
       const krwAmount = d.currency === 'USD' ? amount * (exchangeRates.usdToKrw || 1340) : amount
       if (!symbolTotals[d.symbol]) {
-        symbolTotals[d.symbol] = { count: 0, krwTotal: 0, originalCurrency: d.currency }
+        const asset = portfolioAssets.find(a => a.symbol === d.symbol)
+        symbolTotals[d.symbol] = {
+          count: 0,
+          krwTotal: 0,
+          originalCurrency: d.currency,
+          name: asset?.name || d.description || ''
+        }
       }
       symbolTotals[d.symbol].count += 1
       symbolTotals[d.symbol].krwTotal += krwAmount
@@ -697,19 +729,22 @@ const TransactionHistory = () => {
     })
     const symbolRows = Object.entries(symbolTotals).sort((a, b) => b[1].krwTotal - a[1].krwTotal)
 
-    // 카테고리 표 — 사용된 카테고리만 (count > 0)
-    const buildCategoryTable = (data, currency) => {
+    // 카테고리 표 — 수입/지출 분리하여 두 표로 생성.
+    const buildCategoryTable = (data, currency, kind) => {
+      const filterFn = kind === 'income' ? (([catId]) => isIncomeCat(catId)) : (([catId]) => !isIncomeCat(catId))
+      const total = kind === 'income' ? data.incomeTotal : data.expenseTotal
       const usedRows = Object.entries(data.categoryTotals)
-        .filter(([, v]) => v.count > 0)
+        .filter(([catId, v]) => v.count > 0 && filterFn([catId, v]))
         .sort((a, b) => b[1].sum - a[1].sum)
-      if (usedRows.length === 0) return '<p class="empty">거래 내역이 없습니다.</p>'
+      const countSum = usedRows.reduce((s, [, v]) => s + v.count, 0)
+      if (usedRows.length === 0) return `<p class="empty">${kind === 'income' ? '수입' : '지출'} 내역이 없습니다.</p>`
       return `
         <table class="report-table compact">
           <thead><tr><th>카테고리</th><th class="num">건수</th><th class="num">합계</th><th class="num">비중</th></tr></thead>
           <tbody>
             ${usedRows.map(([catId, v]) => {
               const cat = CATEGORIES.find(c => c.id === catId)
-              const pct = data.total > 0 ? (v.sum / data.total * 100).toFixed(1) : '0.0'
+              const pct = total > 0 ? (v.sum / total * 100).toFixed(1) : '0.0'
               return `<tr>
                 <td class="name">${escape(cat?.name || catId)}</td>
                 <td class="num">${fmt(v.count)}</td>
@@ -717,37 +752,56 @@ const TransactionHistory = () => {
                 <td class="num pct">${pct}%</td>
               </tr>`
             }).join('')}
-            <tr class="grand"><td class="name">합계</td><td class="num">${fmt(data.count)}</td><td class="num">${fmtCur(data.total, currency)}</td><td class="num pct">100.0%</td></tr>
+            <tr class="grand"><td class="name">${kind === 'income' ? '수입 합계' : '지출 합계'}</td><td class="num">${fmt(countSum)}</td><td class="num">${fmtCur(total, currency)}</td><td class="num pct">100.0%</td></tr>
           </tbody>
         </table>
       `
     }
 
-    const buildMonthlyTable = (monthlyTotals, currency) => `
-      <table class="report-table compact">
-        <thead><tr>${MONTH_NAMES.map(m => `<th>${m}</th>`).join('')}<th class="total">합계</th></tr></thead>
-        <tbody>
-          <tr>
-            ${monthlyTotals.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
-            <td class="num total">${fmtCur(monthlyTotals.reduce((s, v) => s + v, 0), currency)}</td>
-          </tr>
-        </tbody>
-      </table>
-    `
+    // 월별 수입/지출 (두 행) — 순변동 행도 함께
+    const buildMonthlyTable = (data, currency) => {
+      const yearIncomeSum = data.monthlyIncome.reduce((s, v) => s + v, 0)
+      const yearExpenseSum = data.monthlyExpense.reduce((s, v) => s + v, 0)
+      const monthlyNet = data.monthlyIncome.map((v, i) => v - data.monthlyExpense[i])
+      return `
+        <table class="report-table compact">
+          <thead><tr><th class="name">구분</th>${MONTH_NAMES.map(m => `<th>${m}</th>`).join('')}<th class="total">합계</th></tr></thead>
+          <tbody>
+            <tr class="income">
+              <td class="name">수입</td>
+              ${data.monthlyIncome.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
+              <td class="num total">${fmtCur(yearIncomeSum, currency)}</td>
+            </tr>
+            <tr class="expense">
+              <td class="name">지출</td>
+              ${data.monthlyExpense.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
+              <td class="num total">${fmtCur(yearExpenseSum, currency)}</td>
+            </tr>
+            <tr class="net">
+              <td class="name">순변동</td>
+              ${monthlyNet.map(v => `<td class="num ${v >= 0 ? 'pos' : 'neg'}">${v >= 0 ? '+' : ''}${fmt(v)}</td>`).join('')}
+              <td class="num total ${(yearIncomeSum - yearExpenseSum) >= 0 ? 'pos' : 'neg'}">${(yearIncomeSum - yearExpenseSum) >= 0 ? '+' : ''}${fmtCur(yearIncomeSum - yearExpenseSum, currency)}</td>
+            </tr>
+          </tbody>
+        </table>
+      `
+    }
 
     const renderCurrencyBlock = (label, data, currency, accent) => `
       <div class="ar-section">
         <div class="currency-header ${accent}">
           <h3>${label} (${currency})</h3>
           <div class="currency-meta">
-            거래 ${fmt(data.count)}건 · 합계 ${fmtCur(data.total, currency)}
-            ${currency !== 'KRW' ? ` · 원화 환산 ${fmtCur(data.krwEquiv, 'KRW')}` : ''}
+            거래 ${fmt(data.count)}건 · 수입 ${fmtCur(data.incomeTotal, currency)} / 지출 ${fmtCur(data.expenseTotal, currency)} · 순 <strong>${data.netTotal >= 0 ? '+' : ''}${fmtCur(data.netTotal, currency)}</strong>
+            ${currency !== 'KRW' ? `<br>원화 환산 순변동 ${data.netKrwEquiv >= 0 ? '+' : ''}${fmtCur(data.netKrwEquiv, 'KRW')}` : ''}
           </div>
         </div>
-        <div class="ar-subsection-title">카테고리 분석</div>
-        ${buildCategoryTable(data, currency)}
-        <div class="ar-subsection-title">월별 합계</div>
-        ${buildMonthlyTable(data.monthlyTotals, currency)}
+        <div class="ar-subsection-title">📥 수입 카테고리</div>
+        ${buildCategoryTable(data, currency, 'income')}
+        <div class="ar-subsection-title">📤 지출 카테고리</div>
+        ${buildCategoryTable(data, currency, 'expense')}
+        <div class="ar-subsection-title">월별 수입/지출/순변동</div>
+        ${buildMonthlyTable(data, currency)}
       </div>
     `
 
@@ -795,6 +849,16 @@ const TransactionHistory = () => {
   .report-table td.pct { color: #64748b; font-weight: 600; }
   .report-table td.total { font-weight: 700; background: #ecfeff; color: #0e7490; }
   .report-table tr.grand td { background: #cffafe; font-weight: 700; color: #0c4a6e; }
+  .report-table tr.income td { background: #ecfdf5; }
+  .report-table tr.income td.name { background: #d1fae5; color: #065f46; }
+  .report-table tr.income td.total { color: #047857; background: #a7f3d0; }
+  .report-table tr.expense td { background: #fef2f2; }
+  .report-table tr.expense td.name { background: #fecaca; color: #7f1d1d; }
+  .report-table tr.expense td.total { color: #be123c; background: #fca5a5; }
+  .report-table tr.net td { background: #eff6ff; font-weight: 700; }
+  .report-table tr.net td.name { background: #dbeafe; color: #1e3a8a; }
+  .report-table td.pos { color: #047857; }
+  .report-table td.neg { color: #be123c; }
   .empty { font-size: 10px; color: #94a3b8; padding: 6px 0; font-style: italic; }
   .ar-footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center; }
   .toolbar { position: fixed; top: 8px; right: 8px; display: flex; gap: 8px; z-index: 1000; }
@@ -822,24 +886,24 @@ const TransactionHistory = () => {
 
   <div class="ar-summary">
     <div class="ar-summary-card">
-      <div class="ar-summary-label">KRW 합계</div>
-      <div class="ar-summary-value">${fmtCur(krwData.total, 'KRW')}</div>
-      <div class="ar-summary-sub">${fmt(krwData.count)}건</div>
+      <div class="ar-summary-label">원화 통합 수입</div>
+      <div class="ar-summary-value" style="color:#047857">${fmtCur(grandKrwIncome, 'KRW')}</div>
+      <div class="ar-summary-sub">3 통화 환산 합계</div>
     </div>
     <div class="ar-summary-card">
-      <div class="ar-summary-label">USD 합계</div>
-      <div class="ar-summary-value">${fmtCur(usdData.total, 'USD')}</div>
-      <div class="ar-summary-sub">${fmt(usdData.count)}건 · ${fmtCur(usdData.krwEquiv, 'KRW')} 환산</div>
+      <div class="ar-summary-label">원화 통합 지출</div>
+      <div class="ar-summary-value" style="color:#be123c">${fmtCur(grandKrwExpense, 'KRW')}</div>
+      <div class="ar-summary-sub">3 통화 환산 합계</div>
     </div>
     <div class="ar-summary-card">
-      <div class="ar-summary-label">VND 합계</div>
-      <div class="ar-summary-value">${fmtCur(vndData.total, 'VND')}</div>
-      <div class="ar-summary-sub">${fmt(vndData.count)}건 · ${fmtCur(vndData.krwEquiv, 'KRW')} 환산</div>
+      <div class="ar-summary-label">순변동 (수입-지출)</div>
+      <div class="ar-summary-value" style="color:${grandKrwNet >= 0 ? '#047857' : '#be123c'}">${grandKrwNet >= 0 ? '+' : ''}${fmtCur(grandKrwNet, 'KRW')}</div>
+      <div class="ar-summary-sub">원화 통합 기준</div>
     </div>
     <div class="ar-summary-card">
-      <div class="ar-summary-label">원화 통합</div>
-      <div class="ar-summary-value">${fmtCur(grandKrwEquiv, 'KRW')}</div>
-      <div class="ar-summary-sub">3 통화 합산</div>
+      <div class="ar-summary-label">거래 건수</div>
+      <div class="ar-summary-value">${fmt(krwData.count + usdData.count + vndData.count)}건</div>
+      <div class="ar-summary-sub">KRW ${fmt(krwData.count)} · USD ${fmt(usdData.count)} · VND ${fmt(vndData.count)}</div>
     </div>
   </div>
 
@@ -853,27 +917,36 @@ const TransactionHistory = () => {
       <div class="currency-meta">거래 ${fmt(yearDividends.length)}건 · 누적 ${fmtCur(dividendKrwTotal, 'KRW')}</div>
     </div>
 
-    <div class="ar-subsection-title">종목별 집계</div>
+    <div class="ar-subsection-title">종목별 집계 (심볼 + 종목명)</div>
     ${symbolRows.length === 0 ? '<p class="empty">배당금 내역이 없습니다.</p>' : `
       <table class="report-table compact">
-        <thead><tr><th>종목</th><th class="num">건수</th><th class="num">원화 환산 합계</th><th class="num">비중</th></tr></thead>
+        <thead><tr><th>심볼</th><th>종목명</th><th class="num">건수</th><th class="num">원화 환산 합계</th><th class="num">비중</th></tr></thead>
         <tbody>
           ${symbolRows.map(([sym, v]) => {
             const pct = dividendKrwTotal > 0 ? (v.krwTotal / dividendKrwTotal * 100).toFixed(1) : '0.0'
             return `<tr>
               <td class="name">${escape(sym)} <span style="font-size:9px;color:#94a3b8">(${v.originalCurrency})</span></td>
+              <td>${escape(v.name || '-')}</td>
               <td class="num">${fmt(v.count)}</td>
               <td class="num">${fmtCur(v.krwTotal, 'KRW')}</td>
               <td class="num pct">${pct}%</td>
             </tr>`
           }).join('')}
-          <tr class="grand"><td class="name">합계</td><td class="num">${fmt(yearDividends.length)}</td><td class="num">${fmtCur(dividendKrwTotal, 'KRW')}</td><td class="num pct">100.0%</td></tr>
+          <tr class="grand"><td class="name">합계</td><td></td><td class="num">${fmt(yearDividends.length)}</td><td class="num">${fmtCur(dividendKrwTotal, 'KRW')}</td><td class="num pct">100.0%</td></tr>
         </tbody>
       </table>
     `}
 
     <div class="ar-subsection-title">월별 배당 (원화 환산)</div>
-    ${buildMonthlyTable(dividendMonthly, 'KRW')}
+    <table class="report-table compact">
+      <thead><tr>${MONTH_NAMES.map(m => `<th>${m}</th>`).join('')}<th class="total">합계</th></tr></thead>
+      <tbody>
+        <tr>
+          ${dividendMonthly.map(v => `<td class="num">${fmt(v)}</td>`).join('')}
+          <td class="num total">${fmtCur(dividendKrwTotal, 'KRW')}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="ar-footer">
@@ -897,7 +970,7 @@ const TransactionHistory = () => {
     win.document.write(fullHtml)
     win.document.close()
     win.focus()
-  }, [selectedYear, vndTransactions, usdTransactions, krwTransactions, dividendTransactions, exchangeRates])
+  }, [selectedYear, vndTransactions, usdTransactions, krwTransactions, dividendTransactions, exchangeRates, portfolioAssets])
 
   // 월별로 필터링된 거래 내역
   const getFilteredTransactions = useMemo(() => {
