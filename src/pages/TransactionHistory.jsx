@@ -107,6 +107,8 @@ const TransactionHistory = () => {
   const [showDividendModal, setShowDividendModal] = useState(false)
   const [dividendFormData, setDividendFormData] = useState({
     symbol: '',
+    customSymbol: '',  // symbol === '__custom__' 일 때 직접 입력 심볼 (KB증권 등 보유하지 않은 종목)
+    customName: '',    // 직접 입력 종목명
     amount: '',
     currency: 'USD',
     date: new Date().toISOString().split('T')[0],
@@ -203,17 +205,36 @@ const TransactionHistory = () => {
     })
   }, [])
 
+  // 심볼이 '__custom__' 이면 customSymbol 을, 아니면 select 선택값을 사용
+  const resolveDividendSymbol = (form) => {
+    if (form.symbol === '__custom__') {
+      return (form.customSymbol || '').trim().toUpperCase()
+    }
+    return form.symbol
+  }
+
   // Add dividend transaction
   const handleAddDividend = (keepOpen = false) => {
-    if (!dividendFormData.symbol || !dividendFormData.amount) return
+    const symbol = resolveDividendSymbol(dividendFormData)
+    if (!symbol || !dividendFormData.amount) {
+      alert('종목과 배당금을 입력해주세요.')
+      return
+    }
+
+    // 종목명 — description 우선, 없으면 customName, 없으면 '{symbol} 배당금'
+    const description = dividendFormData.description
+      || dividendFormData.customName
+      || `${symbol} 배당금`
 
     const newDividend = {
       id: Date.now(),
-      symbol: dividendFormData.symbol,
+      symbol,
       amount: parseFloat(dividendFormData.amount),
       currency: dividendFormData.currency,
       date: dividendFormData.date,
-      description: dividendFormData.description || `${dividendFormData.symbol} 배당금`,
+      description,
+      // customName 이 있으면 종목명 힌트로 별도 보관 (배당 표시에서 활용 가능)
+      customName: dividendFormData.customName || undefined,
       createdAt: new Date().toISOString()
     }
 
@@ -232,13 +253,32 @@ const TransactionHistory = () => {
     }
   }
 
-  // Edit dividend transaction  
+  // Edit dividend transaction
   const handleEditDividend = () => {
     if (!editingDividend || !dividendFormData.amount) return
 
+    const symbol = resolveDividendSymbol(dividendFormData)
+    if (!symbol) {
+      alert('종목을 입력해주세요.')
+      return
+    }
+
+    const description = dividendFormData.description
+      || dividendFormData.customName
+      || `${symbol} 배당금`
+
     const updated = dividendTransactions.map(d =>
       d.id === editingDividend.id
-        ? { ...d, ...dividendFormData, amount: parseFloat(dividendFormData.amount), updatedAt: new Date().toISOString() }
+        ? {
+            ...d,
+            symbol,
+            amount: parseFloat(dividendFormData.amount),
+            currency: dividendFormData.currency,
+            date: dividendFormData.date,
+            description,
+            customName: dividendFormData.customName || undefined,
+            updatedAt: new Date().toISOString()
+          }
         : d
     )
     setDividendTransactions(updated)
@@ -257,7 +297,9 @@ const TransactionHistory = () => {
   const handleOpenDividendModal = () => {
     setEditingDividend(null)
     setDividendFormData({
-      symbol: portfolioAssets.length > 0 ? portfolioAssets[0].symbol : '',
+      symbol: portfolioAssets.length > 0 ? portfolioAssets[0].symbol : '__custom__',
+      customSymbol: '',
+      customName: '',
       amount: '',
       currency: 'USD',
       date: new Date().toISOString().split('T')[0],
@@ -266,11 +308,14 @@ const TransactionHistory = () => {
     setShowDividendModal(true)
   }
 
-  // Open edit dividend modal
+  // Open edit dividend modal — 편집 대상 심볼이 포트폴리오에 없으면 자동으로 '직접 입력' 모드로 열림
   const handleOpenEditDividendModal = (dividend) => {
     setEditingDividend(dividend)
+    const isInPortfolio = portfolioAssets.some(a => a.symbol === dividend.symbol)
     setDividendFormData({
-      symbol: dividend.symbol,
+      symbol: isInPortfolio ? dividend.symbol : '__custom__',
+      customSymbol: isInPortfolio ? '' : dividend.symbol,
+      customName: dividend.customName || '',
       amount: dividend.amount.toString(),
       currency: dividend.currency,
       date: dividend.date,
@@ -285,6 +330,8 @@ const TransactionHistory = () => {
     setEditingDividend(null)
     setDividendFormData({
       symbol: '',
+      customSymbol: '',
+      customName: '',
       amount: '',
       currency: 'USD',
       date: new Date().toISOString().split('T')[0],
@@ -1848,22 +1895,41 @@ const TransactionHistory = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-cyan-300/80 mb-2">종목 선택</label>
-                {portfolioAssets.length > 0 ? (
-                  <select
-                    value={dividendFormData.symbol}
-                    onChange={(e) => setDividendFormData(prev => ({ ...prev, symbol: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
-                  >
-                    {portfolioAssets.map(asset => (
-                      <option key={asset.id} value={asset.symbol}>{asset.symbol} - {asset.name || asset.symbol}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input type="text" value={dividendFormData.symbol}
-                    onChange={(e) => setDividendFormData(prev => ({ ...prev, symbol: e.target.value.toUpperCase() }))}
-                    placeholder="종목 심볼 입력 (예: AAPL)"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+                <select
+                  value={dividendFormData.symbol}
+                  onChange={(e) => setDividendFormData(prev => ({ ...prev, symbol: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
+                >
+                  {portfolioAssets.map(asset => (
+                    <option key={asset.id} value={asset.symbol}>{asset.symbol} - {asset.name || asset.symbol}</option>
+                  ))}
+                  <option value="__custom__">➕ 직접 입력 (기타 / KB증권 등 보유 안 함)</option>
+                </select>
+
+                {/* 직접 입력 모드 — 심볼 + 종목명 두 필드 */}
+                {dividendFormData.symbol === '__custom__' && (
+                  <div className="mt-3 p-3 bg-slate-800/60 border border-emerald-500/30 rounded-lg space-y-3">
+                    <div>
+                      <label className="block text-xs text-emerald-300/80 mb-1">심볼 <span className="text-rose-400">*</span></label>
+                      <input
+                        type="text"
+                        value={dividendFormData.customSymbol}
+                        onChange={(e) => setDividendFormData(prev => ({ ...prev, customSymbol: e.target.value.toUpperCase() }))}
+                        placeholder="예: 005930 또는 KB금융"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-gray-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-emerald-300/80 mb-1">종목명 (선택)</label>
+                      <input
+                        type="text"
+                        value={dividendFormData.customName}
+                        onChange={(e) => setDividendFormData(prev => ({ ...prev, customName: e.target.value }))}
+                        placeholder="예: KB금융, 삼성전자"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-gray-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 
