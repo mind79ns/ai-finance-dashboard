@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X, TrendingUp, TrendingDown, Wallet, BarChart3, PiggyBank, Target, Globe, Zap, Clock, ArrowUpRight, ArrowDownRight, Info, Activity } from 'lucide-react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import marketDataService from '../services/marketDataService'
 import {
   normalizeToBase100,
@@ -21,6 +21,17 @@ const fmt = (v, cur = 'KRW') => {
 const fmtC = (v) => {
   if (!Number.isFinite(v)) return '-'
   return `${Math.round(v).toLocaleString('ko-KR')}원`
+}
+
+// 차트 라벨용 컴팩트 포맷 — 1.2억 / 3,500만 / 45만 형태
+const formatCompact = (v) => {
+  if (!Number.isFinite(v) || v === 0) return ''
+  const num = Number(v)
+  const abs = Math.abs(num)
+  const sign = num < 0 ? '-' : ''
+  if (abs >= 1e8) return `${sign}${(abs / 1e8).toFixed(1)}억`
+  if (abs >= 1e4) return `${sign}${(abs / 1e4).toFixed(0)}만`
+  return `${sign}${abs.toLocaleString('ko-KR')}`
 }
 
 const DashboardDetailDialog = ({ isOpen, onClose, dialogType, dialogData }) => {
@@ -693,89 +704,125 @@ const YearlyFlowDetail = ({ d }) => {
         </>
       )}
 
-      {/* 다년도 비교 바차트 */}
-      {yearChartData.length > 1 && (
+      {/* 다년도 비교 바차트 — 데이터 값 라벨 표시 */}
+      {yearChartData.length >= 1 && (
         <>
           <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">년도별 수입 / 지출 비교</h3>
           <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={yearChartData}>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={yearChartData} margin={{ top: 24, right: 16, left: -8, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.05)" vertical={false} />
                 <XAxis dataKey="year" stroke="#4a6d7c" fontSize={12} tickLine={false} />
                 <YAxis stroke="#4a6d7c" fontSize={11} tickFormatter={v => `${(v / 1e4).toFixed(0)}만`} axisLine={false} tickLine={false} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
                   formatter={(v, name) => [fmt(v), name === 'income' ? '수입' : name === 'expense' ? '지출' : '순이익']}
                   cursor={{fill: 'rgba(0,210,255,0.05)'}}
                 />
-                <Bar dataKey="income" name="income" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expense" name="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="income" name="income" fill="#10b981" radius={[4, 4, 0, 0]}>
+                  <LabelList dataKey="income" position="top" fontSize={10} fill="#6ee7b7" formatter={(v) => v ? formatCompact(v) : ''} />
+                </Bar>
+                <Bar dataKey="expense" name="expense" fill="#f43f5e" radius={[4, 4, 0, 0]}>
+                  <LabelList dataKey="expense" position="top" fontSize={10} fill="#fda4af" formatter={(v) => v ? formatCompact(v) : ''} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         </>
       )}
 
-      {/* 년도별 세부 비교 테이블 */}
+      {/* 년도별 세부 비교 테이블 — 각 행에 전년 대비 증감(%) 컬럼 표시 */}
       {years.length > 0 && (
         <>
           <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">년도별 현금흐름 비교표</h3>
           <CyberTable
-            headers={['년도', {label:'수입',align:'right'}, {label:'지출',align:'right'}, {label:'순이익',align:'right'}, {label:'저축률',align:'right'}]}
-            rows={years.map(y => {
+            headers={['년도', {label:'수입',align:'right'}, {label:'지출',align:'right'}, {label:'순이익',align:'right'}, {label:'저축률',align:'right'}, {label:'수입 Δ',align:'right'}, {label:'지출 Δ',align:'right'}, {label:'순이익 Δ',align:'right'}]}
+            rows={years.map((y, idx) => {
               const yd = yearlyCompareData[y]
               const sr = yd.income > 0 ? ((yd.net / yd.income) * 100) : 0
+              const prevY = years[idx - 1]
+              const prev = prevY ? yearlyCompareData[prevY] : null
+              const incDelta = prev && prev.income > 0 ? ((yd.income - prev.income) / prev.income) * 100 : null
+              const expDelta = prev && prev.expense > 0 ? ((yd.expense - prev.expense) / prev.expense) * 100 : null
+              const netDelta = prev && prev.net !== 0 ? ((yd.net - prev.net) / Math.abs(prev.net)) * 100 : null
               return [
                 <span className={`font-bold ${y === currentYear ? 'text-cyan-400' : 'text-cyan-200'}`}>{y}년 {y === currentYear ? '(올해)' : ''}</span>,
                 <span className="text-emerald-400 font-semibold">{fmtC(yd.income)}</span>,
                 <span className="text-rose-400 font-semibold">{fmtC(yd.expense)}</span>,
                 <PnlText value={yd.net} suffix="원" />,
-                <span className={`font-bold ${sr >= 20 ? 'text-emerald-400' : sr >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>{sr.toFixed(1)}%</span>
+                <span className={`font-bold ${sr >= 20 ? 'text-emerald-400' : sr >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>{sr.toFixed(1)}%</span>,
+                incDelta !== null ? <PnlText value={incDelta} suffix="%" /> : <span className="text-cyan-300/30">-</span>,
+                expDelta !== null ? <PnlText value={expDelta} suffix="%" /> : <span className="text-cyan-300/30">-</span>,
+                netDelta !== null ? <PnlText value={netDelta} suffix="%" /> : <span className="text-cyan-300/30">-</span>
               ]
             })}
           />
         </>
       )}
 
-      {/* 월별 년도간 비교 (전년 vs 올해) */}
-      {prevData && curData && prevData.monthly && curData.monthly && (
+      {/* 월별 년도간 비교 — 전년 데이터 없어도 올해 단독 표시. 데이터 라벨(컴팩트) 추가. */}
+      {curData && curData.monthly && (
         <>
-          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">월별 비교 ({prevYear}년 vs {currentYear}년)</h3>
+          <h3 className="text-cyan-400 font-semibold text-sm border-l-2 border-cyan-400 pl-2">
+            월별 비교 {prevData && prevData.monthly ? `(${prevYear}년 vs ${currentYear}년)` : `(${currentYear}년)`}
+          </h3>
           <div className="p-4 bg-slate-800/30 rounded-lg border border-cyan-500/10">
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={curData.monthly.map((m, i) => ({
-                month: m.month,
-                [`${prevYear} 순이익`]: prevData.monthly[i]?.net || 0,
-                [`${currentYear} 순이익`]: m.net || 0
-              }))}>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart
+                data={curData.monthly.map((m, i) => {
+                  const row = { month: m.month, [`${currentYear} 순이익`]: m.net || 0 }
+                  if (prevData && prevData.monthly) {
+                    row[`${prevYear} 순이익`] = prevData.monthly[i]?.net || 0
+                  }
+                  return row
+                })}
+                margin={{ top: 24, right: 16, left: -8, bottom: 4 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,210,255,0.05)" vertical={false} />
                 <XAxis dataKey="month" stroke="#4a6d7c" fontSize={11} tickLine={false} />
                 <YAxis stroke="#4a6d7c" fontSize={11} tickFormatter={v => `${(v / 1e4).toFixed(0)}만`} axisLine={false} tickLine={false} />
-                <Tooltip 
+                <ReferenceLine y={0} stroke="rgba(148,163,184,0.35)" />
+                <Tooltip
                   contentStyle={{ background: 'rgba(10,25,40,0.95)', border: '1px solid rgba(0,210,255,0.3)', borderRadius: '8px' }}
                   formatter={(v) => [fmt(v)]}
                   cursor={{fill: 'rgba(0,210,255,0.05)'}}
                 />
-                <Bar dataKey={`${prevYear} 순이익`} fill="#6366f1" radius={[4, 4, 0, 0]} opacity={0.6} />
-                <Bar dataKey={`${currentYear} 순이익`} fill="#00d4ff" radius={[4, 4, 0, 0]} />
+                {prevData && prevData.monthly && (
+                  <Bar dataKey={`${prevYear} 순이익`} fill="#6366f1" radius={[4, 4, 0, 0]} opacity={0.6}>
+                    <LabelList dataKey={`${prevYear} 순이익`} position="top" fontSize={9} fill="#a5b4fc" formatter={(v) => v ? formatCompact(v) : ''} />
+                  </Bar>
+                )}
+                <Bar dataKey={`${currentYear} 순이익`} fill="#00d4ff" radius={[4, 4, 0, 0]}>
+                  <LabelList dataKey={`${currentYear} 순이익`} position="top" fontSize={10} fill="#67e8f9" formatter={(v) => v ? formatCompact(v) : ''} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           <CyberTable
-            headers={['월', {label:`${prevYear} 수입`,align:'right'}, {label:`${prevYear} 지출`,align:'right'}, {label:`${currentYear} 수입`,align:'right'}, {label:`${currentYear} 지출`,align:'right'}, {label:'증감',align:'right'}]}
+            headers={prevData && prevData.monthly
+              ? ['월', {label:`${prevYear} 수입`,align:'right'}, {label:`${prevYear} 지출`,align:'right'}, {label:`${currentYear} 수입`,align:'right'}, {label:`${currentYear} 지출`,align:'right'}, {label:'순이익 증감',align:'right'}]
+              : ['월', {label:'수입',align:'right'}, {label:'지출',align:'right'}, {label:'순이익',align:'right'}]}
             rows={curData.monthly.map((m, i) => {
-              const prev = prevData.monthly[i] || { income: 0, expense: 0, net: 0 }
-              const hasData = m.income > 0 || m.expense > 0 || prev.income > 0 || prev.expense > 0
+              const prev = prevData && prevData.monthly ? (prevData.monthly[i] || { income: 0, expense: 0, net: 0 }) : null
+              const hasData = m.income > 0 || m.expense > 0 || (prev && (prev.income > 0 || prev.expense > 0))
               if (!hasData) return null
-              const diff = m.net - prev.net
+              if (prev) {
+                const diff = (m.net || 0) - (prev.net || 0)
+                return [
+                  <span className="font-bold text-cyan-200">{m.month}</span>,
+                  <span className="text-cyan-300/60">{fmtC(prev.income)}</span>,
+                  <span className="text-cyan-300/60">{fmtC(prev.expense)}</span>,
+                  <span className="text-emerald-400 font-semibold">{fmtC(m.income)}</span>,
+                  <span className="text-rose-400 font-semibold">{fmtC(m.expense)}</span>,
+                  <PnlText value={diff} suffix="원" />
+                ]
+              }
               return [
                 <span className="font-bold text-cyan-200">{m.month}</span>,
-                <span className="text-cyan-300/60">{fmtC(prev.income)}</span>,
-                <span className="text-cyan-300/60">{fmtC(prev.expense)}</span>,
                 <span className="text-emerald-400 font-semibold">{fmtC(m.income)}</span>,
                 <span className="text-rose-400 font-semibold">{fmtC(m.expense)}</span>,
-                <PnlText value={diff} suffix="원" />
+                <PnlText value={m.net || 0} suffix="원" />
               ]
             }).filter(Boolean)}
           />
