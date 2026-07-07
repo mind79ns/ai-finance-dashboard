@@ -251,11 +251,15 @@ const Dashboard = () => {
         totalYrIncome = Number(assetStatusCache.incomeTotal) || 0
         totalYrExpense = Number(assetStatusCache.expenseTotal) || 0
         assetStatusCache.monthlyData.forEach((m, i) => {
+          const income = Number(m.income) || 0
+          const expense = Number(m.expense) || 0
+          const netVal = Number(m.netChange) || (income - expense)
           netChanges.push({
             month: m.month || MONTH_LABELS[i],
-            value: Number(m.netChange) || 0,
-            income: Number(m.income) || 0,
-            expense: Number(m.expense) || 0
+            value: netVal,
+            net: netVal,   // Detail 컴포넌트가 m.net 을 참조하므로 통일
+            income,
+            expense
           })
         })
       } else {
@@ -271,7 +275,8 @@ const Dashboard = () => {
           const expenseTotal = expenseCats.reduce((sum, cat) => sum + Number(mData[cat.id] || 0), 0)
           totalYrIncome += incomeTotal
           totalYrExpense += expenseTotal
-          netChanges.push({ month: MONTH_LABELS[i], value: incomeTotal - expenseTotal, income: incomeTotal, expense: expenseTotal })
+          const netVal = incomeTotal - expenseTotal
+          netChanges.push({ month: MONTH_LABELS[i], value: netVal, net: netVal, income: incomeTotal, expense: expenseTotal })
         }
       }
 
