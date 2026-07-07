@@ -302,11 +302,21 @@ const Dashboard = () => {
       setIfChanged(setMonthlyNetChanges, monthlyNetChanges, netChanges)
       setIfChanged(setYearlyFlow, yearlyFlow, { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense })
       // 다년도 비교 데이터 구축 (월별 세부 포함)
+      // 이전 버그:
+      //   1) 년도 목록을 assetAccountData(계좌 자산) 만으로 뽑아 statusData 만 있는 연도가 누락.
+      //   2) assetStatusData[year] fallback 으로 assetAccountData[year] 를 사용했으나
+      //      후자는 { accountId: { catId: value } } 구조라 yrData[m] 접근이 undefined 를 만들어
+      //      다년도 값이 0 또는 잘못된 결과로 계산됨.
+      //   3) 현재 연도가 AssetStatus 캐시(자동연동 반영) 와 무관하게 statusData 만으로 재계산되어
+      //      캐시값과 불일치.
       const MONTH_LABELS_YR = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
-      const allYears = Object.keys(assetAccountData || {}).sort()
+      const statusYearKeys = Object.keys(assetStatusData || {})
+      const accountYearKeys = Object.keys(assetAccountData || {})
+      const allYears = Array.from(new Set([...statusYearKeys, ...accountYearKeys])).sort()
       const yearCompare = {}
       allYears.forEach(year => {
-        const yrData = (assetStatusData || {})[Number(year)] || (assetAccountData || {})[Number(year)] || {}
+        // 월별 수입/지출은 오직 assetStatusData 만 참조 (assetAccountData 는 계좌 자산이라 구조가 다름)
+        const yrData = (assetStatusData || {})[Number(year)] || {}
         let yrIncome = 0, yrExpense = 0
         const monthly = []
         for (let m = 1; m <= 12; m++) {
@@ -319,9 +329,12 @@ const Dashboard = () => {
         }
         yearCompare[year] = { income: yrIncome, expense: yrExpense, net: yrIncome - yrExpense, monthly }
       })
-      // 현재 연도가 없으면 추가
-      if (!yearCompare[currentYear]) {
-        yearCompare[currentYear] = { income: totalYrIncome, expense: totalYrExpense, net: totalYrIncome - totalYrExpense, monthly: netChanges }
+      // 현재 연도는 AssetStatus 캐시(입출금 이력/배당 자동연동 반영된 정확한 값) 우선 덮어씀
+      yearCompare[currentYear] = {
+        income: totalYrIncome,
+        expense: totalYrExpense,
+        net: totalYrIncome - totalYrExpense,
+        monthly: netChanges
       }
       setIfChanged(setYearlyCompareData, yearlyCompareData, yearCompare)
       setIfChanged(setGoalSummary, goalSummary, summarizeGoals(goalsRaw))
