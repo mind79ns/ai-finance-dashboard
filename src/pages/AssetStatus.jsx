@@ -256,9 +256,7 @@ const AssetStatus = () => {
     const computeMetrics = (assetsInput, principalsInput, exchangeRateInput) => {
       const metricsMap = {}
       const effectiveExchangeRate = Number(exchangeRateInput) || DEFAULT_EXCHANGE_RATE
-      const ensureEntry = (accountName) => {
-        const canonicalName = mapPortfolioAccountName(accountName)
-        const key = canonicalName || '기본계좌'
+      const makeEntry = (key) => {
         if (!metricsMap[key]) {
           metricsMap[key] = {
             accountName: key,
@@ -271,32 +269,44 @@ const AssetStatus = () => {
         }
         return metricsMap[key]
       }
+      // 통합 계좌(예: 미래에셋)와 개별 계좌(예: 미래에셋_ISA(중개형)) 양쪽 entry 를 반환.
+      // 그룹 미소속 계좌는 자기 자신 하나만. → 금액 수정 모달에서 통합/개별 모두 선택 가능,
+      // 예수금 등은 통합 entry 에 자동 합산 유지.
+      const ensureEntries = (accountName) => {
+        const rawName = accountName || '기본계좌'
+        const canonicalName = mapPortfolioAccountName(rawName) || '기본계좌'
+        const entries = [makeEntry(canonicalName)]
+        if (normalizeAccountKey(rawName) !== normalizeAccountKey(canonicalName)) {
+          entries.push(makeEntry(rawName))
+        }
+        return entries
+      }
 
       if (principalsInput && typeof principalsInput === 'object') {
         Object.entries(principalsInput).forEach(([accountName, principalData]) => {
-          const entry = ensureEntry(accountName)
           const principalValue = Number(principalData?.principal)
           const remainingValue = Number(principalData?.remaining)
-
-          if (Number.isFinite(principalValue)) {
-            entry.principal += principalValue
-          }
-
-          if (Number.isFinite(remainingValue)) {
-            entry.remaining += remainingValue
-          }
+          ensureEntries(accountName).forEach(entry => {
+            if (Number.isFinite(principalValue)) {
+              entry.principal += principalValue
+            }
+            if (Number.isFinite(remainingValue)) {
+              entry.remaining += remainingValue
+            }
+          })
         })
       }
 
       if (Array.isArray(assetsInput)) {
         assetsInput.forEach(asset => {
-          const entry = ensureEntry(asset.account || '기본계좌')
           const quantity = Number(asset.quantity) || 0
           const avgPrice = Number(asset.avgPrice) || 0
           const currentPrice = Number(asset.currentPrice ?? asset.avgPrice) || 0
           const multiplier = asset.currency === 'USD' ? effectiveExchangeRate : 1
-          entry.investmentAmount += quantity * avgPrice * multiplier
-          entry.evaluationAmount += quantity * currentPrice * multiplier
+          ensureEntries(asset.account || '기본계좌').forEach(entry => {
+            entry.investmentAmount += quantity * avgPrice * multiplier
+            entry.evaluationAmount += quantity * currentPrice * multiplier
+          })
         })
       }
 
@@ -2519,13 +2529,16 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
 
   const portfolioAccountOptions = useMemo(() => {
     if (!portfolioMetrics || typeof portfolioMetrics !== 'object') return []
+    const groupNames = new Set(Object.keys(PORTFOLIO_ACCOUNT_GROUPS))
     return Object.values(portfolioMetrics)
       .filter(entry => entry && entry.accountName)
       .map(entry => ({
         accountName: entry.accountName,
-        label: entry.accountName,
+        // 그룹 통합 계좌는 '(통합)' 표시로 개별 계좌와 구분
+        label: groupNames.has(entry.accountName) ? `${entry.accountName} (통합)` : entry.accountName,
         metrics: entry
       }))
+      .sort((a, b) => a.accountName.localeCompare(b.accountName, 'ko'))
   }, [portfolioMetrics])
 
   useEffect(() => {
@@ -2760,7 +2773,7 @@ const EditAccountModal = ({ year, accountTypes, accountData, onSave, onClose, po
                   >
                     {portfolioAccountOptions.map(option => (
                       <option key={option.accountName} value={option.accountName} className="bg-slate-800 text-white">
-                        {option.accountName}
+                        {option.label}
                       </option>
                     ))}
                   </select>
