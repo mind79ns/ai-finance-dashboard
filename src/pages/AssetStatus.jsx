@@ -99,7 +99,7 @@ const ASSET_CATEGORIES = [
   { id: 'usd', name: 'USD계좌' },
   { id: 'pension', name: '연금저축' },
   { id: 'investment', name: '투자전환' },
-  { id: 'installment', name: '적금' },
+  { id: 'installment', name: 'ISA계좌' }, // id 는 기존 저장 데이터(accountData) 호환 위해 유지
   { id: 'deposit', name: '예금' }
 ]
 
