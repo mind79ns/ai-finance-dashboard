@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye, Search, Filter, SortAsc, Upload, Download, FileText } from 'lucide-react'
+import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye, Search, Filter, SortAsc, Upload, Download, FileText, ArrowUpRight, ArrowDownRight, Printer } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
 import SlidePanel from '../components/SlidePanel'
 import AssetDetailView from '../components/AssetDetailView'
@@ -556,6 +556,160 @@ const Portfolio = () => {
     reader.readAsArrayBuffer(file)
   }
 
+  // PDF 보고서 — 자산현황/입출금이력 탭과 동일 패턴 (새 창 + 자동 print 다이얼로그).
+  // 현재 화면(필터/정렬 적용된 filteredAssets)의 보유 종목 스냅샷 + 계좌별 요약을 한 페이지로.
+  const handlePDFExport = () => {
+    const fmt = (n) => {
+      const num = Number(n) || 0
+      return num.toLocaleString('ko-KR', { maximumFractionDigits: 0 })
+    }
+    const fmtCur = (n, cur) => {
+      const val = Number(n) || 0
+      if (cur === 'USD') return `$${val.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+      return `₩${fmt(val)}`
+    }
+    const escape = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+    const rate = exchangeRate || 1340
+
+    const assetRows = filteredAssets.map(asset => {
+      const weight = getAssetWeightPercent(asset)
+      const daily = Number(asset.dailyChangePercent || 0)
+      return `<tr>
+        <td class="name">${escape(asset.symbol)}</td>
+        <td>${escape(asset.name)}</td>
+        <td class="center">${escape(asset.type)}</td>
+        <td class="center">${escape(asset.account || '기본계좌')}</td>
+        <td class="num">${escape(asset.quantity)}</td>
+        <td class="num">${fmtCur(asset.avgPrice, asset.currency)}</td>
+        <td class="num">${fmtCur(asset.currentPrice, asset.currency)}</td>
+        <td class="num ${daily >= 0 ? 'pos' : 'neg'}">${daily === 0 ? '-' : `${daily >= 0 ? '+' : ''}${daily.toFixed(2)}%`}</td>
+        <td class="num">${fmtCur(asset.totalValue, asset.currency)}</td>
+        <td class="num">${weight.toFixed(1)}%</td>
+        <td class="num ${asset.profit >= 0 ? 'pos' : 'neg'}">${asset.profit >= 0 ? '+' : ''}${fmtCur(asset.profit, asset.currency)}</td>
+        <td class="num total ${(asset.profitPercent || 0) >= 0 ? 'pos' : 'neg'}">${(asset.profitPercent || 0) >= 0 ? '+' : ''}${(asset.profitPercent || 0).toFixed(2)}%</td>
+      </tr>`
+    }).join('')
+
+    const accountRows = accountSummary.map(stat => {
+      const totalValKRW = stat.krwTotalValue + stat.usdTotalValue * rate
+      const totalProfitKRW = stat.krwTotalProfit + stat.usdTotalProfit * rate
+      return `<tr>
+        <td class="name">${escape(stat.account)}</td>
+        <td class="num">${stat.assets.length}</td>
+        <td class="num">${fmtCur(totalValKRW, 'KRW')}</td>
+        <td class="num ${totalProfitKRW >= 0 ? 'pos' : 'neg'}">${totalProfitKRW >= 0 ? '+' : ''}${fmtCur(totalProfitKRW, 'KRW')}</td>
+      </tr>`
+    }).join('')
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>포트폴리오_보고서_${new Date().toISOString().slice(0, 10)}</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif; background: #ffffff; color: #0f172a; margin: 0; padding: 20px; }
+  .ar-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0e7490; padding-bottom: 10px; margin-bottom: 18px; }
+  .ar-title { margin: 0; font-size: 22px; color: #0c4a6e; font-weight: 800; }
+  .ar-subtitle { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .ar-meta { font-size: 10px; color: #64748b; text-align: right; line-height: 1.6; }
+  .ar-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .ar-summary-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; background: #f8fafc; }
+  .ar-summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+  .ar-summary-value { font-size: 18px; font-weight: 800; margin-top: 4px; }
+  .ar-section-title { font-size: 13px; font-weight: 700; margin: 16px 0 6px; color: #0e7490; }
+  .pos { color: #047857; }
+  .neg { color: #be123c; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  th, td { border: 1px solid #cbd5e1; padding: 4px 6px; }
+  th { background: #e0f2fe; color: #0c4a6e; font-weight: 700; text-align: center; }
+  td.name { background: #f1f5f9; font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.center { text-align: center; }
+  td.total { font-weight: 700; }
+  .ar-footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid #cbd5e1; font-size: 10px; color: #94a3b8; text-align: center; }
+  .toolbar { position: fixed; top: 8px; right: 8px; display: flex; gap: 8px; z-index: 1000; }
+  .toolbar button { padding: 8px 16px; border: 1px solid #0e7490; background: #0e7490; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .toolbar button.secondary { background: white; color: #0e7490; }
+  @media print { .toolbar { display: none !important; } body { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">🖨️ PDF 로 저장 / 인쇄</button>
+    <button class="secondary" onclick="window.close()">닫기</button>
+  </div>
+
+  <div class="ar-header">
+    <div>
+      <h1 class="ar-title">📊 포트폴리오 보고서</h1>
+      <div class="ar-subtitle">보유 종목 스냅샷 + 계좌별 요약 (현재 화면 필터/정렬 기준)</div>
+    </div>
+    <div class="ar-meta">
+      출력: ${escape(new Date().toLocaleString('ko-KR'))}<br>
+      환율: USD ${fmt(rate)}원
+    </div>
+  </div>
+
+  <div class="ar-summary">
+    <div class="ar-summary-card">
+      <div class="ar-summary-label">총 평가액 (원화 통합)</div>
+      <div class="ar-summary-value">${fmtCur(totalValueKRW, 'KRW')}</div>
+    </div>
+    <div class="ar-summary-card">
+      <div class="ar-summary-label">총 수익금 (원화 통합)</div>
+      <div class="ar-summary-value ${totalProfitKRW >= 0 ? 'pos' : 'neg'}">${totalProfitKRW >= 0 ? '+' : ''}${fmtCur(totalProfitKRW, 'KRW')}</div>
+    </div>
+    <div class="ar-summary-card">
+      <div class="ar-summary-label">평균 수익률</div>
+      <div class="ar-summary-value ${totalAvgProfitPercent >= 0 ? 'pos' : 'neg'}">${totalAvgProfitPercent >= 0 ? '+' : ''}${totalAvgProfitPercent.toFixed(2)}%</div>
+    </div>
+  </div>
+
+  <div class="ar-section-title">① 보유 종목 (${filteredAssets.length}개)</div>
+  <table>
+    <thead>
+      <tr>
+        <th>심볼</th><th>종목명</th><th>유형</th><th>계좌</th><th>수량</th>
+        <th>평균단가</th><th>현재가</th><th>일일변동</th><th>평가액</th><th>비중</th><th>수익금</th><th>수익률</th>
+      </tr>
+    </thead>
+    <tbody>${assetRows}</tbody>
+  </table>
+
+  <div class="ar-section-title">② 계좌별 요약 (원화 통합)</div>
+  <table>
+    <thead>
+      <tr><th>계좌</th><th>보유종목수</th><th>평가액</th><th>수익금</th></tr>
+    </thead>
+    <tbody>${accountRows}</tbody>
+  </table>
+
+  <div class="ar-footer">
+    AI Finance Dashboard — 포트폴리오 보고서 · 본 자료는 사용자 입력 데이터 기반이며 투자 권유가 아닙니다.
+  </div>
+
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 400);
+  });
+</script>
+</body>
+</html>`
+
+    const win = window.open('', '_blank', 'width=1200,height=900')
+    if (!win) {
+      alert('팝업이 차단되었습니다. 브라우저 팝업을 허용해주세요.')
+      return
+    }
+    win.document.open()
+    win.document.write(fullHtml)
+    win.document.close()
+    win.focus()
+  }
+
   // CSV Export Handler — LIST에 보이는 컬럼/필터/정렬을 그대로 따라 내보낸다.
   // 평가액·수익금·수익률·원화환산까지 포함하고 마지막 행에 합계를 추가.
   const handleCSVExport = () => {
@@ -669,6 +823,31 @@ const Portfolio = () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  // 자산 유형별 아바타 배지 색상 — 폼의 유형 옵션(주식/ETF/코인/채권)과 매칭
+  const ASSET_TYPE_AVATAR_STYLE = {
+    '주식': 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+    'ETF': 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+    '코인': 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+    '채권': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+  }
+  // 컴포넌트가 아닌 plain 함수로 — 렌더마다 새 컴포넌트 타입이 되어 불필요하게 리마운트되는 것 방지
+  const renderAssetAvatar = (asset, className = '') => {
+    const style = ASSET_TYPE_AVATAR_STYLE[asset.type] || 'bg-slate-600/30 text-slate-300 border-slate-500/40'
+    const initials = (asset.symbol || '?').slice(0, 2).toUpperCase()
+    return (
+      <span className={`inline-flex items-center justify-center rounded-full border font-bold shrink-0 ${style} ${className}`}>
+        {initials}
+      </span>
+    )
+  }
+
+  // 자산별 포트폴리오 비중(%) — 원화 환산 평가액 기준. 요약 카드의 totalValueKRW 재사용.
+  const getAssetWeightPercent = (asset) => {
+    if (!totalValueKRW || totalValueKRW <= 0) return 0
+    const valueKRW = asset.currency === 'USD' ? asset.totalValue * exchangeRate : asset.totalValue
+    return (valueKRW / totalValueKRW) * 100
   }
 
   // Filter and search logic
@@ -1477,6 +1656,16 @@ const Portfolio = () => {
               <span className="hidden sm:inline">내보내기</span>
               <span className="sm:hidden">내보내기</span>
             </button>
+            <button
+              onClick={handlePDFExport}
+              className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/50 rounded-lg text-indigo-300 transition-colors flex items-center gap-2 text-xs sm:text-sm"
+              disabled={filteredAssets.length === 0}
+              title="현재 화면(필터/정렬 적용)의 보유 종목 + 계좌별 요약을 PDF로 다운로드"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF 보고서</span>
+              <span className="sm:hidden">PDF</span>
+            </button>
 
             {/* Selection mode toggle */}
             {!selectionMode ? (
@@ -1544,28 +1733,39 @@ const Portfolio = () => {
                           className="mt-0.5 w-4 h-4 text-cyan-400 border-gray-600 rounded focus:ring-cyan-500 bg-slate-700 flex-shrink-0"
                         />
                       )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-cyan-300 truncate">{asset.symbol}</p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{asset.name}</p>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-cyan-900/30 text-cyan-300 border border-cyan-500/20">
-                            {asset.type}
-                          </span>
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-900/30 text-blue-300 border border-blue-500/20">
-                            {asset.account || '기본계좌'}
-                          </span>
-                          <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-slate-700 text-gray-300">
-                            {asset.currency}
-                          </span>
+                      <div className="flex-1 min-w-0 flex items-start gap-2">
+                        {renderAssetAvatar(asset, 'w-8 h-8 text-xs mt-0.5')}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-cyan-300 truncate">{asset.symbol}</p>
+                          <p className="text-xs text-gray-400 truncate mt-0.5">{asset.name}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                            <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-cyan-900/30 text-cyan-300 border border-cyan-500/20">
+                              {asset.type}
+                            </span>
+                            <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-900/30 text-blue-300 border border-blue-500/20">
+                              {asset.account || '기본계좌'}
+                            </span>
+                            <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-slate-700 text-gray-300">
+                              {asset.currency}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    {/* Profit percentage badge */}
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${positive ? 'bg-emerald-900/30' : 'bg-red-900/30'
-                      }`}>
-                      <span className={`text-base font-bold ${positive ? 'neon-text-green' : 'neon-text-red'}`}>
-                        {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(1)}%
-                      </span>
+                    {/* Profit percentage badge + 일일변동 */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                      <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${positive ? 'bg-emerald-900/30' : 'bg-red-900/30'
+                        }`}>
+                        <span className={`text-base font-bold ${positive ? 'neon-text-green' : 'neon-text-red'}`}>
+                          {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      {Number(asset.dailyChangePercent || 0) !== 0 && (
+                        <span className={`inline-flex items-center gap-0.5 text-[11px] ${Number(asset.dailyChangePercent) >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                          {Number(asset.dailyChangePercent) >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                          금일 {Math.abs(Number(asset.dailyChangePercent)).toFixed(2)}%
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1587,6 +1787,10 @@ const Portfolio = () => {
                       <span className="text-gray-500">현재가</span>
                       <p className="font-medium text-white mt-0.5">{formatCurrency(asset.currentPrice, asset.currency)}</p>
                     </div>
+                    <div>
+                      <span className="text-gray-500">비중</span>
+                      <p className="font-medium text-white mt-0.5">{getAssetWeightPercent(asset).toFixed(1)}%</p>
+                    </div>
                   </div>
 
                   {/* Profit display */}
@@ -1597,7 +1801,7 @@ const Portfolio = () => {
                     </span>
                   </div>
 
-                  {/* Action buttons */}
+                  {/* Action buttons — 데스크탑 테이블과 동일하게 상세/수정/삭제 3버튼 */}
                   <div className="flex items-center gap-2 pt-3 border-t border-cyan-500/20 mt-3">
                     <button
                       onClick={() => handleViewDetail(asset)}
@@ -1605,6 +1809,13 @@ const Portfolio = () => {
                     >
                       <Eye className="w-3.5 h-3.5" />
                       상세
+                    </button>
+                    <button
+                      onClick={() => handleEditAsset(asset)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      수정
                     </button>
                     <button
                       onClick={() => handleDeleteAsset(asset.id)}
@@ -1643,7 +1854,9 @@ const Portfolio = () => {
                 <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">보유량</th>
                 <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">평균단가</th>
                 <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">현재가</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">일일변동</th>
                 <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">평가액</th>
+                <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">비중</th>
                 <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">수익금</th>
                 <th className="text-right py-3 px-4 text-sm font-medium text-cyan-300/60">수익률</th>
                 <th className="text-center py-3 px-4 text-sm font-medium text-cyan-300/60">관리</th>
@@ -1674,7 +1887,10 @@ const Portfolio = () => {
                       </td>
                     )}
                     <td className="py-4 px-4">
-                      <p className="font-medium text-cyan-300">{asset.symbol}</p>
+                      <div className="flex items-center gap-2">
+                        {renderAssetAvatar(asset, 'w-7 h-7 text-[10px]')}
+                        <p className="font-medium text-cyan-300">{asset.symbol}</p>
+                      </div>
                     </td>
                     <td className="py-4 px-4">
                       <p className="text-sm text-gray-300">{asset.name}</p>
@@ -1703,6 +1919,19 @@ const Portfolio = () => {
                     <td className="py-4 px-4 text-right text-sm text-gray-300">
                       {formatCurrency(asset.currentPrice, asset.currency)}
                     </td>
+                    <td className="py-4 px-4 text-right text-sm">
+                      {(() => {
+                        const daily = Number(asset.dailyChangePercent || 0)
+                        if (daily === 0) return <span className="text-gray-500">-</span>
+                        const up = daily >= 0
+                        return (
+                          <span className={`inline-flex items-center gap-0.5 justify-end ${up ? 'neon-text-green' : 'neon-text-red'}`}>
+                            {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                            {Math.abs(daily).toFixed(2)}%
+                          </span>
+                        )
+                      })()}
+                    </td>
                     <td className="py-4 px-4 text-right text-sm font-medium text-white">
                       {formatCurrency(asset.totalValue, asset.currency)}
                       {asset.currency === 'KRW' && (
@@ -1710,6 +1939,9 @@ const Portfolio = () => {
                           ${(asset.totalValue / exchangeRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}
                         </div>
                       )}
+                    </td>
+                    <td className="py-4 px-4 text-right text-sm text-gray-300">
+                      {getAssetWeightPercent(asset).toFixed(1)}%
                     </td>
                     <td className="py-4 px-4 text-right text-sm">
                       <span className={asset.profit >= 0 ? 'neon-text-green' : 'neon-text-red'}>
