@@ -3,14 +3,19 @@
 const axios = require('axios')
 
 // 모델 ID — 환경변수로 오버라이드 가능
+// GPT_PREMIUM 기본값: GPT-5.6 Terra (2026-07-09 출시. Sol과 동일 능력, 더 저렴한 균형형 tier)
 const MODELS = {
-  GPT_4O: process.env.OPENAI_MODEL || 'gpt-4o',
+  GPT_PREMIUM: process.env.OPENAI_MODEL || 'gpt-5.6-terra',
   GEMINI_PRO: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
   GEMINI_FLASH: process.env.GEMINI_FLASH_MODEL || 'gemini-2.5-flash',
   // Gemini Pro 무료 tier 거부 시 시도할 보조 모델 (안정성 우선)
   GEMINI_FALLBACK_1: process.env.GEMINI_FALLBACK_1 || 'gemini-2.0-flash-exp',
   GEMINI_FALLBACK_2: process.env.GEMINI_FALLBACK_2 || 'gemini-1.5-pro'
 }
+
+// GPT-5 계열은 Chat Completions API 파라미터가 다름 — max_tokens 미지원(→max_completion_tokens),
+// temperature 커스텀 값 미지원/불안정 (OpenAI 공식 파라미터 가이드 및 다수 SDK 버그 리포트 확인).
+const isReasoningModel = (model) => /^gpt-5/i.test(model)
 
 // Gemini 안전 필터 완화 — 금융/투자 분석은 보수적 필터에 자주 막힌다
 const GEMINI_SAFETY_SETTINGS = [
@@ -30,12 +35,12 @@ const DEFAULT_MAX_TOKENS = {
 
 // taskLevel + forceProvider → 실행 모델 결정
 function pickModel(taskLevel, forceProvider) {
-  if (forceProvider === 'gpt') return { provider: 'openai', model: MODELS.GPT_4O }
+  if (forceProvider === 'gpt') return { provider: 'openai', model: MODELS.GPT_PREMIUM }
   if (forceProvider === 'gemini') return { provider: 'gemini', model: MODELS.GEMINI_PRO }
 
   // auto
   if (taskLevel === 'basic') return { provider: 'gemini', model: MODELS.GEMINI_FLASH }
-  if (taskLevel === 'premium') return { provider: 'openai', model: MODELS.GPT_4O }
+  if (taskLevel === 'premium') return { provider: 'openai', model: MODELS.GPT_PREMIUM }
   // standard / advanced
   return { provider: 'gemini', model: MODELS.GEMINI_PRO }
 }
@@ -44,17 +49,25 @@ async function callOpenAI({ model, systemPrompt, prompt, maxTokens, temperature 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
 
+  const body = {
+    model,
+    messages: [
+      { role: 'system', content: systemPrompt || '당신은 전문 재무 상담사입니다.' },
+      { role: 'user', content: prompt }
+    ]
+  }
+
+  if (isReasoningModel(model)) {
+    // GPT-5 계열: max_tokens 대신 max_completion_tokens. temperature 는 생략(모델 기본값 사용).
+    body.max_completion_tokens = maxTokens
+  } else {
+    body.max_tokens = maxTokens
+    body.temperature = temperature ?? 0.7
+  }
+
   const response = await axios.post(
     'https://api.openai.com/v1/chat/completions',
-    {
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt || '당신은 전문 재무 상담사입니다.' },
-        { role: 'user', content: prompt }
-      ],
-      temperature: temperature ?? 0.7,
-      max_tokens: maxTokens
-    },
+    body,
     {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -126,7 +139,7 @@ async function execute(provider, model, params) {
 }
 
 // fallback 정책 — Gemini Pro 무료 tier 거부 시 안정적 보조 모델을 먼저 시도하고,
-// 그래도 실패하면 Flash → 최후 GPT-4o 순으로 다운/업그레이드한다.
+// 그래도 실패하면 Flash → 최후 GPT 로 다운/업그레이드한다.
 async function executeWithFallback({ provider, model, taskLevel, params }) {
   const attempts = [{ provider, model }]
 
@@ -141,11 +154,11 @@ async function executeWithFallback({ provider, model, taskLevel, params }) {
       attempts.push({ provider: 'gemini', model: MODELS.GEMINI_FLASH })
     }
   }
-  // 최후 fallback — OpenAI 키가 있으면 GPT-4o 로 승급
+  // 최후 fallback — OpenAI 키가 있으면 GPT_PREMIUM 으로 승급
   if (process.env.OPENAI_API_KEY && provider !== 'openai') {
-    attempts.push({ provider: 'openai', model: MODELS.GPT_4O })
+    attempts.push({ provider: 'openai', model: MODELS.GPT_PREMIUM })
   }
-  // GPT-4o 가 실패하면 Gemini Pro 로 다운
+  // GPT 가 실패하면 Gemini Pro 로 다운
   if (process.env.GEMINI_API_KEY && provider === 'openai') {
     attempts.push({ provider: 'gemini', model: MODELS.GEMINI_PRO })
   }

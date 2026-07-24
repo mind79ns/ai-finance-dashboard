@@ -147,9 +147,9 @@ ai-finance-dashboard/
 
 ```env
 # === 서버 전용 (AI / 거래) — VITE_ 접두사 없음 ===
-# AI Tier 라우팅: basic=Gemini Flash, standard=Gemini Pro (기본), premium=GPT-4o (심층모드 토글 시만)
+# AI Tier 라우팅: basic=Gemini Flash, standard=Gemini Pro (기본), premium=GPT-5.6 Terra (심층모드 토글 시만)
 OPENAI_API_KEY=                       # premium / fallback
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=gpt-5.6-terra             # 2026-07-09 출시. sol(최고성능)/terra(균형,기본값)/luna(저비용) 중 선택
 GEMINI_API_KEY=                       # 기본 라우팅 (무료 tier 권장)
 GEMINI_PRO_MODEL=gemini-2.5-pro
 GEMINI_FLASH_MODEL=gemini-2.5-flash
@@ -172,8 +172,9 @@ VITE_SUPABASE_ANON_KEY=               # RLS 적용된 anon key
 
 AI 모델 라우팅 (`src/services/aiService.js`)
 - 모든 호출이 `/.netlify/functions/ai-proxy` 경유 (클라이언트에 키 노출 금지).
-- 기본 라우팅은 Gemini Pro. 사용자가 AIReport 의 "🚀 심층모드" 토글 ON 시만 GPT-4o.
-- Gemini 한도 초과 시 Flash → GPT-4o 순으로 자동 fallback.
+- 기본 라우팅은 Gemini Pro. 사용자가 AIReport 의 "🚀 심층모드" 토글 ON 시만 GPT-5.6 Terra.
+- Gemini 한도 초과 시 Flash → GPT-5.6 Terra 순으로 자동 fallback.
+- GPT-5 계열은 Chat Completions API 파라미터가 다름 (`max_completion_tokens`, temperature 미지원) — `netlify/functions/ai-proxy.js` 의 `isReasoningModel()` 분기 참고.
 - 동일 (provider+model+prompt) 응답은 30분 localStorage 캐시.
 
 ---

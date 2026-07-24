@@ -66,8 +66,8 @@ const AIReport = () => {
   const [chatInput, setChatInput] = useState('')
   const [marketData, setMarketData] = useState(null)
   const [portfolioData, setPortfolioData] = useState(null)
-  // 'auto' = Gemini Pro 기본, 'gpt' = GPT-4o 심층모드(유료), 'gemini' = Gemini Pro 강제
-  // 'gpt' 선택 시 다른 페이지(Goals, StockAgent) 호출도 GPT-4o 사용되도록 premiumMode 동기화
+  // 'auto' = Gemini Pro 기본, 'gpt' = GPT-5.6 Terra 심층모드(유료), 'gemini' = Gemini Pro 강제
+  // 'gpt' 선택 시 다른 페이지(Goals, StockAgent) 호출도 GPT-5.6 Terra 사용되도록 premiumMode 동기화
   const [selectedAI, setSelectedAIState] = useState(() => {
     return aiService.isPremiumMode() ? 'gpt' : 'auto'
   })
@@ -1422,9 +1422,9 @@ ${assetsList}
                     }`}
                 >
                   <div>
-                    <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🚀 심층모드 (GPT-4o)</p>
+                    <p className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">🚀 심층모드 (GPT-5.6 Terra)</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      모든 페이지에서 GPT-4o 강제 사용
+                      모든 페이지에서 GPT-5.6 Terra 강제 사용
                     </p>
                     <p className="text-xs text-amber-500 mt-1">⚠️ 유료 — 신중히 사용</p>
                   </div>
@@ -1453,7 +1453,7 @@ ${assetsList}
               <div className="text-xs text-gray-400 bg-slate-800/50 p-2 rounded border border-gray-700">
                 <strong className="text-cyan-400">현재 선택:</strong> {
                   selectedAI === 'auto' ? '🤖 자동 — Gemini Pro 기본 라우팅 (무료)' :
-                    selectedAI === 'gpt' ? '🚀 심층모드 — GPT-4o 전역 강제 (유료)' :
+                    selectedAI === 'gpt' ? '🚀 심층모드 — GPT-5.6 Terra 전역 강제 (유료)' :
                       '⚡ Gemini 2.5 Pro 강제 (무료)'
                 }
               </div>
@@ -1492,7 +1492,7 @@ ${assetsList}
         <div className="space-y-6">
           <div className="bg-slate-800/50 border border-cyan-500/20 rounded-lg p-4 mb-4">
             <p className="text-sm text-cyan-200">
-              <strong className="text-cyan-400">🧠 GPT-4.1 사용:</strong> 상세한 시장 분석 및 투자 전략을 제공합니다 (핵심 분석 엔진)
+              <strong className="text-cyan-400">🧠 AI 분석 엔진:</strong> 기본 Gemini 2.5 Pro, 심층모드 시 GPT-5.6 Terra — 상세한 시장 분석 및 투자 전략을 제공합니다
             </p>
           </div>
           {marketInsights && (
@@ -1588,7 +1588,7 @@ ${assetsList}
         <div className="space-y-6">
           <div className="bg-slate-800/50 border border-purple-500/20 rounded-lg p-4 mb-4">
             <p className="text-sm text-purple-200">
-              <strong className="text-purple-400">🧠 GPT-4.1 사용:</strong> 심층 포트폴리오 분석 및 최적화 전략을 제공합니다 (전문가급 분석)
+              <strong className="text-purple-400">🧠 AI 분석 엔진:</strong> 기본 Gemini 2.5 Pro, 심층모드 시 GPT-5.6 Terra — 심층 포트폴리오 분석 및 최적화 전략을 제공합니다
             </p>
           </div>
           {portfolioInsights && (
@@ -2365,7 +2365,7 @@ ${assetsList}
           <div className="space-y-6">
             <div className="bg-slate-800/50 border border-indigo-500/20 rounded-lg p-4 mb-4">
               <p className="text-sm text-indigo-200">
-                <strong className="text-indigo-400">🧠 GPT-5.2 + 자동 계산:</strong> 목표 비율을 설정하면 AI가 리밸런싱 전략을 제안하고, 매매 금액을 자동으로 계산합니다
+                <strong className="text-indigo-400">🧠 AI 분석 + 자동 계산:</strong> 목표 비율을 설정하면 AI가 리밸런싱 전략을 제안하고, 매매 금액을 자동으로 계산합니다
               </p>
             </div>
 
