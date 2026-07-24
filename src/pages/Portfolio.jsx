@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye, Search, Filter, SortAsc, Upload, Download, FileText, ArrowUpRight, ArrowDownRight, Printer } from 'lucide-react'
+import { PlusCircle, Edit2, Trash2, X, RefreshCw, Eye, Search, Filter, SortAsc, Upload, Download, FileText, ArrowUpRight, ArrowDownRight, Printer, ChevronDown, ChevronRight, Layers } from 'lucide-react'
 import ChartCard from '../components/ChartCard'
 import SlidePanel from '../components/SlidePanel'
 import AssetDetailView from '../components/AssetDetailView'
@@ -35,6 +35,18 @@ const Portfolio = () => {
   const [showImportModal, setShowImportModal] = useState(false)
   const [selectedAssets, setSelectedAssets] = useState([]) // For bulk delete
   const [selectionMode, setSelectionMode] = useState(false) // Toggle selection mode
+
+  // 계좌별 그룹 뷰 — 기본은 기존과 동일한 플랫 리스트, 토글 시에만 계좌별로 묶어서 표시
+  const [groupByAccount, setGroupByAccount] = useState(false)
+  const [collapsedAccounts, setCollapsedAccounts] = useState(() => new Set()) // 접힌 계좌명 집합 (기본 전체 펼침)
+  const toggleAccountCollapse = (account) => {
+    setCollapsedAccounts(prev => {
+      const next = new Set(prev)
+      if (next.has(account)) next.delete(account)
+      else next.add(account)
+      return next
+    })
+  }
 
   // Investment Management - Account-based principal/deposit tracking
   const [accountPrincipals, setAccountPrincipals] = useState({}) // { accountName: { principal, remaining, note } }
@@ -850,6 +862,229 @@ const Portfolio = () => {
     return (valueKRW / totalValueKRW) * 100
   }
 
+  // 모바일 카드 1개 렌더 — 플랫 뷰/계좌별 그룹 뷰 양쪽에서 재사용 (내용 100% 동일, 중복 방지)
+  const renderAssetCard = (asset) => {
+    const positive = (asset.profitPercent || 0) >= 0
+    return (
+      <div key={asset.id} className="border border-cyan-500/30 rounded-lg p-3 bg-slate-800 text-white shadow-lg">
+        {/* Header with symbol, name, and selection checkbox */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start gap-2 flex-1 min-w-0">
+            {selectionMode && (
+              <input
+                type="checkbox"
+                checked={selectedAssets.includes(asset.id)}
+                onChange={() => handleToggleAssetSelection(asset.id)}
+                className="mt-0.5 w-4 h-4 text-cyan-400 border-gray-600 rounded focus:ring-cyan-500 bg-slate-700 flex-shrink-0"
+              />
+            )}
+            <div className="flex-1 min-w-0 flex items-start gap-2">
+              {renderAssetAvatar(asset, 'w-8 h-8 text-xs mt-0.5')}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-cyan-300 truncate">{asset.symbol}</p>
+                <p className="text-xs text-gray-400 truncate mt-0.5">{asset.name}</p>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-cyan-900/30 text-cyan-300 border border-cyan-500/20">
+                    {asset.type}
+                  </span>
+                  <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-900/30 text-blue-300 border border-blue-500/20">
+                    {asset.account || '기본계좌'}
+                  </span>
+                  <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-slate-700 text-gray-300">
+                    {asset.currency}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Profit percentage badge + 일일변동 */}
+          <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${positive ? 'bg-emerald-900/30' : 'bg-red-900/30'
+              }`}>
+              <span className={`text-base font-bold ${positive ? 'neon-text-green' : 'neon-text-red'}`}>
+                {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(1)}%
+              </span>
+            </div>
+            {Number(asset.dailyChangePercent || 0) !== 0 && (
+              <span className={`inline-flex items-center gap-0.5 text-[11px] ${Number(asset.dailyChangePercent) >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                {Number(asset.dailyChangePercent) >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                금일 {Math.abs(Number(asset.dailyChangePercent)).toFixed(2)}%
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Key metrics */}
+        <div className="grid grid-cols-2 gap-2 py-2 border-t border-cyan-500/20 text-xs text-gray-300">
+          <div>
+            <span className="text-gray-500">보유량</span>
+            <p className="font-medium text-white mt-0.5">{asset.quantity}</p>
+          </div>
+          <div className="text-right">
+            <span className="text-gray-500">평가액</span>
+            <p className="font-bold text-white mt-0.5">{formatCurrency(asset.totalValue, asset.currency)}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">평균단가</span>
+            <p className="font-medium text-white mt-0.5">{formatCurrency(asset.avgPrice, asset.currency)}</p>
+          </div>
+          <div className="text-right">
+            <span className="text-gray-500">현재가</span>
+            <p className="font-medium text-white mt-0.5">{formatCurrency(asset.currentPrice, asset.currency)}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">비중</span>
+            <p className="font-medium text-white mt-0.5">{getAssetWeightPercent(asset).toFixed(1)}%</p>
+          </div>
+        </div>
+
+        {/* Profit display */}
+        <div className="flex items-center justify-between pt-2 border-t border-cyan-500/20">
+          <span className="text-xs text-gray-500">수익금</span>
+          <span className={`text-sm font-bold ${asset.profit >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+            {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
+          </span>
+        </div>
+
+        {/* Action buttons — 데스크탑 테이블과 동일하게 상세/수정/삭제 3버튼 */}
+        <div className="flex items-center gap-2 pt-3 border-t border-cyan-500/20 mt-3">
+          <button
+            onClick={() => handleViewDetail(asset)}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-cyan-300 rounded-lg transition-colors text-xs font-medium"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            상세
+          </button>
+          <button
+            onClick={() => handleEditAsset(asset)}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 rounded-lg transition-colors text-xs font-medium"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            수정
+          </button>
+          <button
+            onClick={() => handleDeleteAsset(asset.id)}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded-lg transition-colors text-xs font-medium"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            삭제
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // 데스크탑 테이블 행 1개 렌더 — 플랫 뷰/계좌별 그룹 뷰 양쪽에서 재사용 (내용 100% 동일, 중복 방지)
+  const renderAssetRow = (asset) => (
+    <tr key={asset.id} className="border-b border-cyan-500/10 hover:bg-cyan-500/5 transition-colors">
+      {selectionMode && (
+        <td className="py-4 px-4 text-center">
+          <input
+            type="checkbox"
+            checked={selectedAssets.includes(asset.id)}
+            onChange={() => handleToggleAssetSelection(asset.id)}
+            className="w-4 h-4 text-cyan-500 border-cyan-500/30 rounded focus:ring-cyan-500 bg-slate-800"
+          />
+        </td>
+      )}
+      <td className="py-4 px-4">
+        <div className="flex items-center gap-2">
+          {renderAssetAvatar(asset, 'w-7 h-7 text-[10px]')}
+          <p className="font-medium text-cyan-300">{asset.symbol}</p>
+        </div>
+      </td>
+      <td className="py-4 px-4">
+        <p className="text-sm text-gray-300">{asset.name}</p>
+      </td>
+      <td className="py-4 px-4">
+        <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-cyan-900/30 text-cyan-300 border border-cyan-500/20">
+          {asset.type}
+        </span>
+      </td>
+      <td className="py-4 px-4">
+        <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-900/30 text-blue-300 border border-blue-500/20">
+          {asset.account || '기본계좌'}
+        </span>
+      </td>
+      <td className="py-4 px-4 text-center">
+        <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-slate-700 text-gray-300">
+          {asset.currency}
+        </span>
+      </td>
+      <td className="py-4 px-4 text-right text-sm text-gray-300">
+        {asset.quantity}
+      </td>
+      <td className="py-4 px-4 text-right text-sm text-gray-300">
+        {formatCurrency(asset.avgPrice, asset.currency)}
+      </td>
+      <td className="py-4 px-4 text-right text-sm text-gray-300">
+        {formatCurrency(asset.currentPrice, asset.currency)}
+      </td>
+      <td className="py-4 px-4 text-right text-sm">
+        {(() => {
+          const daily = Number(asset.dailyChangePercent || 0)
+          if (daily === 0) return <span className="text-gray-500">-</span>
+          const up = daily >= 0
+          return (
+            <span className={`inline-flex items-center gap-0.5 justify-end ${up ? 'neon-text-green' : 'neon-text-red'}`}>
+              {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+              {Math.abs(daily).toFixed(2)}%
+            </span>
+          )
+        })()}
+      </td>
+      <td className="py-4 px-4 text-right text-sm font-medium text-white">
+        {formatCurrency(asset.totalValue, asset.currency)}
+        {asset.currency === 'KRW' && (
+          <div className="text-xs text-gray-500">
+            ${(asset.totalValue / exchangeRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+          </div>
+        )}
+      </td>
+      <td className="py-4 px-4 text-right text-sm text-gray-300">
+        {getAssetWeightPercent(asset).toFixed(1)}%
+      </td>
+      <td className="py-4 px-4 text-right text-sm">
+        <span className={asset.profit >= 0 ? 'neon-text-green' : 'neon-text-red'}>
+          {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
+        </span>
+      </td>
+      <td className="py-4 px-4 text-right text-sm font-medium">
+        <span className={(asset.profitPercent || 0) >= 0 ? 'neon-text-green' : 'neon-text-red'}>
+          {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(2)}%
+        </span>
+      </td>
+      <td className="py-4 px-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleViewDetail(asset)}
+            className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
+            title="상세 보기"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleEditAsset(asset)}
+            className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+            title="자산 수정"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleDeleteAsset(asset.id)}
+            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+            title="삭제"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  )
+
+  // 데스크탑 테이블 헤더 컬럼 수 (그룹 헤더 행의 colSpan 계산용) — 심볼~관리 14개 + 선택모드 체크박스
+  const desktopColumnCount = 14 + (selectionMode ? 1 : 0)
+
   // Filter and search logic
   const filteredAssets = assets
     .filter(asset => {
@@ -879,6 +1114,24 @@ const Portfolio = () => {
           return 0
       }
     })
+
+  // 계좌별 그룹 뷰용 — filteredAssets(검색/필터/정렬 이미 적용됨)를 계좌 단위로 묶는다.
+  // Map 은 삽입 순서를 보존하므로 그룹 내부 순서는 filteredAssets 의 정렬 순서를 그대로 따른다.
+  const groupedByAccount = (() => {
+    const map = new Map()
+    filteredAssets.forEach(asset => {
+      const account = asset.account || '기본계좌'
+      if (!map.has(account)) map.set(account, [])
+      map.get(account).push(asset)
+    })
+    return Array.from(map.entries()).map(([account, groupAssets]) => {
+      const valueKRW = groupAssets.reduce((sum, a) => sum + (a.currency === 'USD' ? a.totalValue * exchangeRate : a.totalValue), 0)
+      const profitKRW = groupAssets.reduce((sum, a) => sum + (a.currency === 'USD' ? a.profit * exchangeRate : a.profit), 0)
+      const investedKRW = valueKRW - profitKRW
+      const profitPercent = investedKRW > 0 ? (profitKRW / investedKRW) * 100 : 0
+      return { account, assets: groupAssets, valueKRW, profitKRW, profitPercent }
+    }).sort((a, b) => b.valueKRW - a.valueKRW) // 평가액 큰 계좌 먼저
+  })()
 
   // Get unique asset types for filter
   const assetTypes = ['전체', ...new Set(assets.map(a => a.type))]
@@ -1666,6 +1919,19 @@ const Portfolio = () => {
               <span className="hidden sm:inline">PDF 보고서</span>
               <span className="sm:hidden">PDF</span>
             </button>
+            <button
+              onClick={() => setGroupByAccount(prev => !prev)}
+              className={`px-3 py-2 rounded-lg border transition-colors flex items-center gap-2 text-xs sm:text-sm ${groupByAccount
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border-cyan-500/30 hover:border-cyan-500/50'
+                }`}
+              disabled={filteredAssets.length === 0}
+              title="보유 자산을 계좌별로 묶어서 표시"
+            >
+              <Layers className="w-4 h-4" />
+              <span className="hidden sm:inline">{groupByAccount ? '전체 보기' : '계좌별 보기'}</span>
+              <span className="sm:hidden">계좌별</span>
+            </button>
 
             {/* Selection mode toggle */}
             {!selectionMode ? (
@@ -1717,117 +1983,37 @@ const Portfolio = () => {
                 <p className="text-sm mt-1">다른 검색어를 입력하거나 필터를 변경해보세요</p>
               </div>
             </div>
-          ) : (
-            filteredAssets.map((asset) => {
-              const positive = (asset.profitPercent || 0) >= 0
+          ) : groupByAccount ? (
+            groupedByAccount.map(group => {
+              const collapsed = collapsedAccounts.has(group.account)
               return (
-                <div key={asset.id} className="border border-cyan-500/30 rounded-lg p-3 bg-slate-800 text-white shadow-lg">
-                  {/* Header with symbol, name, and selection checkbox */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-2 flex-1 min-w-0">
-                      {selectionMode && (
-                        <input
-                          type="checkbox"
-                          checked={selectedAssets.includes(asset.id)}
-                          onChange={() => handleToggleAssetSelection(asset.id)}
-                          className="mt-0.5 w-4 h-4 text-cyan-400 border-gray-600 rounded focus:ring-cyan-500 bg-slate-700 flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0 flex items-start gap-2">
-                        {renderAssetAvatar(asset, 'w-8 h-8 text-xs mt-0.5')}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-cyan-300 truncate">{asset.symbol}</p>
-                          <p className="text-xs text-gray-400 truncate mt-0.5">{asset.name}</p>
-                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                            <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-cyan-900/30 text-cyan-300 border border-cyan-500/20">
-                              {asset.type}
-                            </span>
-                            <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-blue-900/30 text-blue-300 border border-blue-500/20">
-                              {asset.account || '기본계좌'}
-                            </span>
-                            <span className="inline-block px-1.5 py-0.5 text-xs font-medium rounded bg-slate-700 text-gray-300">
-                              {asset.currency}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Profit percentage badge + 일일변동 */}
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${positive ? 'bg-emerald-900/30' : 'bg-red-900/30'
-                        }`}>
-                        <span className={`text-base font-bold ${positive ? 'neon-text-green' : 'neon-text-red'}`}>
-                          {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(1)}%
-                        </span>
-                      </div>
-                      {Number(asset.dailyChangePercent || 0) !== 0 && (
-                        <span className={`inline-flex items-center gap-0.5 text-[11px] ${Number(asset.dailyChangePercent) >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
-                          {Number(asset.dailyChangePercent) >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                          금일 {Math.abs(Number(asset.dailyChangePercent)).toFixed(2)}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Key metrics */}
-                  <div className="grid grid-cols-2 gap-2 py-2 border-t border-cyan-500/20 text-xs text-gray-300">
-                    <div>
-                      <span className="text-gray-500">보유량</span>
-                      <p className="font-medium text-white mt-0.5">{asset.quantity}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-gray-500">평가액</span>
-                      <p className="font-bold text-white mt-0.5">{formatCurrency(asset.totalValue, asset.currency)}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">평균단가</span>
-                      <p className="font-medium text-white mt-0.5">{formatCurrency(asset.avgPrice, asset.currency)}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-gray-500">현재가</span>
-                      <p className="font-medium text-white mt-0.5">{formatCurrency(asset.currentPrice, asset.currency)}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">비중</span>
-                      <p className="font-medium text-white mt-0.5">{getAssetWeightPercent(asset).toFixed(1)}%</p>
-                    </div>
-                  </div>
-
-                  {/* Profit display */}
-                  <div className="flex items-center justify-between pt-2 border-t border-cyan-500/20">
-                    <span className="text-xs text-gray-500">수익금</span>
-                    <span className={`text-sm font-bold ${asset.profit >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
-                      {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
+                <div key={group.account} className="space-y-2">
+                  <button
+                    onClick={() => toggleAccountCollapse(group.account)}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-800/80 border border-cyan-500/30 rounded-lg text-left"
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      {collapsed ? <ChevronRight className="w-4 h-4 text-cyan-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-cyan-400 flex-shrink-0" />}
+                      <span className="text-sm font-bold text-cyan-300 truncate">{group.account}</span>
+                      <span className="text-xs text-cyan-300/50 flex-shrink-0">({group.assets.length}개)</span>
                     </span>
-                  </div>
-
-                  {/* Action buttons — 데스크탑 테이블과 동일하게 상세/수정/삭제 3버튼 */}
-                  <div className="flex items-center gap-2 pt-3 border-t border-cyan-500/20 mt-3">
-                    <button
-                      onClick={() => handleViewDetail(asset)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-cyan-300 rounded-lg transition-colors text-xs font-medium"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      상세
-                    </button>
-                    <button
-                      onClick={() => handleEditAsset(asset)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-900/20 hover:bg-blue-900/40 text-blue-400 rounded-lg transition-colors text-xs font-medium"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      수정
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAsset(asset.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded-lg transition-colors text-xs font-medium"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      삭제
-                    </button>
-                  </div>
+                    <span className="text-right flex-shrink-0">
+                      <span className="block text-sm font-bold text-white">₩{group.valueKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</span>
+                      <span className={`block text-xs ${group.profitKRW >= 0 ? 'neon-text-green' : 'neon-text-red'}`}>
+                        {group.profitKRW >= 0 ? '+' : ''}₩{group.profitKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })} ({group.profitPercent >= 0 ? '+' : ''}{group.profitPercent.toFixed(1)}%)
+                      </span>
+                    </span>
+                  </button>
+                  {!collapsed && (
+                    <div className="space-y-3 pl-2">
+                      {group.assets.map(asset => renderAssetCard(asset))}
+                    </div>
+                  )}
                 </div>
               )
             })
+          ) : (
+            filteredAssets.map(asset => renderAssetCard(asset))
           )}
         </div>
 
@@ -1865,7 +2051,7 @@ const Portfolio = () => {
             <tbody>
               {filteredAssets.length === 0 ? (
                 <tr>
-                  <td colSpan="12" className="py-12 text-center">
+                  <td colSpan={desktopColumnCount} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-cyan-300/40">
                       <Search className="w-12 h-12 mb-3 opacity-50" />
                       <p className="text-lg font-medium">검색 결과가 없습니다</p>
@@ -1873,113 +2059,37 @@ const Portfolio = () => {
                     </div>
                   </td>
                 </tr>
+              ) : groupByAccount ? (
+                groupedByAccount.map(group => {
+                  const collapsed = collapsedAccounts.has(group.account)
+                  return (
+                    <Fragment key={group.account}>
+                      <tr
+                        className="bg-slate-800/60 border-b border-cyan-500/20 cursor-pointer hover:bg-slate-800/90 transition-colors"
+                        onClick={() => toggleAccountCollapse(group.account)}
+                      >
+                        <td colSpan={desktopColumnCount} className="py-3 px-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-2 min-w-0">
+                              {collapsed ? <ChevronRight className="w-4 h-4 text-cyan-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-cyan-400 flex-shrink-0" />}
+                              <span className="text-sm font-bold text-cyan-300 truncate">{group.account}</span>
+                              <span className="text-xs text-cyan-300/50 flex-shrink-0">({group.assets.length}개)</span>
+                            </span>
+                            <span className="flex items-center gap-4 flex-shrink-0 text-sm">
+                              <span className="text-white font-medium">₩{group.valueKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}</span>
+                              <span className={group.profitKRW >= 0 ? 'neon-text-green' : 'neon-text-red'}>
+                                {group.profitKRW >= 0 ? '+' : ''}₩{group.profitKRW.toLocaleString('ko-KR', { maximumFractionDigits: 0 })} ({group.profitPercent >= 0 ? '+' : ''}{group.profitPercent.toFixed(1)}%)
+                              </span>
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                      {!collapsed && group.assets.map(asset => renderAssetRow(asset))}
+                    </Fragment>
+                  )
+                })
               ) : (
-                filteredAssets.map((asset) => (
-                  <tr key={asset.id} className="border-b border-cyan-500/10 hover:bg-cyan-500/5 transition-colors">
-                    {selectionMode && (
-                      <td className="py-4 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedAssets.includes(asset.id)}
-                          onChange={() => handleToggleAssetSelection(asset.id)}
-                          className="w-4 h-4 text-cyan-500 border-cyan-500/30 rounded focus:ring-cyan-500 bg-slate-800"
-                        />
-                      </td>
-                    )}
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        {renderAssetAvatar(asset, 'w-7 h-7 text-[10px]')}
-                        <p className="font-medium text-cyan-300">{asset.symbol}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <p className="text-sm text-gray-300">{asset.name}</p>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-cyan-900/30 text-cyan-300 border border-cyan-500/20">
-                        {asset.type}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-900/30 text-blue-300 border border-blue-500/20">
-                        {asset.account || '기본계좌'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-slate-700 text-gray-300">
-                        {asset.currency}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-300">
-                      {asset.quantity}
-                    </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-300">
-                      {formatCurrency(asset.avgPrice, asset.currency)}
-                    </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-300">
-                      {formatCurrency(asset.currentPrice, asset.currency)}
-                    </td>
-                    <td className="py-4 px-4 text-right text-sm">
-                      {(() => {
-                        const daily = Number(asset.dailyChangePercent || 0)
-                        if (daily === 0) return <span className="text-gray-500">-</span>
-                        const up = daily >= 0
-                        return (
-                          <span className={`inline-flex items-center gap-0.5 justify-end ${up ? 'neon-text-green' : 'neon-text-red'}`}>
-                            {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                            {Math.abs(daily).toFixed(2)}%
-                          </span>
-                        )
-                      })()}
-                    </td>
-                    <td className="py-4 px-4 text-right text-sm font-medium text-white">
-                      {formatCurrency(asset.totalValue, asset.currency)}
-                      {asset.currency === 'KRW' && (
-                        <div className="text-xs text-gray-500">
-                          ${(asset.totalValue / exchangeRate).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4 px-4 text-right text-sm text-gray-300">
-                      {getAssetWeightPercent(asset).toFixed(1)}%
-                    </td>
-                    <td className="py-4 px-4 text-right text-sm">
-                      <span className={asset.profit >= 0 ? 'neon-text-green' : 'neon-text-red'}>
-                        {asset.profit >= 0 ? '+' : ''}{formatCurrency(asset.profit, asset.currency)}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-right text-sm font-medium">
-                      <span className={(asset.profitPercent || 0) >= 0 ? 'neon-text-green' : 'neon-text-red'}>
-                        {(asset.profitPercent || 0) >= 0 ? '+' : ''}{(asset.profitPercent || 0).toFixed(2)}%
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewDetail(asset)}
-                          className="p-1.5 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
-                          title="상세 보기"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditAsset(asset)}
-                          className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-                          title="자산 수정"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAsset(asset.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filteredAssets.map(asset => renderAssetRow(asset))
               )}
             </tbody>
           </table>
